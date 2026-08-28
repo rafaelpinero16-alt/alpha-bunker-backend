@@ -3,7 +3,5 @@ uvicorn==0.28.0
 aiogram==3.12.0
 pydantic==2.8.2
 requests==2.31.0
-aiofiles==23.2.1fastapi
-uvicorn
-python-dotenv
-aiogram
+aiofiles==23.2.1
+python-dotenv==1.0.1
