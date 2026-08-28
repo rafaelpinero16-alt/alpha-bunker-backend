@@ -1,0 +1,12 @@
+[Unit]
+Description=Alpha Tom Vault FastAPI & Telegram Bot Service
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/root/app/backend
+ExecStart=/bin/bash /root/app/backend/start.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
