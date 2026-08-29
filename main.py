@@ -1,12 +1,12 @@
 import asyncio
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
-# Importamos nuestros módulos independientes (incluyendo routers adicionales si los hay)
-from routers import payments, users
-# Si tienes un archivo de posts u otro router, puedes descomentar la siguiente línea:
-# from routers import posts
+# Importamos nuestros módulos independientes
+from routers import payments, users, posts, wallet
 from database.db import init_db
 from core.config import bot, dp
 
@@ -15,6 +15,11 @@ from core.config import bot, dp
 async def lifespan(app: FastAPI):
     # Inicializa la base de datos
     init_db()
+    
+    # Creamos la carpeta de subidas si no existe (para guardar las fotos de perfil y posts reales)
+    if not os.path.exists("uploads"):
+        os.makedirs("uploads")
+        
     # Elimina cualquier webhook anterior de Telegram para evitar conflictos con el polling
     await bot.delete_webhook(drop_pending_updates=True)
     # Pone a Aiogram a escuchar los pagos y eventos de Telegram
@@ -25,7 +30,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Alpha Tom Vault API", lifespan=lifespan)
 
-# Configuración de CORS para permitir la conexión libre
+# Configuración de CORS para permitir la conexión con Netlify
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,10 +39,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Habilitamos la lectura pública de la carpeta de imágenes para que la Mini App pueda mostrarlas
+if os.path.exists("uploads"):
+    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # Conexión de las rutas (Endpoints)
 app.include_router(payments.router)
-app.include_router(users.router)  # Ruta conectada para guardar perfiles y biografías
-# app.include_router(posts.router)  # Descomenta si deseas habilitar los posts en el Swagger
+app.include_router(users.router)
+app.include_router(posts.router)
+app.include_router(wallet.router)  # Módulo financiero $ALPHA y Propinas
 
 @app.get("/")
 def read_root():

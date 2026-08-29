@@ -95,12 +95,11 @@
         <p class="text-sm text-gray-300 text-center mb-6 font-medium">Resuelve el código de seguridad para ingresar al Vault.</p>
 
         <div class="glass-panel p-6 w-full max-w-sm text-center border-[#00f3ff]">
-            <!-- CAJA DE CAPTCHA -->
             <div id="captcha-display" class="bg-black border-2 border-dashed border-[#00f3ff] py-4 rounded-xl text-3xl font-black text-[#00f3ff] tracking-[0.4em] mb-4 select-none" style="text-shadow: 0 0 10px #00f3ff;">
                 A7X9K
             </div>
             
-            <button onclick="app.generateCaptcha()" class="text-xs text-gray-400 hover:text-white underline mb-6 block mx-1 auto">
+            <button onclick="app.generateCaptcha()" class="text-xs text-gray-400 hover:text-white underline mb-6 block mx-auto">
                 <i class="fa-solid fa-rotate-right mr-1"></i> Generar otro código
             </button>
 
@@ -298,7 +297,6 @@
                 <p class="text-sm font-black text-[#ffb703] mt-1 bg-[#ffb703]/20 px-4 py-1.5 rounded-full border border-[#ffb703]/50" id="prof-rank">ESPÍA</p>
             </div>
 
-            <!-- CAMPO EDITABLE DE NOMBRE (Solo para suscriptores VIP / Pagos) -->
             <div class="mb-4">
                 <label class="block text-xs text-[#00f3ff] mb-2 font-bold tracking-wider uppercase">NOMBRE DE USUARIO / ALIAS</label>
                 <input type="text" id="prof-name-input" class="cyber-input text-base" placeholder="Tu alias VIP...">
