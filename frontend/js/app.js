@@ -241,18 +241,97 @@ const app = {
     },
 
     // ==========================================
-    // 5. FUNCIONES DE INTERACCIÓN BÁSICA
+    // 5. FUNCIONES DE INTERACCIÓN BÁSICA Y SESIÓN
     // ==========================================
-    loginWithTelegram() { this.haptic('medium'); this.switchView('feed'); },
-    loginWithPhone() { this.haptic('medium'); this.switchView('feed'); },
+    checkSession() {
+        try {
+            // Cargar idioma guardado
+            const savedLang = localStorage.getItem('alpha_lang') || 'es';
+            this.currentLang = savedLang;
+            const langText = document.getElementById('fab-lang-text');
+            if (langText) langText.innerText = savedLang.toUpperCase();
+            
+            // Ejecutador de traducciones globales (lo armaremos en el siguiente paso)
+            if (typeof window.applyTranslations === 'function') {
+                window.applyTranslations(savedLang);
+            }
+
+            // Revisar la memoria del navegador para el flujo de pantallas
+            const isLoggedIn = localStorage.getItem('alpha_logged_in');
+            const hasConsent = localStorage.getItem('alpha_consent');
+
+            if (isLoggedIn === 'true') {
+                this.switchView('feed');
+            } else if (hasConsent === 'true') {
+                this.switchView('login');
+            } else {
+                this.switchView('consent');
+            }
+        } catch (e) {
+            console.warn("Error leyendo sesión:", e);
+        }
+    },
+
+    loginWithTelegram() { 
+        this.haptic('medium'); 
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        this.switchView('feed'); 
+    },
+    loginWithPhone() { 
+        this.haptic('medium'); 
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        this.switchView('feed'); 
+    },
     registerWithData() { this.haptic('medium'); this.switchView('login'); },
-    registerWithGoogle() { this.haptic('medium'); this.switchView('feed'); },
+    registerWithGoogle() { 
+        this.haptic('medium'); 
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        this.switchView('feed'); 
+    },
     exitApp() { if(window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.close(); },
-    logout() { this.switchView('consent'); },
+    logout() { 
+        this.haptic('medium');
+        localStorage.removeItem('alpha_logged_in'); 
+        this.switchView('consent'); 
+    },
+
+    // ==========================================
+    // 6. IDIOMA, ADMIN Y EXTRAS
+    // ==========================================
+    toggleLanguage() { 
+        this.haptic('medium');
+        this.switchView('lang'); // Abre la pantalla de selección de idiomas
+    },
     
-    toggleLanguage() { this.showToast('Idioma cambiado'); },
-    setLanguage(lang) { this.switchView('feed'); },
-    toggleAdminSecret() { this.isAdmin = !this.isAdmin; this.showToast(this.isAdmin ? 'Admin Mode ON' : 'Admin Mode OFF'); },
+    setLanguage(lang) { 
+        this.haptic('light');
+        localStorage.setItem('alpha_lang', lang);
+        this.currentLang = lang;
+        
+        const langText = document.getElementById('fab-lang-text');
+        if (langText) langText.innerText = lang.toUpperCase();
+        
+        if (typeof window.applyTranslations === 'function') {
+            window.applyTranslations(lang);
+        }
+        
+        this.showToast(`Idioma: ${lang.toUpperCase()}`);
+        this.checkSession(); // Devuelve al usuario a la pantalla que le corresponde
+    },
+
+    toggleAdminSecret() { 
+        // ¡OJO AQUÍ RAFA! Reemplaza este número "123456789" con tu ID NUMÉRICO REAL de Telegram
+        const MI_TELEGRAM_ID = 8269470905; 
+        
+        // Si el usuario no tiene tu ID, le rebota el acceso
+        if (this.userId === MI_TELEGRAM_ID) {
+            this.isAdmin = !this.isAdmin; 
+            this.showToast(this.isAdmin ? 'Admin Mode ON 👑' : 'Admin Mode OFF');
+        } else {
+            this.showToast('Acceso denegado 🚫');
+            this.haptic('heavy');
+        }
+    },
     
     simulateAndPay() { this.showToast('Simulando pago...'); },
     startVideoCall() { this.showToast('Conectando Video Llamada Segura... 📹'); },
@@ -279,6 +358,7 @@ window.app = app;
 
 // Disparador inicial al cargar la página
 document.addEventListener("DOMContentLoaded", () => {
+    app.checkSession(); 
     if (typeof app.generateCaptcha === 'function') {
         app.generateCaptcha();
     }
