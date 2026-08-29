@@ -3,8 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# Importamos nuestros módulos independientes
+# Importamos nuestros módulos independientes (incluyendo routers adicionales si los hay)
 from routers import payments, users
+# Si tienes un archivo de posts u otro router, puedes descomentar la siguiente línea:
+# from routers import posts
 from database.db import init_db
 from core.config import bot, dp
 
@@ -23,7 +25,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Alpha Tom Vault API", lifespan=lifespan)
 
-# Configuración de CORS para permitir la conexión con Netlify
+# Configuración de CORS para permitir la conexión libre
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,6 +37,7 @@ app.add_middleware(
 # Conexión de las rutas (Endpoints)
 app.include_router(payments.router)
 app.include_router(users.router)  # Ruta conectada para guardar perfiles y biografías
+# app.include_router(posts.router)  # Descomenta si deseas habilitar los posts en el Swagger
 
 @app.get("/")
 def read_root():
