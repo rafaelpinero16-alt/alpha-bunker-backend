@@ -6,13 +6,38 @@
     <title>ALPHA TOM - Hybrid Ecosystem & Vault</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SDK Oficial de TonConnect UI para el modal nativo de billeteras estilo Fragment -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;700;900&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#050505">
     <link rel="stylesheet" href="css/style.css">
+    
+    <!-- LÓGICA DE RUTEO BLINDADA PARA TELEGRAM WEBAPP -->
+    <script>
+        function app_switchView(viewName) {
+            const views = ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'];
+            views.forEach(v => {
+                const el = document.getElementById(`view-${v}`);
+                if (el) el.classList.add('hidden');
+            });
+            const targetView = document.getElementById(`view-${viewName}`);
+            if (targetView) targetView.classList.remove('hidden');
+        }
+
+        function app_acceptConsent() {
+            try {
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+            } catch (e) { console.warn("Haptic no disponible"); }
+            
+            try { localStorage.setItem('alpha_consent', 'true'); } catch (e) {}
+            
+            // Redirige directamente al Captcha para verificación humana
+            app_switchView('captcha');
+        }
+    </script>
 </head>
 <body>
     <div class="tron-grid"></div>
@@ -39,7 +64,8 @@
         </div>
 
         <div class="w-full max-w-sm space-y-4">
-            <button onclick="app.acceptConsent()" class="w-full btn-neon-magenta py-4 rounded-xl text-2xl font-black uppercase tracking-wider levitate">
+            <!-- BOTÓN A PRUEBA DE FALLOS -->
+            <button onclick="app_acceptConsent()" class="w-full btn-neon-magenta py-4 rounded-xl text-2xl font-black uppercase tracking-wider levitate">
                 <i class="fa-solid fa-check-circle mr-2"></i> ACEPTO / I ACCEPT
             </button>
             <button onclick="app.exitApp()" class="w-full bg-transparent border-2 border-gray-600 text-gray-300 py-3.5 rounded-xl font-bold uppercase transition hover:text-white hover:border-white text-lg">
@@ -50,7 +76,7 @@
 
     <!-- VIEW 0: LOGIN -->
     <div id="view-login" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500">
-        <button onclick="app.switchView('consent')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(0,243,255,0.1)] transition text-sm font-bold z-50">
+        <button onclick="app_switchView('consent')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(0,243,255,0.1)] transition text-sm font-bold z-50">
             <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
         </button>
         <i class="fa-brands fa-telegram text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
@@ -83,7 +109,7 @@
 
             <div class="mt-6 text-center">
                 <p class="text-sm text-gray-300 mb-2 font-medium">¿No tienes cuenta aún?</p>
-                <button onclick="app.switchView('register')" class="text-base font-bold text-[#ff00ff] hover:text-white transition border-b-2 border-[#ff00ff] hover:border-white pb-1">
+                <button onclick="app_switchView('register')" class="text-base font-bold text-[#ff00ff] hover:text-white transition border-b-2 border-[#ff00ff] hover:border-white pb-1">
                     CREAR CUENTA NUEVA
                 </button>
             </div>
@@ -117,7 +143,7 @@
 
     <!-- VIEW 0.5: REGISTRATION -->
     <div id="view-register" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500">
-        <button onclick="app.switchView('login')" class="absolute top-6 left-6 text-[#ff00ff] border border-[#ff00ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(255,0,255,0.1)] transition text-sm font-bold z-50">
+        <button onclick="app_switchView('login')" class="absolute top-6 left-6 text-[#ff00ff] border border-[#ff00ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(255,0,255,0.1)] transition text-sm font-bold z-50">
             <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
         </button>
         <i class="fa-solid fa-user-plus text-7xl text-[#ff00ff] mb-4 drop-shadow-[0_0_15px_#ff00ff] levitate"></i>
@@ -162,7 +188,7 @@
                 </button>
             </div>
 
-            <button onclick="app.switchView('login')" class="w-full text-center text-sm text-gray-300 mt-4 hover:text-white transition font-semibold">
+            <button onclick="app_switchView('login')" class="w-full text-center text-sm text-gray-300 mt-4 hover:text-white transition font-semibold">
                 ¿Ya tienes cuenta? <span class="text-[#00f3ff] underline font-bold">Inicia Sesión</span>
             </button>
         </div>
@@ -248,7 +274,7 @@
     <div id="view-upload" class="hidden min-h-screen flex flex-col relative z-10 bg-[var(--bg-deep)]">
         <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
             <h3 class="font-extrabold text-xl text-[#00f3ff] leading-tight" id="upload-hdr"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i> SUBIR CONTENIDO</h3>
-            <button onclick="app.switchView('feed')" class="bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-sm">
+            <button onclick="app_switchView('feed')" class="bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-sm">
                 <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
             </button>
         </header>
