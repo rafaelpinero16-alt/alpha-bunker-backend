@@ -6,6 +6,8 @@
     <title>ALPHA TOM - Hybrid Ecosystem & Vault</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SDK Oficial de TonConnect UI para el modal nativo de billeteras estilo Fragment -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;700;900&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
@@ -295,6 +297,18 @@
             <div class="flex flex-col items-center mb-6">
                 <img id="prof-avatar" src="" class="w-28 h-28 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] object-cover mb-3">
                 <p class="text-sm font-black text-[#ffb703] mt-1 bg-[#ffb703]/20 px-4 py-1.5 rounded-full border border-[#ffb703]/50" id="prof-rank">ESPÍA</p>
+            </div>
+
+            <!-- TARJETA DE RECARGA DE $ALPHA COINS CON TONCONNECT -->
+            <div class="bg-black border-2 border-[#ffb703] rounded-xl p-5 mb-5 shadow-[0_0_15px_rgba(255,183,3,0.3)]">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs text-[#ffb703] font-bold tracking-wider uppercase"><i class="fa-solid fa-coins mr-1.5"></i> BILLETERA $ALPHA</span>
+                    <span id="prof-alpha-balance" class="font-black text-[#ffb703] text-lg">0 $ALPHA</span>
+                </div>
+                <p class="text-xs text-gray-300 mb-4 font-medium">Recarga saldo con tu billetera TON conectada para dar propinas y desbloquear contenido exclusivo.</p>
+                <button onclick="app.rechargeAlphaCoins(1, 100)" class="w-full bg-[#ffb703] text-black font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition shadow-[0_0_15px_#ffb703]">
+                    <i class="fa-solid fa-bolt text-base"></i> RECARGAR 1 TON x 100 $ALPHA
+                </button>
             </div>
 
             <div class="mb-4">

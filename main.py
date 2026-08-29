@@ -1,16 +1,15 @@
-import asyncio
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# Importamos nuestros módulos independientes (incluyendo el nuevo router de telegram)
+# Importamos nuestros módulos independientes
 from routers import payments, users, posts, wallet, telegram
 from database.db import init_db
-from core.config import bot, dp
+from core.config import bot
 
-# Configuramos el ciclo de vida para encender el bot y limpiar webhooks en segundo plano
+# Configuramos el ciclo de vida para inicializar el búnker de forma limpia
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Inicializa la base de datos
@@ -20,13 +19,8 @@ async def lifespan(app: FastAPI):
     if not os.path.exists("uploads"):
         os.makedirs("uploads")
         
-    # Elimina cualquier webhook anterior de Telegram para evitar conflictos con el polling
-    await bot.delete_webhook(drop_pending_updates=True)
-    # Pone a Aiogram a escuchar los pagos y eventos de Telegram
-    bot_task = asyncio.create_task(dp.start_polling(bot))
     yield
-    # Detiene el bot limpiamente al apagar el servidor
-    bot_task.cancel()
+    # Limpieza al apagar el servidor si es necesaria
 
 app = FastAPI(title="Alpha Tom Vault API", lifespan=lifespan)
 
