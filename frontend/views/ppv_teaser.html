@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sensual Cyber Silhouette Glass Studio</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Orbitron', 'sans-serif']
+          },
+          colors: {
+            cyber: {
+              black: '#050505',
+              surface: 'rgba(10, 8, 14, 0.82)',
+              cyan: '#00f3ff',
+              magenta: '#ff00ff',
+              gold: '#ffd700'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050505;
+      color: #e2e8f0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .tactical-glass {
+      background: rgba(10, 8, 14, 0.78);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 0, 255, 0.15);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.1);
+      height: 4px;
+      border-radius: 2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px;
+      width: 14px;
+      border-radius: 50%;
+      background: #ff00ff;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(255, 0, 255, 0.9);
+      border: 2px solid #050505;
+      transition: transform 0.1s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.3);
+    }
+  </style>
+</head>
+<body class="h-full w-full relative flex flex-col justify-between font-sans select-none">
+
+  <div id="canvas-container" class="absolute inset-0 w-full h-full z-0 cursor-pointer"></div>
+
+  <!-- Ambient Vignette Overlay -->
+  <div class="pointer-events-none absolute inset-0 bg-radial from-transparent via-[#050505]/40 to-[#050505] z-10"></div>
+
+  <!-- Header Navigation -->
+  <header class="relative z-20 w-full p-4 md:px-6 md:py-4 flex items-center justify-between pointer-events-none">
+    <div class="flex items-center space-x-3 pointer-events-auto">
+      <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#ff00ff] via-neutral-900 to-[#00f3ff] p-[1.5px] flex items-center justify-center shadow-lg shadow-fuchsia-500/10">
+        <div class="w-full h-full bg-[#08060a] rounded-[14px] flex items-center justify-center">
+          <svg class="w-5 h-5 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-sm md:text-base font-bold tracking-widest text-white uppercase font-display">CYBER SILHOUETTE</h1>
+          <span class="px-2 py-0.5 text-[9px] font-mono font-bold bg-fuchsia-500/15 text-fuchsia-300 border border-fuchsia-500/40 rounded-full tracking-wider">LOCKED VIP TEASER</span>
+        </div>
+        <p class="text-[10px] text-gray-400 font-mono tracking-wider">FROSTED TEMPERED GLASS // MAGENTA & CYAN NEON</p>
+      </div>
+    </div>
+
+    <!-- Telemetry Status -->
+    <div class="hidden sm:flex items-center space-x-3 tactical-glass px-4 py-2 rounded-2xl text-xs pointer-events-auto font-mono">
+      <span class="w-2 h-2 rounded-full bg-fuchsia-400 shadow-[0_0_8px_#ff00ff] animate-pulse"></span>
+      <span class="text-fuchsia-300 font-bold">GLASS BLUR: 8K RETINA ACTIVE</span>
+    </div>
+  </header>
+
+  <!-- Left Customization Panel -->
+  <div class="hidden lg:flex flex-col space-y-3 absolute left-6 top-1/2 -translate-y-1/2 z-20 pointer-events-none w-72">
+    <div class="tactical-glass p-4 rounded-2xl space-y-3 pointer-events-auto shadow-2xl">
+      <div class="flex items-center justify-between text-[10px] uppercase font-mono font-bold tracking-widest text-fuchsia-400">
+        <span>Glass & Neon Controls</span>
+        <span class="px-1.5 py-0.5 rounded bg-fuchsia-500/20 text-[9px] text-fuchsia-300">ESTHETIC</span>
+      </div>
+
+      <div class="space-y-1 pt-1">
+        <div class="flex justify-between text-[11px] font-mono text-gray-300">
+          <span>GLASS FROST DISTORTION</span>
+          <span id="blur-val" class="text-fuchsia-400 font-bold">4.2x</span>
+        </div>
+        <input type="range" min="1.0" max="8.0" step="0.2" value="4.2" class="w-full cursor-pointer" oninput="updateGlassBlur(this.value)">
+      </div>
+
+      <div class="space-y-1 pt-1">
+        <div class="flex justify-between text-[11px] font-mono text-gray-300">
+          <span>MAGENTA BACKLIGHT</span>
+          <span id="mag-val" class="text-fuchsia-400 font-bold">2.5x</span>
+        </div>
+        <input type="range" min="0.5" max="5.0" step="0.2" value="2.5" class="w-full cursor-pointer" oninput="updateMagentaLight(this.value)">
+      </div>
+
+      <div class="space-y-1 pt-1">
+        <div class="flex justify-between text-[11px] font-mono text-gray-300">
+          <span>CYAN BACKLIGHT</span>
+          <span id="cyan-val" class="text-cyan-400 font-bold">2.2x</span>
+        </div>
+        <input type="range" min="0.5" max="5.0" step="0.2" value="2.2" class="w-full cursor-pointer" oninput="updateCyanLight(this.value)">
+      </div>
+
+      <div class="pt-2">
+        <button onclick="toggleLockState()" id="lock-btn" class="w-full py-2 rounded-xl text-xs font-mono font-bold bg-fuchsia-500/20 text-fuchsia-300 hover:bg-fuchsia-500/30 border border-fuchsia-500/50 transition flex items-center justify-center space-x-2">
+          <svg class="w-4 h-4 text-fuchsia-400" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+          </svg>
+          <span id="lock-btn-text">VIP CONTENT: LOCKED</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center Locked Teaser Card Overlay -->
+  <main class="relative z-20 w-full flex-1 flex flex-col items-center justify-center p-4 pointer-events-none">
+    <div class="tactical-glass p-6 md:p-8 rounded-3xl max-w-sm w-full text-center space-y-4 pointer-events-auto shadow-[0_0_50px_rgba(255,0,255,0.15)] border border-fuchsia-500/30 transform transition hover:scale-[1.01]">
+      <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-fuchsia-500/20 to-cyan-500/20 border border-fuchsia-400/40 flex items-center justify-center shadow-lg shadow-fuchsia-500/20 animate-pulse">
+        <svg class="w-7 h-7 text-fuchsia-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+      </div>
+
+      <div class="space-y-1">
+        <h2 class="text-lg font-bold font-display text-white tracking-wider">RESTRICTED ACCESS</h2>
+        <p class="text-xs text-gray-400 font-mono">Unlock exclusive 8K cyber aesthetics & VIP cinematic vault content.</p>
+      </div>
+
+      <button onclick="requestVipAccess()" class="w-full py-3 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-fuchsia-500 to-cyan-500 text-black hover:opacity-90 transition shadow-lg shadow-fuchsia-500/30 flex items-center justify-center space-x-2">
+        <span>AUTHENTICATE VIP CREDENTIALS</span>
+        <svg class="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+        </svg>
+      </button>
+    </div>
+  </main>
+
+  <!-- Footer Actions -->
+  <footer class="relative z-20 w-full p-4 md:px-6 md:py-4 flex items-center justify-between pointer-events-none">
+    <div class="tactical-glass px-4 py-2 rounded-2xl text-[11px] font-mono text-gray-400 pointer-events-auto">
+      <span>OLED Pure Black: <strong class="text-white">#050505</strong></span>
+    </div>
+
+    <div class="tactical-glass p-1.5 rounded-2xl flex items-center space-x-1 pointer-events-auto shadow-2xl">
+      <button onclick="exportHighResTeaser()" class="px-4 py-2 rounded-xl text-xs font-mono font-bold bg-gradient-to-r from-fuchsia-500/25 to-cyan-500/25 text-fuchsia-300 hover:text-white border border-fuchsia-400/40 transition flex items-center space-x-2 active:scale-95 shadow-lg">
+        <svg class="w-4 h-4 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <span>EXPORT 8K TEASER WALLPAPER</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-20 right-6 z-50 transform translate-x-32 opacity-0 pointer-events-none transition-all duration-300 tactical-glass px-4 py-3 rounded-2xl border border-fuchsia-400/50 text-fuchsia-300 text-xs flex items-center space-x-2.5 shadow-2xl">
+    <svg class="w-4 h-4 text-fuchsia-400" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+    </svg>
+    <span id="toast-message" class="font-mono">Sensual Glass Studio Initialized</span>
+  </div>
+
+  <script>
+    let scene, camera, renderer;
+    let silhouetteGroup, glassPlaneMesh;
+    let lightMagenta, lightCyan;
+    let isUnlocked = false;
+
+    window.onload = function() {
+      initGlassStudio();
+      setupEventListeners();
+      animate();
+    };
+
+    function initGlassStudio() {
+      const container = document.getElementById('canvas-container');
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050505);
+
+      camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(0, 0, 7.0);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.6;
+      container.appendChild(renderer.domElement);
+
+      // Neon Backlights
+      lightMagenta = new THREE.PointLight(0xff00ff, 4.0, 15);
+      lightMagenta.position.set(-2.5, 1.5, -2.0);
+      scene.add(lightMagenta);
+
+      lightCyan = new THREE.PointLight(0x00f3ff, 3.5, 15);
+      lightCyan.position.set(2.5, -1.5, -2.0);
+      scene.add(lightCyan);
+
+      const ambientLight = new THREE.AmbientLight(0x100515, 1.0);
+      scene.add(ambientLight);
+
+      // Create Sensual Silhouette behind Glass
+      silhouetteGroup = new THREE.Group();
+      scene.add(silhouetteGroup);
+
+      // Organic sensual silhouette shapes (curves and shoulders)
+      const matSilhouette = new THREE.MeshBasicMaterial({
+        color: 0x020104,
+        transparent: true,
+        opacity: 0.95
+      });
+
+      // Head / Shoulders geometry
+      const headGeom = new THREE.SphereGeometry(0.55, 32, 32);
+      headGeom.scale(1, 1.3, 0.8);
+      const headMesh = new THREE.Mesh(headGeom, matSilhouette);
+      headMesh.position.set(0, 1.2, -1.0);
+      silhouetteGroup.add(headMesh);
+
+      const neckGeom = new THREE.CylinderGeometry(0.22, 0.28, 0.6, 32);
+      const neckMesh = new THREE.Mesh(neckGeom, matSilhouette);
+      neckMesh.position.set(0, 0.55, -1.0);
+      silhouetteGroup.add(neckMesh);
+
+      const shouldersGeom = new THREE.CylinderGeometry(1.6, 2.2, 2.2, 32);
+      shouldersGeom.scale(1, 0.6, 0.7);
+      const shouldersMesh = new THREE.Mesh(shouldersGeom, matSilhouette);
+      shouldersMesh.position.set(0, -1.1, -1.0);
+      silhouetteGroup.add(shouldersMesh);
+
+      // Frosted Tempered Glass Plane in Foreground
+      const glassGeom = new THREE.PlaneGeometry(8, 12, 64, 64);
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: 0x140d1a,
+        metalness: 0.1,
+        roughness: 0.42,
+        transmission: 0.65,
+        thickness: 1.2,
+        roughness: 0.45,
+        specularIntensity: 1.0,
+        envMapIntensity: 1.5,
+        transparent: true,
+        opacity: 0.88,
+        depthWrite: false
+      });
+      glassPlaneMesh = new THREE.Mesh(glassGeom, glassMat);
+      glassPlaneMesh.position.set(0, 0, 0.5);
+      scene.add(glassPlaneMesh);
+
+      // Floating Ambient Golden Dust Particles behind glass
+      const particleCount = 450;
+      const particleGeom = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 8;
+        positions[i + 1] = (Math.random() - 0.5) * 8;
+        positions[i + 2] = -1.5 + Math.random() * 1.0;
+      }
+      particleGeom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+      const particleMat = new THREE.PointsMaterial({
+        color: 0xffd700,
+        size: 0.035,
+        transparent: true,
+        opacity: 0.7,
+        blending: THREE.AdditiveBlending
+      });
+      const particles = new THREE.Points(particleGeom, particleMat);
+      scene.add(particles);
+      window.sceneParticles = particles;
+    }
+
+    let clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsedTime = clock.getElapsedTime();
+
+      // Subtle breathing motion for silhouette
+      if (silhouetteGroup) {
+        silhouetteGroup.position.y = Math.sin(elapsedTime * 1.2) * 0.06;
+        silhouetteGroup.rotation.y = Math.sin(elapsedTime * 0.6) * 0.04;
+      }
+
+      // Drift golden dust particles
+      if (window.sceneParticles) {
+        const positions = window.sceneParticles.geometry.attributes.position.array;
+        for (let i = 1; i < positions.length; i += 3) {
+          positions[i] += 0.0015;
+          if (positions[i] > 4) positions[i] = -4;
+        }
+        window.sceneParticles.geometry.attributes.position.needsUpdate = true;
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    function updateGlassBlur(val) {
+      const roughness = parseFloat(val) / 10.0;
+      glassPlaneMesh.material.roughness = roughness;
+      document.getElementById('blur-val').textContent = `${val}x`;
+    }
+
+    function updateMagentaLight(val) {
+      lightMagenta.intensity = parseFloat(val);
+      document.getElementById('mag-val').textContent = `${val}x`;
+    }
+
+    function updateCyanLight(val) {
+      lightCyan.intensity = parseFloat(val);
+      document.getElementById('cyan-val').textContent = `${val}x`;
+    }
+
+    function toggleLockState() {
+      isUnlocked = !isUnlocked;
+      const btnText = document.getElementById('lock-btn-text');
+      const btn = document.getElementById('lock-btn');
+      if (isUnlocked) {
+        btnText.textContent = "VIP CONTENT: UNLOCKED";
+        btn.className = "w-full py-2 rounded-xl text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/50 transition flex items-center justify-center space-x-2";
+        showToast("VIP Access Granted: Cinematic Silhouette Focused");
+      } else {
+        btnText.textContent = "VIP CONTENT: LOCKED";
+        btn.className = "w-full py-2 rounded-xl text-xs font-mono font-bold bg-fuchsia-500/20 text-fuchsia-300 hover:bg-fuchsia-500/30 border border-fuchsia-500/50 transition flex items-center justify-center space-x-2";
+        showToast("VIP Content Secured");
+      }
+    }
+
+    function requestVipAccess() {
+      toggleLockState();
+    }
+
+    function exportHighResTeaser() {
+      const exportWidth = 3840;
+      const exportHeight = 2160;
+
+      const offscreenCanvas = document.createElement('canvas');
+      offscreenCanvas.width = exportWidth;
+      offscreenCanvas.height = exportHeight;
+
+      const offscreenRenderer = new THREE.WebGLRenderer({
+        canvas: offscreenCanvas,
+        antialias: true,
+        preserveDrawingBuffer: true
+      });
+      offscreenRenderer.setSize(exportWidth, exportHeight, false);
+      offscreenRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+      offscreenRenderer.toneMappingExposure = 1.6;
+
+      const exportCamera = new THREE.PerspectiveCamera(50, exportWidth / exportHeight, 0.1, 100);
+      exportCamera.position.copy(camera.position);
+
+      offscreenRenderer.render(scene, exportCamera);
+
+      const dataURL = offscreenCanvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `CyberSilhouette-8K-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+
+      offscreenRenderer.dispose();
+      showToast("8K Sensual Silhouette Wallpaper Exported!");
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toast-message');
+      msgEl.textContent = msg;
+      toast.classList.remove('translate-x-32', 'opacity-0');
+      toast.classList.add('translate-x-0', 'opacity-100');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100');
+        toast.classList.add('translate-x-32', 'opacity-0');
+      }, 2600);
+    }
+
+    function handleResize() {
+      const container = document.getElementById('canvas-container');
+      if (!container || !renderer || !camera) return;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    }
+
+    function setupEventListeners() {
+      window.addEventListener('resize', handleResize);
+    }
+  </script>
+</body>
+</html>

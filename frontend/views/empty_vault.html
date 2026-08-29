@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D Holographic Cyber Safe Box</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            oled: '#050505',
+            cyan: '#00f3ff',
+            magenta: '#ff00ff',
+            gold: '#ffd700',
+            obsidian: '#111111'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #050505;
+      color: #ffffff;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #050505;
+    }
+
+    #glcanvas {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    .ui-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    .glass-panel {
+      background: rgba(10, 10, 12, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    .cyber-btn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .cyber-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: all 0.4s ease;
+    }
+    
+    .cyber-btn:hover::before {
+      left: 100%;
+    }
+
+    .status-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Canvas Background -->
+  <div id="canvas-container">
+    <canvas id="glcanvas"></canvas>
+  </div>
+
+  <div class="ui-layer justify-between p-6 md:p-8">
+    
+    <!-- Top Header -->
+    <div class="w-full flex justify-between items-start">
+      <div>
+        <h1 class="font-sans font-semibold text-xl tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">Asset Vault</h1>
+        <div class="flex items-center gap-3 mt-2">
+          <div class="w-2 h-2 rounded-full bg-cyan shadow-[0_0_8px_#00f3ff] status-pulse" id="status-indicator"></div>
+          <p class="font-mono text-cyan text-xs tracking-[0.2em] uppercase" id="status-text">STATUS: OPEN // SECURE</p>
+        </div>
+      </div>
+      
+      <!-- Safe Toggle -->
+      <button id="btn-toggle-door" class="interactive cyber-btn flex items-center gap-2 px-5 py-2.5 glass-panel rounded-full text-xs font-mono font-bold tracking-widest hover:bg-white/10 transition-colors border border-cyan/30 text-cyan hover:text-white hover:border-white">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
+        <span id="btn-door-text">CLOSE VAULT</span>
+      </button>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="w-full flex flex-col md:flex-row justify-center md:justify-between items-center gap-6 interactive">
+      
+      <!-- Hologram Color Selection -->
+      <div class="glass-panel px-6 py-4 rounded-2xl flex flex-col gap-3">
+        <span class="font-mono text-[10px] text-white/50 tracking-widest uppercase">Grid Resonance</span>
+        <div class="flex gap-3">
+          <button class="color-btn w-8 h-8 rounded-full border-2 border-white bg-gradient-to-br from-cyan to-magenta shadow-[0_0_15px_rgba(0,243,255,0.4)]" data-color="neon"></button>
+          <button class="color-btn w-8 h-8 rounded-full border-2 border-transparent bg-gradient-to-br from-gold to-orange-500 hover:border-white/50 transition-colors" data-color="gold"></button>
+          <button class="color-btn w-8 h-8 rounded-full border-2 border-transparent bg-gradient-to-br from-red-500 to-black hover:border-white/50 transition-colors" data-color="alert"></button>
+        </div>
+      </div>
+
+      <!-- Export Action -->
+      <button id="btn-export" class="interactive cyber-btn px-8 py-4 bg-white/5 backdrop-blur-md border border-white/20 text-white rounded-xl text-xs font-bold font-sans tracking-[0.15em] uppercase hover:bg-white hover:text-black transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] flex items-center gap-3">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        Capture 8K Render
+      </button>
+
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('glcanvas');
+    // preserveDrawingBuffer is needed for the export function
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas, 
+      antialias: true, 
+      alpha: false,
+      preserveDrawingBuffer: true 
+    });
+    
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+    scene.fog = new THREE.FogExp2(0x050505, 0.04);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    // Positioned to look into the open safe
+    camera.position.set(4, 3, 8);
+
+    function resizeCanvas() {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Group to hold the entire safe to apply floating animation
+    const safeGroup = new THREE.Group();
+    scene.add(safeGroup);
+
+    // Dynamic Lights
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.15);
+    scene.add(ambientLight);
+
+    const rimLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    rimLight.position.set(5, 10, -5);
+    scene.add(rimLight);
+
+    // Interior colored lights
+    const cyanLight = new THREE.PointLight(0x00f3ff, 2, 10);
+    cyanLight.position.set(1, 0, 1);
+    safeGroup.add(cyanLight);
+
+    const magentaLight = new THREE.PointLight(0xff00ff, 2, 10);
+    magentaLight.position.set(-1, 0, -1);
+    safeGroup.add(magentaLight);
+
+    
+    // Premium Obsidian Material for the Safe body
+    const obsidianMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0a0a0c,
+      metalness: 0.9,
+      roughness: 0.2,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1,
+      envMapIntensity: 1.0
+    });
+
+    const interiorMat = new THREE.MeshStandardMaterial({
+      color: 0x020202,
+      metalness: 0.8,
+      roughness: 0.6
+    });
+
+    // Vault Dimensions
+    const w = 3.6;
+    const h = 3.6;
+    const d = 3.6;
+    const t = 0.3; // Wall thickness
+
+    const bodyGroup = new THREE.Group();
+    safeGroup.add(bodyGroup);
+
+    // Helper function to create walls
+    function createWall(w, h, d, x, y, z) {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      // Give it a subtle bevel effect by using a basic box but lighting handles the edges
+      const mesh = new THREE.Mesh(geo, obsidianMat);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    // Build the hollow box (Bottom, Top, Back, Left, Right)
+    bodyGroup.add(createWall(w, t, d, 0, -h/2 + t/2, 0)); // Bottom
+    bodyGroup.add(createWall(w, t, d, 0, h/2 - t/2, 0));  // Top
+    bodyGroup.add(createWall(w, h - t*2, t, 0, 0, -d/2 + t/2)); // Back
+    bodyGroup.add(createWall(t, h - t*2, d - t, -w/2 + t/2, 0, t/2)); // Left
+    bodyGroup.add(createWall(t, h - t*2, d - t, w/2 - t/2, 0, t/2));  // Right
+
+    // Vault Door & Hinge
+    const hingeGroup = new THREE.Group();
+    // Position hinge at the front left edge
+    hingeGroup.position.set(-w/2 + t/2, 0, d/2 - t/2);
+    safeGroup.add(hingeGroup);
+
+    const doorGeo = new THREE.BoxGeometry(w - t, h - t*2, t);
+    const door = new THREE.Mesh(doorGeo, obsidianMat);
+    // Offset door so it swings from the corner
+    door.position.set((w - t)/2, 0, t/2);
+    hingeGroup.add(door);
+
+    // Inner door locking mechanism (Decorative)
+    const lockGeo = new THREE.CylinderGeometry(0.8, 0.8, t + 0.1, 16);
+    lockGeo.rotateX(Math.PI / 2);
+    const lock = new THREE.Mesh(lockGeo, new THREE.MeshPhysicalMaterial({
+      color: 0x222222, metalness: 1.0, roughness: 0.3
+    }));
+    lock.position.set((w - t)/2, 0, t/2);
+    hingeGroup.add(lock);
+
+    // Outer door detail
+    const outerDetailGeo = new THREE.BoxGeometry(w - t*3, h - t*4, t + 0.05);
+    const outerDetail = new THREE.Mesh(outerDetailGeo, new THREE.MeshStandardMaterial({
+      color: 0x050505, metalness: 0.9, roughness: 0.8
+    }));
+    outerDetail.position.set((w - t)/2, 0, t/2);
+    hingeGroup.add(outerDetail);
+
+    // Start with door open
+    let doorTargetRotation = -Math.PI / 1.6;
+    hingeGroup.rotation.y = doorTargetRotation;
+
+
+    // Holographic Interior Wireframe Grid
+    const innerW = w - t*2 - 0.1;
+    const innerH = h - t*2 - 0.1;
+    const innerD = d - t - 0.2;
+
+    const gridGroup = new THREE.Group();
+    gridGroup.position.set(0, 0, -0.1);
+    safeGroup.add(gridGroup);
+
+    // Create glowing edge lines for the interior
+    const edgeGeo = new THREE.EdgesGeometry(new THREE.BoxGeometry(innerW, innerH, innerD));
+    const cyanLineMat = new THREE.LineBasicMaterial({ 
+      color: 0x00f3ff, 
+      transparent: true, 
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending 
+    });
+    const magentaLineMat = new THREE.LineBasicMaterial({ 
+      color: 0xff00ff, 
+      transparent: true, 
+      opacity: 0.6,
+      blending: THREE.AdditiveBlending 
+    });
+
+    const innerGrid = new THREE.LineSegments(edgeGeo, cyanLineMat);
+    gridGroup.add(innerGrid);
+
+    // Create a smaller nested grid for depth
+    const innerGrid2 = new THREE.LineSegments(
+      new THREE.EdgesGeometry(new THREE.BoxGeometry(innerW * 0.8, innerH * 0.8, innerD * 0.8)), 
+      magentaLineMat
+    );
+    gridGroup.add(innerGrid2);
+
+    // Digital Energy Dust Particles
+    const particleCount = 1200;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePos = new Float32Array(particleCount * 3);
+    const particleVel = [];
+
+    for(let i = 0; i < particleCount; i++) {
+      // Spawn mostly inside the safe and flowing out
+      particlePos[i*3] = (Math.random() - 0.5) * innerW * 1.5;
+      particlePos[i*3+1] = (Math.random() - 0.5) * innerH * 1.5;
+      particlePos[i*3+2] = (Math.random() - 0.5) * innerD + 1.0; // Bias towards front
+
+      particleVel.push({
+        y: Math.random() * 0.01 + 0.005,
+        x: (Math.random() - 0.5) * 0.005,
+        z: (Math.random() - 0.5) * 0.01 + 0.005 // Flowing out slightly
+      });
+    }
+
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+    
+    // Create a glowing particle material
+    const particleMat = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.05,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending,
+      map: createGlowTexture(),
+      depthWrite: false
+    });
+
+    const particles = new THREE.Points(particleGeo, particleMat);
+    safeGroup.add(particles);
+
+    // Helper to generate a soft circle texture for particles
+    function createGlowTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(0.2, 'rgba(0, 243, 255, 0.8)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 32, 32);
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    // Platform Base (Subtle grounding)
+    const floorGeo = new THREE.PlaneGeometry(20, 20);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x020202,
+      roughness: 0.1,
+      metalness: 0.8,
+      transparent: true,
+      opacity: 0.8
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.y = -3;
+    scene.add(floor);
+
+
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetRotationX = 0;
+    let targetRotationY = 0;
+    const windowHalfX = window.innerWidth / 2;
+    const windowHalfY = window.innerHeight / 2;
+
+    document.addEventListener('mousemove', (event) => {
+      mouseX = (event.clientX - windowHalfX);
+      mouseY = (event.clientY - windowHalfY);
+      targetRotationY = (mouseX / windowHalfX) * 0.2;
+      targetRotationX = (mouseY / windowHalfY) * 0.1;
+    });
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = clock.getElapsedTime();
+
+      // Mouse parallax
+      safeGroup.rotation.y += (targetRotationY - safeGroup.rotation.y) * 0.05;
+      camera.position.y += (-targetRotationX * 3 + 3 - camera.position.y) * 0.05;
+      camera.lookAt(0, 0, 0);
+
+      // Smooth floating animation
+      safeGroup.position.y = Math.sin(time * 1.5) * 0.15;
+
+      // Smooth Door Swing
+      hingeGroup.rotation.y += (doorTargetRotation - hingeGroup.rotation.y) * 0.05;
+      lock.rotation.x = hingeGroup.rotation.y * -2; // Spin lock as door opens
+
+      // Animate Particles
+      const positions = particles.geometry.attributes.position.array;
+      for(let i=0; i<particleCount; i++) {
+        positions[i*3] += particleVel[i].x;
+        positions[i*3+1] += particleVel[i].y;
+        positions[i*3+2] += particleVel[i].z;
+
+        // Reset particle if it goes too high or far
+        if(positions[i*3+1] > h) {
+          positions[i*3] = (Math.random() - 0.5) * innerW;
+          positions[i*3+1] = -h/2;
+          positions[i*3+2] = (Math.random() - 0.5) * innerD;
+        }
+      }
+      particles.geometry.attributes.position.needsUpdate = true;
+      
+      // Pulse inner grid
+      innerGrid.material.opacity = 0.5 + Math.sin(time * 3) * 0.2;
+      innerGrid2.material.opacity = 0.4 + Math.cos(time * 4) * 0.2;
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // UI Logic & Controls
+    const btnToggleDoor = document.getElementById('btn-toggle-door');
+    const btnDoorText = document.getElementById('btn-door-text');
+    const statusIndicator = document.getElementById('status-indicator');
+    const statusText = document.getElementById('status-text');
+    let isVaultOpen = true;
+
+    btnToggleDoor.addEventListener('click', () => {
+      isVaultOpen = !isVaultOpen;
+      if (isVaultOpen) {
+        doorTargetRotation = -Math.PI / 1.6;
+        btnDoorText.innerText = "CLOSE VAULT";
+        statusIndicator.className = "w-2 h-2 rounded-full shadow-[0_0_8px_#00f3ff] status-pulse bg-cyan";
+        statusText.innerText = "STATUS: OPEN // SECURE";
+        statusText.className = "font-mono text-xs tracking-[0.2em] uppercase text-cyan";
+        btnToggleDoor.className = "interactive cyber-btn flex items-center gap-2 px-5 py-2.5 glass-panel rounded-full text-xs font-mono font-bold tracking-widest hover:bg-white/10 transition-colors border border-cyan/30 text-cyan hover:text-white hover:border-white";
+      } else {
+        doorTargetRotation = 0; // Closed
+        btnDoorText.innerText = "OPEN VAULT";
+        statusIndicator.className = "w-2 h-2 rounded-full shadow-[0_0_8px_#ff00ff] bg-magenta";
+        statusText.innerText = "STATUS: LOCKED // ARMED";
+        statusText.className = "font-mono text-xs tracking-[0.2em] uppercase text-magenta";
+        btnToggleDoor.className = "interactive cyber-btn flex items-center gap-2 px-5 py-2.5 glass-panel rounded-full text-xs font-mono font-bold tracking-widest hover:bg-white/10 transition-colors border border-magenta/30 text-magenta hover:text-white hover:border-white";
+      }
+    });
+
+    // Hologram Color Switcher
+    const colorBtns = document.querySelectorAll('.color-btn');
+    const themes = {
+      neon: { cyan: 0x00f3ff, magenta: 0xff00ff, particle: 0x00f3ff },
+      gold: { cyan: 0xffd700, magenta: 0xff8c00, particle: 0xffd700 },
+      alert: { cyan: 0xff0000, magenta: 0x880000, particle: 0xff0000 }
+    };
+
+    colorBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Reset borders
+        colorBtns.forEach(b => {
+          b.classList.remove('border-white');
+          b.classList.add('border-transparent');
+          b.style.boxShadow = 'none';
+        });
+        
+        // Set active border
+        e.target.classList.remove('border-transparent');
+        e.target.classList.add('border-white');
+        
+        const themeName = e.target.getAttribute('data-color');
+        const theme = themes[themeName];
+        
+        // Add glow to active button
+        if(themeName === 'neon') e.target.style.boxShadow = '0 0 15px rgba(0,243,255,0.4)';
+        if(themeName === 'gold') e.target.style.boxShadow = '0 0 15px rgba(255,215,0,0.4)';
+        if(themeName === 'alert') e.target.style.boxShadow = '0 0 15px rgba(255,0,0,0.4)';
+
+        // Update 3D Materials and Lights
+        cyanLineMat.color.setHex(theme.cyan);
+        magentaLineMat.color.setHex(theme.magenta);
+        cyanLight.color.setHex(theme.cyan);
+        magentaLight.color.setHex(theme.magenta);
+        
+        // Update particles (Requires creating a new gradient texture)
+        const canvas = document.createElement('canvas');
+        canvas.width = 32; canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+        const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.2, themeName === 'neon' ? 'rgba(0,243,255,0.8)' : (themeName === 'gold' ? 'rgba(255,215,0,0.8)' : 'rgba(255,0,0,0.8)'));
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 32, 32);
+        particleMat.map = new THREE.CanvasTexture(canvas);
+        particleMat.needsUpdate = true;
+      });
+    });
+
+    // 8K Export Logic
+    const btnExport = document.getElementById('btn-export');
+    
+    btnExport.addEventListener('click', () => {
+      const originalWidth = window.innerWidth;
+      const originalHeight = window.innerHeight;
+      
+      // Target 8K resolution (7680 × 4320)
+      const exportWidth = 7680;
+      const exportHeight = 4320;
+      
+      renderer.setSize(exportWidth, exportHeight);
+      camera.aspect = exportWidth / exportHeight;
+      camera.updateProjectionMatrix();
+      
+      // Force render at new resolution
+      renderer.render(scene, camera);
+      
+      const dataURL = canvas.toDataURL('image/png');
+      
+      // Restore original view
+      renderer.setSize(originalWidth, originalHeight);
+      camera.aspect = originalWidth / originalHeight;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+
+      // Trigger download
+      const link = document.createElement('a');
+      link.download = `Cyber_Vault_Hologram_8K.png`;
+      link.href = dataURL;
+      link.click();
+    });
+
+  </script>
+</body>
+</html>

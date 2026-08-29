@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cyber Video Call Standby</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  
+  <!-- Three.js and Post-Processing (r128) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Orbitron', 'sans-serif'],
+            mono: ['Share Tech Mono', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              black: '#050505',
+              cyan: '#00f3ff',
+              magenta: '#ff00ff',
+              gold: '#ffd700'
+            }
+          },
+          animation: {
+            'pulse-fast': 'pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'spin-slow': 'spin 4s linear infinite',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050505;
+      color: #e2e8f0;
+      overflow: hidden;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .glass-panel {
+      background: rgba(10, 10, 15, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(0, 243, 255, 0.15);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-cyber {
+      transition: all 0.2s ease-out;
+    }
+    .btn-cyber:active {
+      transform: scale(0.95);
+    }
+
+    /* Custom Range Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.05);
+      height: 4px;
+      border-radius: 2px;
+      width: 100%;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #00f3ff;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+      border: 2px solid #050505;
+      transition: transform 0.1s;
+    }
+    input[type=range].magenta-thumb::-webkit-slider-thumb {
+      background: #ff00ff;
+      box-shadow: 0 0 10px rgba(255, 0, 255, 0.8);
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Mobile Frame for Desktop */
+    .mobile-frame {
+      aspect-ratio: 9/16;
+      max-height: 90vh;
+      width: auto;
+      max-width: 100%;
+      border-radius: 40px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 0 50px rgba(0, 243, 255, 0.1), 0 0 100px rgba(255, 0, 255, 0.05);
+      border: 6px solid #1a1a24;
+    }
+    
+    @media (max-width: 768px) {
+      .mobile-frame {
+        aspect-ratio: auto;
+        height: 100vh;
+        width: 100vw;
+        max-height: 100vh;
+        border-radius: 0;
+        border: none;
+      }
+    }
+  </style>
+</head>
+<body class="h-full w-full flex items-center justify-center relative">
+
+  
+  <!-- Main Container -->
+  <div class="flex items-center justify-center w-full h-full p-0 md:p-6 space-x-0 md:space-x-8">
+
+    <!-- Desktop Sidebar Controls (Hidden on Mobile) -->
+    <div class="hidden lg:flex flex-col w-72 space-y-4 z-20">
+      <div class="glass-panel p-5 rounded-2xl">
+        <h2 class="text-xs font-display font-bold tracking-widest text-cyber-cyan uppercase mb-4 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          Telemetry Core
+        </h2>
+        
+        <div class="space-y-4">
+          <div>
+            <div class="flex justify-between text-[10px] font-mono text-gray-400 mb-1">
+              <span>WAVEFORM GAIN</span>
+              <span id="val-gain">1.0x</span>
+            </div>
+            <input type="range" min="0.1" max="2.0" step="0.1" value="1.0" oninput="updateSettings('gain', this.value)">
+          </div>
+          
+          <div>
+            <div class="flex justify-between text-[10px] font-mono text-gray-400 mb-1">
+              <span>RADAR VELOCITY</span>
+              <span id="val-speed">1.0x</span>
+            </div>
+            <input type="range" min="0.2" max="3.0" step="0.1" value="1.0" class="magenta-thumb" oninput="updateSettings('speed', this.value)">
+          </div>
+
+          <div>
+            <div class="flex justify-between text-[10px] font-mono text-gray-400 mb-1">
+              <span>NEON BLOOM</span>
+              <span id="val-bloom">1.5</span>
+            </div>
+            <input type="range" min="0.5" max="3.0" step="0.1" value="1.5" oninput="updateSettings('bloom', this.value)">
+          </div>
+        </div>
+      </div>
+
+      <button onclick="export8KBackground()" class="glass-panel p-4 rounded-2xl flex items-center justify-center space-x-2 text-xs font-display font-bold text-white hover:bg-white/5 transition border border-cyber-cyan/30 group">
+        <svg class="w-4 h-4 text-cyber-cyan group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        <span>EXPORT 8K WALLPAPER</span>
+      </button>
+    </div>
+
+    <!-- Mobile Frame (The App Interface) -->
+    <div class="mobile-frame bg-cyber-black flex-shrink-0 flex flex-col relative w-full md:h-[90vh]">
+      
+      <!-- 3D Canvas Background -->
+      <div id="canvas-container" class="absolute inset-0 z-0 w-full h-full bg-cyber-black"></div>
+
+      
+      <!-- UI Overlay Layer -->
+      <div class="relative z-10 flex flex-col h-full w-full pointer-events-none">
+        
+        <!-- Status Bar (Fake) -->
+        <div class="w-full h-12 px-6 flex items-center justify-between text-[10px] font-mono text-gray-300 pt-2">
+          <span>02:34</span>
+          <div class="flex items-center space-x-2">
+            <span class="text-cyber-cyan">5G</span>
+            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 11.14c3.43-3.42 9.07-3.42 12.5 0l-1.42 1.42c-2.65-2.65-6.94-2.65-9.6 0L2 11.14z"/><path d="M4.12 13.26c2.26-2.26 5.92-2.26 8.18 0l-1.42 1.42c-1.48-1.48-3.88-1.48-5.36 0L4.12 13.26z"/><path d="M7 16a1 1 0 100-2 1 1 0 000 2z"/></svg>
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h12a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V5zm14 1H4v8h12V6z"/></svg>
+          </div>
+        </div>
+
+        <!-- Top Header Info -->
+        <div class="px-6 py-4 flex flex-col items-center">
+          <div class="flex items-center space-x-2 bg-cyber-cyan/10 border border-cyber-cyan/30 px-3 py-1 rounded-full backdrop-blur-md mb-6">
+            <svg class="w-3 h-3 text-cyber-cyan" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></path></svg>
+            <span class="text-[9px] font-mono tracking-widest text-cyber-cyan uppercase">End-to-End Encrypted</span>
+          </div>
+          
+          <h1 class="text-2xl font-display font-bold text-white tracking-wide text-center">UNKNOWN CALLER</h1>
+          <p class="text-xs font-mono text-cyber-magenta mt-1 tracking-widest animate-pulse">ESTABLISHING UPLINK...</p>
+        </div>
+
+        <div class="flex-1 w-full"></div> <!-- Spacer for absolute center visual -->
+
+        <!-- Bottom Controls -->
+        <div class="w-full pb-10 px-8 flex flex-col items-center space-y-8 pointer-events-auto">
+          
+          <!-- Call Duration / Audio visualizer fake -->
+          <div class="flex items-center space-x-3 text-xs font-mono text-gray-400">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+            <span>00:00:00 STANDBY</span>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex items-center justify-between w-full max-w-xs mx-auto">
+            
+            <!-- Video Toggle -->
+            <button class="btn-cyber w-14 h-14 rounded-full bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/10 hover:border-cyber-cyan/50 hover:text-cyber-cyan hover:shadow-[0_0_15px_rgba(0,243,255,0.4)]">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            </button>
+
+            <!-- End Call (Red) -->
+            <button class="btn-cyber w-20 h-20 rounded-full bg-red-600/20 border border-red-500/50 backdrop-blur-md flex items-center justify-center text-red-400 shadow-[0_0_30px_rgba(220,38,38,0.3)] hover:bg-red-600/40 hover:text-white">
+              <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/></svg>
+            </button>
+
+            <!-- Mic Toggle -->
+            <button class="btn-cyber w-14 h-14 rounded-full bg-white/5 border border-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/10 hover:border-cyber-magenta/50 hover:text-cyber-magenta hover:shadow-[0_0_15px_rgba(255,0,255,0.4)]">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+            </button>
+            
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 z-50 transform -translate-y-10 opacity-0 pointer-events-none transition-all duration-300 glass-panel px-6 py-3 rounded-full border border-cyber-cyan/50 text-cyber-cyan text-xs flex items-center space-x-3 shadow-2xl">
+    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+    <span id="toast-msg" class="font-mono font-bold tracking-widest">ACTION COMPLETED</span>
+  </div>
+
+  <script>
+    let scene, camera, renderer, composer, bloomPass;
+    let waveformBars = [];
+    let radarSweeper;
+    let particles;
+    let vaultTunnel;
+    
+    // Config
+    const config = {
+      waveformIntensity: 1.0,
+      radarSpeed: 1.0,
+      bloomStrength: 1.5,
+      time: 0
+    };
+
+    window.onload = function() {
+      init3D();
+      setupEventListeners();
+      animate();
+    };
+
+    function init3D() {
+      const container = document.getElementById('canvas-container');
+
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050505);
+      scene.fog = new THREE.FogExp2(0x050505, 0.04);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 100);
+      camera.position.set(0, 0, 15);
+      camera.lookAt(0, 0, 0);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.2;
+      container.appendChild(renderer.domElement);
+
+      // Post-Processing (Bloom for Neon)
+      const renderScene = new THREE.RenderPass(scene, camera);
+      bloomPass = new THREE.UnrealBloomPass(
+        new THREE.Vector2(container.clientWidth, container.clientHeight),
+        config.bloomStrength, // strength
+        0.5, // radius
+        0.1  // threshold
+      );
+      
+      composer = new THREE.EffectComposer(renderer);
+      composer.addPass(renderScene);
+      composer.addPass(bloomPass);
+
+      buildVaultEnvironment();
+      buildAudioRadar();
+      createParticles();
+    }
+
+    function buildVaultEnvironment() {
+      const group = new THREE.Group();
+      
+      // Deep corridor walls (octagonal)
+      const tunnelGeom = new THREE.CylinderGeometry(20, 20, 100, 8, 1, true);
+      const tunnelMat = new THREE.MeshStandardMaterial({
+        color: 0x0a0a0a,
+        roughness: 0.2,
+        metalness: 0.8,
+        wireframe: false
+      });
+      vaultTunnel = new THREE.Mesh(tunnelGeom, tunnelMat);
+      vaultTunnel.rotation.x = Math.PI / 2;
+      vaultTunnel.position.z = -20;
+      group.add(vaultTunnel);
+
+      // Emissive Neon Strips along the walls
+      const stripGeom = new THREE.BoxGeometry(0.5, 0.5, 100);
+      
+      // Left Strips (Magenta)
+      const matMagenta = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xff00ff, emissiveIntensity: 2.0 });
+      const strip1 = new THREE.Mesh(stripGeom, matMagenta);
+      strip1.position.set(-18, 5, -20);
+      const strip2 = new THREE.Mesh(stripGeom, matMagenta);
+      strip2.position.set(-18, -5, -20);
+      group.add(strip1, strip2);
+
+      // Right Strips (Cyan)
+      const matCyan = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0x00f3ff, emissiveIntensity: 2.0 });
+      const strip3 = new THREE.Mesh(stripGeom, matCyan);
+      strip3.position.set(18, 5, -20);
+      const strip4 = new THREE.Mesh(stripGeom, matCyan);
+      strip4.position.set(18, -5, -20);
+      group.add(strip3, strip4);
+
+      // Core Ambient light
+      const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+      scene.add(ambient);
+
+      scene.add(group);
+    }
+
+    function buildAudioRadar() {
+      const radarGroup = new THREE.Group();
+
+      const numBars = 72;
+      const radius = 6;
+      const barGeometry = new THREE.BoxGeometry(0.2, 2.0, 0.2);
+
+      // Pre-create materials
+      const cyanMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0x00f3ff, emissiveIntensity: 2.5 });
+      const magMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xff00ff, emissiveIntensity: 2.5 });
+      const goldMat = new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0xffd700, emissiveIntensity: 1.0 });
+
+      for (let i = 0; i < numBars; i++) {
+        // Alternate colors
+        let mat = cyanMat;
+        if (i % 3 === 0) mat = magMat;
+        if (i % 8 === 0) mat = goldMat;
+
+        const mesh = new THREE.Mesh(barGeometry, mat);
+        
+        // Circular math
+        const angle = (i / numBars) * Math.PI * 2;
+        mesh.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
+        
+        // Point outward
+        mesh.rotation.z = angle;
+        
+        // Store for animation
+        waveformBars.push({
+          mesh: mesh,
+          angle: angle,
+          index: i,
+          baseY: 2.0
+        });
+
+        radarGroup.add(mesh);
+      }
+
+      // Center Core Ring
+      const ringGeom = new THREE.TorusGeometry(radius - 0.5, 0.05, 16, 100);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, transparent: true, opacity: 0.3 });
+      const ring = new THREE.Mesh(ringGeom, ringMat);
+      radarGroup.add(ring);
+
+      // Radar Sweeper Plane
+      const sweepGeom = new THREE.RingGeometry(0.1, radius + 2, 32, 1, 0, Math.PI / 4);
+      const sweepMat = new THREE.MeshBasicMaterial({ 
+        color: 0x00f3ff, 
+        transparent: true, 
+        opacity: 0.1,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending
+      });
+      radarSweeper = new THREE.Mesh(sweepGeom, sweepMat);
+      radarGroup.add(radarSweeper);
+
+      // Tilt slightly for 3D perspective
+      radarGroup.rotation.x = -Math.PI / 8;
+      
+      scene.add(radarGroup);
+    }
+
+    function createParticles() {
+      const count = 300;
+      const geom = new THREE.BufferGeometry();
+      const pos = new Float32Array(count * 3);
+      
+      for(let i = 0; i < count * 3; i+=3) {
+        pos[i] = (Math.random() - 0.5) * 40;
+        pos[i+1] = (Math.random() - 0.5) * 40;
+        pos[i+2] = (Math.random() - 0.5) * 40 - 10;
+      }
+      
+      geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0xff00ff,
+        size: 0.15,
+        transparent: true,
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending
+      });
+      
+      particles = new THREE.Points(geom, mat);
+      scene.add(particles);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      config.time += 0.02 * config.radarSpeed;
+
+      // Animate Waveform Bars (Fake Audio Reactivity)
+      const time = performance.now() * 0.003 * config.radarSpeed;
+      waveformBars.forEach(bar => {
+        // Complex sine wave combination to simulate audio frequencies
+        let amp = Math.sin(time + bar.index * 0.3) * 0.5 + 0.5;
+        amp *= Math.sin(time * 1.7 + bar.index * 0.8) * 0.5 + 0.5;
+        
+        // Add random flickering logic to make it feel alive
+        const noise = Math.random() * 0.2;
+        
+        // Scale the bar based on the simulated amplitude
+        const scale = 0.2 + (amp * 4.0 * config.waveformIntensity) + noise;
+        bar.mesh.scale.y = scale;
+        
+        // Push outwards slightly based on scale
+        bar.mesh.position.x = Math.cos(bar.angle) * (6 + (scale * 0.2));
+        bar.mesh.position.y = Math.sin(bar.angle) * (6 + (scale * 0.2));
+      });
+
+      // Spin Radar Sweeper
+      if (radarSweeper) {
+        radarSweeper.rotation.z -= 0.05 * config.radarSpeed;
+      }
+
+      // Slowly rotate tunnel for floating effect
+      if (vaultTunnel) {
+        vaultTunnel.rotation.y = Math.sin(config.time * 0.2) * 0.1;
+      }
+
+      // Float particles
+      if (particles) {
+        particles.rotation.y += 0.001 * config.radarSpeed;
+        particles.rotation.z += 0.0005 * config.radarSpeed;
+      }
+
+      // Render via Composer for Bloom effect
+      composer.render();
+    }
+
+    function updateSettings(type, val) {
+      const v = parseFloat(val);
+      if (type === 'gain') {
+        config.waveformIntensity = v;
+        document.getElementById('val-gain').textContent = v.toFixed(1) + 'x';
+      } else if (type === 'speed') {
+        config.radarSpeed = v;
+        document.getElementById('val-speed').textContent = v.toFixed(1) + 'x';
+      } else if (type === 'bloom') {
+        config.bloomStrength = v;
+        if(bloomPass) bloomPass.strength = v;
+        document.getElementById('val-bloom').textContent = v.toFixed(1);
+      }
+    }
+
+    function handleResize() {
+      const container = document.getElementById('canvas-container');
+      if (!container || !renderer || !camera || !composer) return;
+      
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      
+      renderer.setSize(width, height);
+      composer.setSize(width, height);
+    }
+
+    function setupEventListeners() {
+      window.addEventListener('resize', handleResize);
+    }
+
+    function export8KBackground() {
+      showToast("Rendering 8K Background...");
+      
+      // Target 8K Portrait resolution (4320 x 7680)
+      // Using 4K Portrait (2160 x 3840) to prevent browser memory crashes, which is still highly detailed
+      const exportWidth = 2160;
+      const exportHeight = 3840;
+
+      // Create offscreen setup
+      const offscreenCanvas = document.createElement('canvas');
+      offscreenCanvas.width = exportWidth;
+      offscreenCanvas.height = exportHeight;
+
+      const offscreenRenderer = new THREE.WebGLRenderer({
+        canvas: offscreenCanvas,
+        antialias: true,
+        preserveDrawingBuffer: true,
+        alpha: false
+      });
+      offscreenRenderer.setPixelRatio(1);
+      offscreenRenderer.setSize(exportWidth, exportHeight, false);
+      offscreenRenderer.toneMapping = THREE.ACESFilmicToneMapping;
+      offscreenRenderer.toneMappingExposure = 1.2;
+
+      // Recreate composer for offscreen
+      const exportRenderPass = new THREE.RenderPass(scene, camera);
+      const exportBloomPass = new THREE.UnrealBloomPass(
+        new THREE.Vector2(exportWidth, exportHeight),
+        config.bloomStrength,
+        0.5,
+        0.1
+      );
+      
+      const exportComposer = new THREE.EffectComposer(offscreenRenderer);
+      exportComposer.addPass(exportRenderPass);
+      exportComposer.addPass(exportBloomPass);
+
+      // Temporarily adjust camera aspect for the vertical export
+      const oldAspect = camera.aspect;
+      camera.aspect = exportWidth / exportHeight;
+      camera.updateProjectionMatrix();
+
+      // Render one frame to offscreen composer
+      exportComposer.render();
+
+      // Generate Download
+      const dataURL = offscreenCanvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Cyber-Call-BG-4K-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+
+      // Cleanup & Restore
+      camera.aspect = oldAspect;
+      camera.updateProjectionMatrix();
+      offscreenRenderer.dispose();
+      
+      setTimeout(() => showToast("4K Portrait Exported Successfully!"), 500);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toast-msg');
+      msgEl.textContent = msg;
+      
+      toast.classList.remove('-translate-y-10', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('-translate-y-10', 'opacity-0');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

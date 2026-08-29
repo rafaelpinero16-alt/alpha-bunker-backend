@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VIP Transaction Success 3D Emblem</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            cyber: ['Rajdhani', 'sans-serif'],
+          },
+          colors: {
+            oled: '#050505',
+            neonGreen: '#00ff88',
+            gold: '#ffd700',
+            obsidian: '#111111'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #050505;
+      color: #ffffff;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #050505;
+    }
+
+    #glcanvas {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    .ui-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    .glass-panel {
+      background: rgba(10, 10, 12, 0.7);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+
+    .cyber-btn {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .cyber-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      transition: all 0.4s ease;
+    }
+    
+    .cyber-btn:hover::before {
+      left: 100%;
+    }
+
+    .status-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.98); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="canvas-container">
+    <canvas id="glcanvas"></canvas>
+  </div>
+
+  <div class="ui-layer justify-between p-6 md:p-8">
+    
+    <!-- Top Header -->
+    <div class="w-full flex justify-between items-start">
+      <div>
+        <h1 class="font-sans font-semibold text-lg tracking-widest text-white uppercase drop-shadow-[0_0_10px_rgba(0,255,136,0.4)]">VIP Transaction Success</h1>
+        <div class="flex items-center gap-3 mt-2">
+          <div class="w-2 h-2 rounded-full bg-neonGreen shadow-[0_0_10px_#00ff88] status-pulse"></div>
+          <p class="font-mono text-neonGreen text-xs tracking-[0.2em] uppercase">SECURED // BLOCK 0x9AF8</p>
+        </div>
+      </div>
+      
+      <!-- Transaction ID Badge -->
+      <div class="glass-panel px-4 py-2 rounded-xl text-xs font-mono text-white/70 tracking-wider">
+        TX: <span class="text-gold font-bold">#8892-ALPHA</span>
+      </div>
+    </div>
+
+    <!-- Center Status Toast -->
+    <div class="self-center glass-panel px-6 py-3 rounded-2xl flex items-center gap-3 border border-neonGreen/30 shadow-[0_0_20px_rgba(0,255,136,0.15)] status-pulse">
+      <svg class="w-5 h-5 text-neonGreen" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
+      <span class="font-cyber font-bold text-sm tracking-widest text-white">ASSETS TRANSFERRED SUCCESSFULLY</span>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="w-full flex flex-col md:flex-row justify-center md:justify-between items-center gap-6 interactive">
+      
+      <!-- Celebration Mode Selector -->
+      <div class="glass-panel px-6 py-4 rounded-2xl flex flex-col gap-2">
+        <span class="font-mono text-[10px] text-white/50 tracking-widest uppercase">Emblem Theme</span>
+        <div class="flex gap-3">
+          <button class="theme-btn px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider bg-neonGreen/20 text-neonGreen border border-neonGreen/40 transition-all" data-theme="emerald">EMERALD GOLD</button>
+          <button class="theme-btn px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider bg-white/5 text-white/60 border border-white/10 hover:border-white/30 transition-all" data-theme="solar">SOLAR FLAME</button>
+          <button class="theme-btn px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider bg-white/5 text-white/60 border border-white/10 hover:border-white/30 transition-all" data-theme="cyber">CYBER CYAN</button>
+        </div>
+      </div>
+
+      <!-- Export 4K Action -->
+      <button id="btn-export" class="interactive cyber-btn px-8 py-4 bg-white/5 backdrop-blur-md border border-white/20 text-white rounded-xl text-xs font-bold font-sans tracking-[0.15em] uppercase hover:bg-white hover:text-black transition-all hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] flex items-center gap-3">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        Capture 4K Emblem
+      </button>
+
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('glcanvas');
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas, 
+      antialias: true, 
+      alpha: false,
+      preserveDrawingBuffer: true 
+    });
+    
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+    renderer.shadowMap.enabled = true;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 7.5);
+
+    function resizeCanvas() {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Master Group for the Celebration Emblem
+    const emblemGroup = new THREE.Group();
+    scene.add(emblemGroup);
+
+    // --- 1. Octagonal Cyber Shield Base ---
+    const shieldShape = new THREE.Shape();
+    const radius = 2.2;
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      if (i === 0) shieldShape.moveTo(x, y);
+      else shieldShape.lineTo(x, y);
+    }
+
+    const extrudeSettings = {
+      depth: 0.35,
+      bevelEnabled: true,
+      bevelSegments: 3,
+      steps: 1,
+      bevelSize: 0.08,
+      bevelThickness: 0.08
+    };
+
+    const shieldGeo = new THREE.ExtrudeGeometry(shieldShape, extrudeSettings);
+    const obsidianMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0a0a0c,
+      metalness: 0.95,
+      roughness: 0.15,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1
+    });
+
+    const shieldMesh = new THREE.Mesh(shieldGeo, obsidianMat);
+    shieldMesh.position.z = -0.175;
+    emblemGroup.add(shieldMesh);
+
+    // Gold Bezel Border around shield
+    const borderGeo = new THREE.EdgesGeometry(shieldGeo);
+    const goldMat = new THREE.MeshStandardMaterial({
+      color: 0xffd700,
+      metalness: 1.0,
+      roughness: 0.2
+    });
+
+    // --- 2. Glowing Verified Checkmark ---
+    const checkShape = new THREE.Shape();
+    checkShape.moveTo(-0.6, 0.0);
+    checkShape.lineTo(-0.15, -0.5);
+    checkShape.lineTo(0.8, 0.6);
+    checkShape.lineTo(0.65, 0.8);
+    checkShape.lineTo(-0.15, -0.1);
+    checkShape.lineTo(-0.4, 0.2);
+    checkShape.closePath();
+
+    const checkExtrude = {
+      depth: 0.2,
+      bevelEnabled: true,
+      bevelSize: 0.05,
+      bevelThickness: 0.05
+    };
+
+    const checkGeo = new THREE.ExtrudeGeometry(checkShape, checkExtrude);
+    const checkMat = new THREE.MeshStandardMaterial({
+      color: 0x00ff88,
+      emissive: 0x00ff88,
+      emissiveIntensity: 1.2,
+      metalness: 0.8,
+      roughness: 0.2
+    });
+
+    const checkMesh = new THREE.Mesh(checkGeo, checkMat);
+    checkMesh.position.set(0.0, -0.1, 0.2);
+    emblemGroup.add(checkMesh);
+
+    // --- 3. Floating Golden Alpha (α) Cryptocurrency Coins ---
+    const coinGroup = new THREE.Group();
+    emblemGroup.add(coinGroup);
+
+    const coinGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 32);
+    coinGeo.rotateX(Math.PI / 2);
+
+    const alphaCoins = [];
+    const numCoins = 8;
+    for (let i = 0; i < numCoins; i++) {
+      const coinMesh = new THREE.Mesh(coinGeo, goldMat);
+      
+      const angle = (i / numCoins) * Math.PI * 2;
+      const dist = 2.8 + Math.random() * 0.5;
+      coinMesh.position.set(
+        Math.cos(angle) * dist,
+        Math.sin(angle) * dist,
+        (Math.random() - 0.5) * 0.8
+      );
+      
+      coinMesh.userData = {
+        rotSpeedX: (Math.random() - 0.5) * 0.03,
+        rotSpeedY: (Math.random() - 0.5) * 0.03,
+        orbitAngle: angle,
+        orbitSpeed: 0.005 + Math.random() * 0.005,
+        orbitRadius: dist
+      };
+
+      alphaCoins.push(coinMesh);
+      coinGroup.add(coinMesh);
+    }
+
+    // --- 4. Cyber Spark & Gold Energy Particles ---
+    const particleCount = 600;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePos = new Float32Array(particleCount * 3);
+    const particleCol = new Float32Array(particleCount * 3);
+
+    const colorGreen = new THREE.Color(0x00ff88);
+    const colorGold = new THREE.Color(0xffd700);
+
+    for (let i = 0; i < particleCount; i++) {
+      const u = Math.random();
+      const theta = Math.random() * Math.PI * 2;
+      const r = 1.5 + Math.random() * 3.0;
+
+      particlePos[i*3] = Math.cos(theta) * r;
+      particlePos[i*3+1] = Math.sin(theta) * r;
+      particlePos[i*3+2] = (Math.random() - 0.5) * 3.0;
+
+      const mixedCol = Math.random() > 0.4 ? colorGold : colorGreen;
+      particleCol[i*3] = mixedCol.r;
+      particleCol[i*3+1] = mixedCol.g;
+      particleCol[i*3+2] = mixedCol.b;
+    }
+
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+    particleGeo.setAttribute('color', new THREE.BufferAttribute(particleCol, 3));
+
+    const particleMat = new THREE.PointsMaterial({
+      size: 0.06,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    const particles = new THREE.Points(particleGeo, particleMat);
+    emblemGroup.add(particles);
+
+    // --- Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    scene.add(ambientLight);
+
+    const greenPointLight = new THREE.PointLight(0x00ff88, 3.0, 8);
+    greenPointLight.position.set(0, 0, 2);
+    emblemGroup.add(greenPointLight);
+
+    const goldRimLight = new THREE.DirectionalLight(0xffd700, 2.5);
+    goldRimLight.position.set(5, 5, -5);
+    scene.add(goldRimLight);
+
+    const magentaFillLight = new THREE.DirectionalLight(0xff00ff, 1.0);
+    magentaFillLight.position.set(-5, -5, 2);
+    scene.add(magentaFillLight);
+
+    // --- Mouse Parallax & Animation Loop ---
+    let mouseX = 0, mouseY = 0;
+    let targetRotX = 0, targetRotY = 0;
+    const windowHalfX = window.innerWidth / 2;
+    const windowHalfY = window.innerHeight / 2;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = (e.clientX - windowHalfX);
+      mouseY = (e.clientY - windowHalfY);
+      targetRotY = (mouseX / windowHalfX) * 0.25;
+      targetRotX = (mouseY / windowHalfY) * 0.25;
+    });
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = clock.getElapsedTime();
+
+      // Smooth parallax
+      emblemGroup.rotation.y += (targetRotY - emblemGroup.rotation.y) * 0.05;
+      emblemGroup.rotation.x += (targetRotX - emblemGroup.rotation.x) * 0.05;
+
+      // Floating idle motion
+      emblemGroup.position.y = Math.sin(time * 2) * 0.1;
+
+      // Rotate individual floating coins
+      alphaCoins.forEach(coin => {
+        coin.rotation.x += coin.userData.rotSpeedX;
+        coin.rotation.y += coin.userData.rotSpeedY;
+
+        coin.userData.orbitAngle += coin.userData.orbitSpeed;
+        coin.position.x = Math.cos(coin.userData.orbitAngle) * coin.userData.orbitRadius;
+        coin.position.y = Math.sin(coin.userData.orbitAngle) * coin.userData.orbitRadius;
+      });
+
+      // Animate particles swirl
+      const positions = particles.geometry.attributes.position.array;
+      for (let i = 0; i < particleCount; i++) {
+        positions[i*3+2] += Math.sin(time + i) * 0.005;
+      }
+      particles.geometry.attributes.position.needsUpdate = true;
+
+      // Pulse checkmark glow
+      checkMat.emissiveIntensity = 1.2 + Math.sin(time * 4) * 0.4;
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // --- Theme Switcher Logic ---
+    const themeButtons = document.querySelectorAll('.theme-btn');
+    themeButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        themeButtons.forEach(b => {
+          b.className = "theme-btn px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider bg-white/5 text-white/60 border border-white/10 hover:border-white/30 transition-all";
+        });
+        e.target.className = "theme-btn px-4 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider bg-neonGreen/20 text-neonGreen border border-neonGreen/40 transition-all";
+        
+        const theme = e.target.getAttribute('data-theme');
+        if (theme === 'emerald') {
+          checkMat.color.setHex(0x00ff88);
+          checkMat.emissive.setHex(0x00ff88);
+          greenPointLight.color.setHex(0x00ff88);
+        } else if (theme === 'solar') {
+          checkMat.color.setHex(0xffaa00);
+          checkMat.emissive.setHex(0xffaa00);
+          greenPointLight.color.setHex(0xffaa00);
+        } else if (theme === 'cyber') {
+          checkMat.color.setHex(0x00f3ff);
+          checkMat.emissive.setHex(0x00f3ff);
+          greenPointLight.color.setHex(0x00f3ff);
+        }
+      });
+    });
+
+    // --- 4K Export Logic ---
+    const btnExport = document.getElementById('btn-export');
+    btnExport.addEventListener('click', () => {
+      const origW = window.innerWidth;
+      const origH = window.innerHeight;
+      
+      renderer.setSize(3840, 2160);
+      camera.aspect = 3840 / 2160;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+      
+      const dataURL = canvas.toDataURL('image/png');
+      
+      renderer.setSize(origW, origH);
+      camera.aspect = origW / origH;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+
+      const link = document.createElement('a');
+      link.download = `VIP_Transaction_Success_4K.png`;
+      link.href = dataURL;
+      link.click();
+    });
+  </script>
+</body>
+</html>

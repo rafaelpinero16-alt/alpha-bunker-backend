@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-black">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ultra-Luxury Cyber Card</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@500;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- OrbitControls -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Orbitron', 'sans-serif'],
+            wide: ['Syncopate', 'sans-serif'],
+          },
+          colors: {
+            cyber: {
+              black: '#000000',
+              cyan: '#00f3ff',
+              magenta: '#ff00ff',
+              gold: '#ffd700',
+              titanium: '#1a1a1c'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #000000;
+      color: #e2e8f0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      user-select: none;
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Glassmorphism UI */
+    .ui-layer {
+      position: absolute;
+      z-index: 10;
+      pointer-events: none;
+    }
+    
+    .interactive {
+      pointer-events: auto;
+    }
+
+    .glass-panel {
+      background: rgba(10, 10, 12, 0.4);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(255,0,255,0.05);
+    }
+
+    .btn-cyber {
+      background: rgba(26, 26, 28, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.3s ease;
+      color: rgba(255,255,255,0.6);
+    }
+    
+    .btn-cyber:hover, .btn-cyber.active {
+      color: #fff;
+      border-color: #00f3ff;
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.3), inset 0 0 10px rgba(0, 243, 255, 0.1);
+    }
+    
+    .btn-cyber.magenta:hover, .btn-cyber.magenta.active {
+      border-color: #ff00ff;
+      box-shadow: 0 0 15px rgba(255, 0, 255, 0.3), inset 0 0 10px rgba(255, 0, 255, 0.1);
+    }
+
+    /* Vignette overlay */
+    .vignette {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.9) 100%);
+      pointer-events: none;
+      z-index: 5;
+    }
+  </style>
+</head>
+
+<body class="antialiased">
+
+  <!-- 3D Canvas -->
+  <canvas id="webgl-canvas"></canvas>
+  <div class="vignette"></div>
+
+  <!-- Header UI -->
+  <div class="ui-layer top-0 left-0 w-full p-6 md:p-8 flex justify-between items-start">
+    <div>
+      <h1 class="text-2xl md:text-4xl font-display font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-500 uppercase drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+        Alpha
+      </h1>
+      <p class="text-[9px] md:text-xs font-wide text-cyber-gold mt-1 uppercase tracking-[0.4em]">Obsidian Black Edition</p>
+    </div>
+    
+    <div class="interactive flex flex-col gap-3">
+      <button id="btn-rotate" class="btn-cyber active px-4 py-2 rounded-lg text-xs font-mono flex items-center justify-between min-w-[140px]">
+        <span>Auto-Rotate</span>
+        <div class="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse"></div>
+      </button>
+      <button id="btn-edge" class="btn-cyber magenta active px-4 py-2 rounded-lg text-xs font-mono flex items-center justify-between min-w-[140px]">
+        <span>Edge Lighting</span>
+        <div class="w-2 h-2 rounded-full bg-cyber-magenta shadow-[0_0_8px_#ff00ff]"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Footer UI -->
+  <div class="ui-layer bottom-0 left-0 w-full p-8 flex justify-center">
+    <div class="glass-panel interactive px-6 py-4 rounded-2xl flex items-center gap-8">
+      <div class="text-center">
+        <div class="text-[10px] font-mono text-white/40 tracking-widest uppercase mb-1">Chip Glow</div>
+        <div class="text-cyber-cyan font-display font-bold">ACTIVE</div>
+      </div>
+      <div class="w-px h-8 bg-white/10"></div>
+      <div class="text-center">
+        <div class="text-[10px] font-mono text-white/40 tracking-widest uppercase mb-1">Material</div>
+        <div class="text-white/80 font-display font-bold">TITANIUM</div>
+      </div>
+      <div class="w-px h-8 bg-white/10 hidden md:block"></div>
+      <div class="text-center hidden md:block">
+        <div class="text-[10px] font-mono text-white/40 tracking-widest uppercase mb-1">Network</div>
+        <div class="text-cyber-magenta font-display font-bold">SECURE</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- STREAMING_CHUNK:Initializing Application State and DOM Elements... ---
+    const config = {
+      autoRotate: true,
+      edgeLighting: true,
+      mouse: new THREE.Vector2(0, 0),
+      targetRotation: new THREE.Vector2(0, 0)
+    };
+
+    const canvas = document.getElementById('webgl-canvas');
+    const btnRotate = document.getElementById('btn-rotate');
+    const btnEdge = document.getElementById('btn-edge');
+
+    // --- STREAMING_CHUNK:Setting up Three.js Scene, Camera, and Renderer... ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000000);
+    // Subtle fog to fade out distant parts of the scene if needed
+    scene.fog = new THREE.Fog(0x000000, 10, 30);
+
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 14);
+
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas: canvas, 
+      antialias: true,
+      powerPreference: "high-performance"
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    // --- STREAMING_CHUNK:Creating Procedural Environment Map... ---
+    // Generate a simple environment map for metallic reflections
+    const pmremGenerator = new THREE.PMREMGenerator(renderer);
+    pmremGenerator.compileEquirectangularShader();
+    
+    // We create a basic glowing grid texture to use as an environment reflection
+    const envCanvas = document.createElement('canvas');
+    envCanvas.width = 512;
+    envCanvas.height = 256;
+    const ctx = envCanvas.getContext('2d');
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, 512, 256);
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 2;
+    for(let i=0; i<512; i+=32) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 256); ctx.stroke();
+    }
+    for(let i=0; i<256; i+=32) {
+      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+    }
+    // Add some bright spots for dramatic reflections
+    ctx.fillStyle = '#ffffff';
+    ctx.filter = 'blur(10px)';
+    ctx.fillRect(100, 50, 100, 50);
+    ctx.fillStyle = '#00f3ff';
+    ctx.fillRect(350, 150, 50, 100);
+    
+    const envTexture = new THREE.CanvasTexture(envCanvas);
+    envTexture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = envTexture;
+
+    // --- STREAMING_CHUNK:Defining Geometric Helpers for Card... ---
+    // Standard credit card ratio ~ 1.586
+    const cardWidth = 8.56;
+    const cardHeight = 5.398;
+    const cardDepth = 0.08;
+    const cornerRadius = 0.4;
+
+    function createRoundedRectShape(width, height, radius) {
+      const shape = new THREE.Shape();
+      const x = -width/2, y = -height/2;
+      
+      shape.moveTo(x, y + radius);
+      shape.lineTo(x, y + height - radius);
+      shape.quadraticCurveTo(x, y + height, x + radius, y + height);
+      shape.lineTo(x + width - radius, y + height);
+      shape.quadraticCurveTo(x + width, y + height, x + width, y + height - radius);
+      shape.lineTo(x + width, y + radius);
+      shape.quadraticCurveTo(x + width, y, x + width - radius, y);
+      shape.lineTo(x + radius, y);
+      shape.quadraticCurveTo(x, y, x, y + radius);
+      
+      return shape;
+    }
+
+    const cardShape = createRoundedRectShape(cardWidth, cardHeight, cornerRadius);
+
+    const extrudeSettings = {
+      depth: cardDepth,
+      bevelEnabled: true,
+      bevelSegments: 4,
+      steps: 1,
+      bevelSize: 0.02,
+      bevelThickness: 0.02
+    };
+
+    // --- STREAMING_CHUNK:Building the Card Structure and Materials... ---
+    // Group to hold the entire card and its attachments
+    const cardGroup = new THREE.Group();
+    scene.add(cardGroup);
+
+    // Main Card Body Material (Obsidian / Brushed Titanium)
+    const cardMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0x050505, // Very dark base
+      metalness: 0.9,  // Highly metallic
+      roughness: 0.25, // Slight roughness for brushed look
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.2,
+      envMapIntensity: 1.5,
+    });
+
+    const cardGeometry = new THREE.ExtrudeGeometry(cardShape, extrudeSettings);
+    // Center the extrusion
+    cardGeometry.translate(0, 0, -cardDepth / 2);
+    
+    const cardMesh = new THREE.Mesh(cardGeometry, cardMaterial);
+    cardMesh.castShadow = true;
+    cardMesh.receiveShadow = true;
+    cardGroup.add(cardMesh);
+
+    // Magnetic Stripe (Back of card)
+    const magStripeGeo = new THREE.PlaneGeometry(cardWidth, cardHeight * 0.2);
+    const magStripeMat = new THREE.MeshStandardMaterial({
+      color: 0x020202,
+      metalness: 0.5,
+      roughness: 0.1,
+    });
+    const magStripe = new THREE.Mesh(magStripeGeo, magStripeMat);
+    magStripe.position.set(0, cardHeight * 0.2, -cardDepth / 2 - 0.025);
+    magStripe.rotation.y = Math.PI; // Face backwards
+    cardGroup.add(magStripe);
+
+    // --- STREAMING_CHUNK:Adding Cyan EMV Chip and Edge Glow... ---
+    
+    // EMV Chip
+    const chipShape = createRoundedRectShape(1.2, 1.0, 0.2);
+    const chipGeo = new THREE.ExtrudeGeometry(chipShape, { depth: 0.01, bevelEnabled: true, bevelSize: 0.01, bevelThickness: 0.01 });
+    const chipMat = new THREE.MeshStandardMaterial({
+      color: 0x00ffff,
+      emissive: 0x0088ff,
+      emissiveIntensity: 1.5,
+      metalness: 0.8,
+      roughness: 0.2,
+      wireframe: false
+    });
+    const chipMesh = new THREE.Mesh(chipGeo, chipMat);
+    // Position chip on front left
+    chipMesh.position.set(-2.5, 0, cardDepth/2 + 0.01);
+    cardGroup.add(chipMesh);
+
+    // Chip Glow Light
+    const chipLight = new THREE.PointLight(0x00f3ff, 1.5, 3);
+    chipLight.position.set(-2.5, 0, 0.5);
+    cardGroup.add(chipLight);
+    
+    // Add some chip detailing (circuits)
+    const chipDetailMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+    const lineGeo = new THREE.PlaneGeometry(0.8, 0.03);
+    for(let i=-1; i<=1; i++) {
+        if(i === 0) continue;
+        const line = new THREE.Mesh(lineGeo, chipDetailMat);
+        line.position.set(-2.5, i * 0.2, cardDepth/2 + 0.03);
+        cardGroup.add(line);
+        
+        const lineVGeo = new THREE.PlaneGeometry(0.03, 0.6);
+        const lineV = new THREE.Mesh(lineVGeo, chipDetailMat);
+        lineV.position.set(-2.5 + (i*0.3), 0, cardDepth/2 + 0.03);
+        cardGroup.add(lineV);
+    }
+
+    // Magenta Edge Lighting Core
+    // We create a slightly larger, very thin plane inside the card to emit magenta light
+    const edgeShape = createRoundedRectShape(cardWidth + 0.08, cardHeight + 0.08, cornerRadius + 0.02);
+    const edgeGeo = new THREE.ShapeGeometry(edgeShape);
+    const edgeMat = new THREE.MeshBasicMaterial({
+      color: 0xff00ff,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.8
+    });
+    const edgeGlow = new THREE.Mesh(edgeGeo, edgeMat);
+    edgeGlow.position.set(0, 0, 0); // Center of depth
+    cardGroup.add(edgeGlow);
+
+    // Add rim lights attached to card to simulate glowing edges illuminating surroundings
+    const rimLight1 = new THREE.PointLight(0xff00ff, 2.0, 6);
+    rimLight1.position.set(cardWidth/2, 0, 0);
+    cardGroup.add(rimLight1);
+    
+    const rimLight2 = new THREE.PointLight(0xff00ff, 2.0, 6);
+    rimLight2.position.set(-cardWidth/2, 0, 0);
+    cardGroup.add(rimLight2);
+
+    // --- STREAMING_CHUNK:Crafting the Embossed Gold Alpha Symbol... ---
+    
+    // Custom Alpha (A) Logo Shape
+    const logoShape = new THREE.Shape();
+    logoShape.moveTo(0, 1.2);
+    logoShape.lineTo(0.8, -1.2);
+    logoShape.lineTo(0.4, -1.2);
+    logoShape.lineTo(0.15, -0.4);
+    logoShape.lineTo(-0.15, -0.4);
+    logoShape.lineTo(-0.4, -1.2);
+    logoShape.lineTo(-0.8, -1.2);
+    logoShape.lineTo(0, 1.2);
+    
+    // Crossbar hole
+    const logoHole = new THREE.Path();
+    logoHole.moveTo(0, 0.2);
+    logoHole.lineTo(-0.1, -0.1);
+    logoHole.lineTo(0.1, -0.1);
+    logoHole.lineTo(0, 0.2);
+    logoShape.holes.push(logoHole);
+
+    const logoExtrude = { depth: 0.04, bevelEnabled: true, bevelSize: 0.01, bevelThickness: 0.01 };
+    const logoGeo = new THREE.ExtrudeGeometry(logoShape, logoExtrude);
+    logoGeo.center(); // Center geometry for easier positioning
+    
+    const goldMaterial = new THREE.MeshPhysicalMaterial({
+      color: 0xffaa00,
+      emissive: 0x332200,
+      metalness: 1.0,
+      roughness: 0.1,
+      clearcoat: 1.0,
+      envMapIntensity: 2.0
+    });
+    
+    const logoMesh = new THREE.Mesh(logoGeo, goldMaterial);
+    // Position on the right side of the card
+    logoMesh.position.set(1.5, 0, cardDepth/2 + 0.02);
+    cardGroup.add(logoMesh);
+
+    // --- STREAMING_CHUNK:Lighting the Scene... ---
+    
+    // Ambient light is minimal to preserve dark contrast
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.1);
+    scene.add(ambientLight);
+
+    // Key directional light (White) highlighting the metal
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    keyLight.position.set(5, 5, 10);
+    scene.add(keyLight);
+    
+    // Fill light (Cool Cyan tint)
+    const fillLight = new THREE.DirectionalLight(0x00f3ff, 0.5);
+    fillLight.position.set(-5, 0, 5);
+    scene.add(fillLight);
+
+    // --- STREAMING_CHUNK:Animation and Interaction Logic... ---
+    
+    // Mouse tracking for parallax
+    window.addEventListener('mousemove', (e) => {
+      // Normalize mouse coordinates (-1 to +1)
+      config.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      config.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      const elapsedTime = clock.getElapsedTime();
+      const delta = clock.getDelta();
+
+      // Floating animation (Y-axis bobbing)
+      cardGroup.position.y = Math.sin(elapsedTime * 1.5) * 0.3;
+
+      // Rotation Logic
+      if (config.autoRotate) {
+        // Continuous smooth rotation mixed with slight mouse influence
+        config.targetRotation.x = config.mouse.y * 0.3; // Tilt up/down
+        config.targetRotation.y += 0.01; // Continuous spin
+      } else {
+        // Direct parallax from mouse
+        config.targetRotation.x = config.mouse.y * 0.5;
+        config.targetRotation.y = config.mouse.x * 0.5;
+      }
+
+      // Smooth interpolation (lerp) towards target rotation
+      cardGroup.rotation.x += (config.targetRotation.x - cardGroup.rotation.x) * 0.1;
+      
+      if(config.autoRotate) {
+          // Direct apply for smooth continuous spin on Y
+          cardGroup.rotation.y = config.targetRotation.y;
+      } else {
+          // Lerp for springy mouse tracking
+          cardGroup.rotation.y += (config.targetRotation.y - cardGroup.rotation.y) * 0.1;
+      }
+
+      // Slightly rotate the whole scene based on mouse for extra depth
+      scene.rotation.x = config.mouse.y * 0.05;
+      scene.rotation.y = config.mouse.x * 0.05;
+
+      renderer.render(scene, camera);
+    }
+
+    // --- STREAMING_CHUNK:Handling UI Events and Resizing... ---
+    
+    // UI Toggles
+    btnRotate.addEventListener('click', () => {
+      config.autoRotate = !config.autoRotate;
+      if(config.autoRotate) {
+        btnRotate.classList.add('active');
+        btnRotate.querySelector('div').classList.add('animate-pulse');
+        // sync target to current to prevent snapping
+        config.targetRotation.y = cardGroup.rotation.y; 
+      } else {
+        btnRotate.classList.remove('active');
+        btnRotate.querySelector('div').classList.remove('animate-pulse');
+      }
+    });
+
+    btnEdge.addEventListener('click', () => {
+      config.edgeLighting = !config.edgeLighting;
+      if(config.edgeLighting) {
+        btnEdge.classList.add('active');
+        edgeGlow.visible = true;
+        rimLight1.intensity = 2.0;
+        rimLight2.intensity = 2.0;
+      } else {
+        btnEdge.classList.remove('active');
+        edgeGlow.visible = false;
+        rimLight1.intensity = 0;
+        rimLight2.intensity = 0;
+      }
+    });
+
+    // Resize Handler
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // Start Simulation
+    animate();
+
+  </script>
+</body>
+</html>

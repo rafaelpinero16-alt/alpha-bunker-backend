@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alpha Digital Asset - Luxury 3D Coin</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Orbitron & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            serif: ['Cinzel', 'serif'],
+          },
+          colors: {
+            cyber: {
+              cyan: '#00f3ff',
+              magenta: '#ff00ff',
+              gold: '#ffd700',
+              goldDark: '#b38728',
+              obsidian: '#0a0a0d',
+              pureBlack: '#050505'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050505;
+      color: #e2e8f0;
+      overflow: hidden;
+      user-select: none;
+    }
+    
+    /* Custom Glow & Neon filters */
+    .glow-cyan {
+      filter: drop-shadow(0 0 10px rgba(0, 243, 255, 0.45));
+    }
+    .glow-magenta {
+      filter: drop-shadow(0 0 10px rgba(255, 0, 255, 0.45));
+    }
+    .glow-gold {
+      filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.35));
+    }
+
+    /* Glassmorphism Panel */
+    .glass-panel {
+      background: rgba(10, 10, 15, 0.68);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    /* Custom range slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.1);
+      height: 4px;
+      border-radius: 2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px;
+      width: 14px;
+      border-radius: 50%;
+      background: #ffd700;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+      border: 2px solid #050505;
+    }
+
+    /* Cyber grid overlay background */
+    .cyber-grid {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(0, 243, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 0, 255, 0.02) 1px, transparent 1px);
+    }
+
+    /* Animated pulse ring */
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(1.02); }
+    }
+    .ambient-glow {
+      animation: pulseGlow 6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="h-full w-full relative flex flex-col justify-between font-sans select-none cyber-grid">
+
+  <!-- Ambient background glow gradients -->
+  <div class="pointer-events-none absolute inset-0 overflow-hidden z-0">
+    <div class="ambient-glow absolute -top-40 -left-40 w-96 h-96 rounded-full bg-[#00f3ff] opacity-15 blur-[120px]"></div>
+    <div class="ambient-glow absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-[#ff00ff] opacity-15 blur-[120px]" style="animation-delay: -3s;"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[#ffd700] opacity-5 blur-[150px]"></div>
+  </div>
+
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-0"></div>
+
+  <!-- Header / Top Bar -->
+  <header class="relative z-10 w-full p-4 md:p-6 flex items-center justify-between pointer-events-none">
+    <div class="flex items-center space-x-3 pointer-events-auto">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-amber-600 to-yellow-900 p-[1px] flex items-center justify-center shadow-lg shadow-amber-500/20">
+        <div class="w-full h-full bg-[#08080a] rounded-[11px] flex items-center justify-center">
+          <span class="font-serif font-black text-amber-400 text-lg">α</span>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-sm md:text-base font-bold tracking-widest text-white uppercase font-display">ALPHA PROTOCOL</h1>
+          <span class="px-1.5 py-0.5 text-[10px] font-semibold bg-amber-400/10 text-amber-400 border border-amber-400/30 rounded uppercase tracking-wider">VIP 24K</span>
+        </div>
+        <p class="text-[11px] text-gray-400 tracking-wider">3D REALTIME ASSET INSPECTOR</p>
+      </div>
+    </div>
+
+    <!-- Live Telemetry / FPS HUD -->
+    <div class="hidden sm:flex items-center space-x-4 glass-panel px-4 py-2 rounded-xl text-xs pointer-events-auto border border-white/5">
+      <div class="flex items-center space-x-2">
+        <span class="w-2 h-2 rounded-full bg-[#00f3ff] animate-pulse"></span>
+        <span class="text-gray-400 font-mono">60 FPS</span>
+      </div>
+      <div class="w-[1px] h-3 bg-white/10"></div>
+      <div class="text-gray-400 font-mono" id="rotation-angle-display">ROT: 000°</div>
+      <div class="w-[1px] h-3 bg-white/10"></div>
+      <div class="text-[#ff00ff] font-mono font-medium" id="material-badge">24K GOLD</div>
+    </div>
+  </header>
+
+  <!-- Side Hologram Info / Watermark Badge (Desktop) -->
+  <div class="hidden lg:flex flex-col space-y-4 absolute left-6 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+    <div class="glass-panel p-4 rounded-2xl w-56 border-l-2 border-l-[#00f3ff] space-y-2 pointer-events-auto">
+      <div class="text-[10px] uppercase font-bold tracking-widest text-gray-400">Security Verification</div>
+      <div class="text-xs font-mono text-[#00f3ff] flex items-center justify-between">
+        <span>ENCRYPTION:</span>
+        <span class="font-bold">AES-512</span>
+      </div>
+      <div class="text-xs font-mono text-gray-300 flex items-center justify-between">
+        <span>WEIGHT:</span>
+        <span class="text-amber-400">1.000 OZ T</span>
+      </div>
+      <div class="text-xs font-mono text-gray-300 flex items-center justify-between">
+        <span>PURITY:</span>
+        <span class="text-amber-400">999.9 FINE</span>
+      </div>
+      <div class="pt-2 border-t border-white/10 flex justify-between items-center text-[10px] text-gray-500 font-mono">
+        <span>REFLECTIVITY</span>
+        <span class="text-[#ff00ff]">ANISOTROPIC</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Floating Control Deck -->
+  <footer class="relative z-10 w-full p-4 md:p-6 flex flex-col md:flex-row items-center justify-between gap-4 pointer-events-none">
+    
+    <!-- Material Preset Switcher -->
+    <div class="glass-panel p-1.5 rounded-2xl flex items-center space-x-1 pointer-events-auto shadow-2xl">
+      <button onclick="setMaterialPreset('gold')" id="btn-mat-gold" class="px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm flex items-center space-x-1.5">
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span>24K Gold</span>
+      </button>
+      <button onclick="setMaterialPreset('platinum')" id="btn-mat-plat" class="px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-white/5 flex items-center space-x-1.5">
+        <span class="w-2 h-2 rounded-full bg-slate-300"></span>
+        <span>Platinum</span>
+      </button>
+      <button onclick="setMaterialPreset('obsidian')" id="btn-mat-obsidian" class="px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-white/5 flex items-center space-x-1.5">
+        <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+        <span>Obsidian</span>
+      </button>
+    </div>
+
+    <!-- Main Motion & Lighting Controller -->
+    <div class="glass-panel px-5 py-3 rounded-2xl flex flex-wrap items-center gap-4 md:gap-6 pointer-events-auto shadow-2xl">
+      
+      <!-- Auto Spin Toggle -->
+      <button id="toggle-spin-btn" onclick="toggleSpin()" class="flex items-center space-x-2 text-xs font-semibold text-white bg-white/10 hover:bg-white/20 active:scale-95 px-3 py-1.5 rounded-xl transition border border-white/10">
+        <svg id="spin-icon" class="w-3.5 h-3.5 text-[#00f3ff] animate-spin" style="animation-duration: 3s;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span id="spin-text">AUTO SPIN</span>
+      </button>
+
+      <!-- Rotation Speed Slider -->
+      <div class="flex items-center space-x-2 text-xs">
+        <span class="text-gray-400">Speed:</span>
+        <input type="range" id="speed-slider" min="0" max="3" step="0.1" value="1" class="w-20 md:w-24 cursor-pointer" oninput="updateSpeed(this.value)">
+      </div>
+
+      <!-- Cyber Neon Flare Toggle -->
+      <div class="flex items-center space-x-2 border-l border-white/10 pl-4">
+        <span class="text-xs text-gray-400">Cyber Glow:</span>
+        <button onclick="toggleCyberGlow()" id="glow-btn" class="w-8 h-4 bg-[#00f3ff]/30 border border-[#00f3ff] rounded-full relative transition-colors focus:outline-none">
+          <div id="glow-dot" class="w-3 h-3 bg-[#00f3ff] rounded-full absolute top-0.5 right-0.5 transition-transform shadow-[0_0_8px_#00f3ff]"></div>
+        </button>
+      </div>
+
+      <!-- Cyber Rings Toggle -->
+      <div class="flex items-center space-x-2 border-l border-white/10 pl-4">
+        <span class="text-xs text-gray-400">HUD Rings:</span>
+        <button onclick="toggleHudRings()" id="rings-btn" class="w-8 h-4 bg-[#ff00ff]/30 border border-[#ff00ff] rounded-full relative transition-colors focus:outline-none">
+          <div id="rings-dot" class="w-3 h-3 bg-[#ff00ff] rounded-full absolute top-0.5 right-0.5 transition-transform shadow-[0_0_8px_#ff00ff]"></div>
+        </button>
+      </div>
+
+      <!-- Capture Snapshot -->
+      <button onclick="captureSnapshot()" title="Save High-Res Render" class="p-2 rounded-xl bg-white/5 hover:bg-white/15 text-gray-300 hover:text-white transition border border-white/10 active:scale-90">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+
+    </div>
+
+    <!-- Quick Reset Angle View -->
+    <div class="pointer-events-auto">
+      <button onclick="resetCameraAngle()" class="glass-panel px-4 py-2.5 rounded-xl text-xs font-semibold text-gray-300 hover:text-white hover:border-[#00f3ff]/50 transition flex items-center space-x-2">
+        <svg class="w-3.5 h-3.5 text-[#00f3ff]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+        <span>RESET VIEW</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-20 right-6 z-50 transform translate-x-32 opacity-0 pointer-events-none transition-all duration-300 glass-panel px-4 py-3 rounded-xl border border-amber-400/40 text-amber-300 text-xs flex items-center space-x-2 shadow-2xl">
+    <svg class="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+    </svg>
+    <span id="toast-message">Snapshot saved to downloads</span>
+  </div>
+
+  <script>
+    /* Global Variables & Scene State */
+    let scene, camera, renderer, controls;
+    let coinGroup, coinMesh, rimEmissiveMesh, hudRingsGroup, particleSystem;
+    let cyanLight, magentaLight, goldKeyLight, topLight;
+    let isAutoSpinning = true;
+    let spinSpeed = 1.0;
+    let currentPreset = 'gold';
+    let hudRingsVisible = true;
+    let cyberGlowEnabled = true;
+    let lastTime = 0;
+
+    // Materials dictionary
+    let materials = {};
+
+    window.onload = function() {
+      initScene();
+      createProceduralTextures();
+      buildCoinMesh();
+      buildHudRings();
+      buildParticleSparkField();
+      setupLighting();
+      setupEventListeners();
+      animate(0);
+    };
+
+    function initScene() {
+      const container = document.getElementById('canvas-container');
+      
+      // Scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050505);
+      scene.fog = new THREE.FogExp2(0x050505, 0.04);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 0.8, 5.2);
+
+      // Renderer with HDR tone mapping & antialiasing
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.35;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // Orbit Controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.minDistance = 2.5;
+      controls.maxDistance = 10;
+      controls.maxPolarAngle = Math.PI - 0.1;
+      controls.minPolarAngle = 0.1;
+
+      // Master coin group
+      coinGroup = new THREE.Group();
+      scene.add(coinGroup);
+
+      // Slight natural isometric tilt
+      coinGroup.rotation.x = 0.15;
+      coinGroup.rotation.z = -0.05;
+    }
+
+    /**
+     * Generates crisp 2048x2048 high-res bump, normal, and displacement textures
+     * featuring the stylized Alpha symbol, circuit traces, radial reeding, and lettering.
+     */
+    function createProceduralTextures() {
+      const size = 2048;
+      
+      // 1. FACE BUMP MAP CANVAS (Displacement / Emboss)
+      const bumpCanvas = document.createElement('canvas');
+      bumpCanvas.width = size;
+      bumpCanvas.height = size;
+      const ctx = bumpCanvas.getContext('2d');
+
+      // Neutral gray background for bump
+      ctx.fillStyle = '#808080';
+      ctx.fillRect(0, 0, size, size);
+
+      const center = size / 2;
+      const radius = size * 0.44;
+
+      // Outer concentric cyber rings
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(center, center, radius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#404040';
+      ctx.beginPath();
+      ctx.arc(center, center, radius - 16, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Milled reeding dots along inner rim
+      const numDots = 72;
+      for (let i = 0; i < numDots; i++) {
+        const angle = (i / numDots) * Math.PI * 2;
+        const x = center + Math.cos(angle) * (radius - 40);
+        const y = center + Math.sin(angle) * (radius - 40);
+        ctx.fillStyle = (i % 2 === 0) ? '#ffffff' : '#404040';
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Circular text: "ALPHA DIGITAL ASSET • VIP ROYAL MASTER •"
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.font = 'bold 36px "Space Grotesk", sans-serif';
+      ctx.fillStyle = '#e0e0e0';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const text = "ALPHA DIGITAL ASSET • 24K VIP PROTOCOL • ";
+      const textRadius = radius - 80;
+      for (let i = 0; i < text.length; i++) {
+        const charAngle = (i / text.length) * Math.PI * 2 - Math.PI / 2;
+        ctx.save();
+        ctx.rotate(charAngle);
+        ctx.translate(0, -textRadius);
+        ctx.fillText(text[i], 0, 0);
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Inner Circuit Traces
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = '#d0d0d0';
+      ctx.lineCap = 'round';
+      const drawCircuit = (startX, startY, path) => {
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        path.forEach(pt => ctx.lineTo(pt[0], pt[1]));
+        ctx.stroke();
+        const last = path[path.length - 1];
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(last[0], last[1], 10, 0, Math.PI * 2);
+        ctx.fill();
+      };
+
+      // Left circuit group
+      drawCircuit(center - 280, center, [[center - 420, center], [center - 520, center - 120]]);
+      drawCircuit(center - 280, center + 90, [[center - 380, center + 90], [center - 480, center + 220]]);
+      drawCircuit(center - 260, center - 90, [[center - 380, center - 90], [center - 480, center - 220]]);
+
+      // Right circuit group
+      drawCircuit(center + 280, center, [[center + 420, center], [center + 520, center + 120]]);
+      drawCircuit(center + 280, center - 90, [[center + 380, center - 90], [center + 480, center - 220]]);
+      drawCircuit(center + 260, center + 90, [[center + 380, center + 90], [center + 480, center + 220]]);
+
+      // Center Stylized Greek Alpha (α) Symbol (Heavy Emboss)
+      ctx.save();
+      ctx.translate(center, center);
+      
+      // Outer drop shadow highlight for depth
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 18;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 560px "Cinzel", serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('α', 0, -10);
+
+      // Inner bevel carve
+      ctx.shadowColor = 'transparent';
+      ctx.lineWidth = 16;
+      ctx.strokeStyle = '#505050';
+      ctx.strokeText('α', 0, -10);
+      ctx.restore();
+
+      // 2. RADIAL BRUSHED METALLIC SPECULAR / ROUGHNESS TEXTURE
+      const roughCanvas = document.createElement('canvas');
+      roughCanvas.width = 1024;
+      roughCanvas.height = 1024;
+      const rCtx = roughCanvas.getContext('2d');
+      rCtx.fillStyle = '#303030';
+      rCtx.fillRect(0, 0, 1024, 1024);
+
+      // Anisotropic radial micro-streaks
+      for (let i = 0; i < 600; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const len = 200 + Math.random() * 300;
+        rCtx.strokeStyle = `rgba(255, 255, 255, ${0.03 + Math.random() * 0.07})`;
+        rCtx.lineWidth = 1 + Math.random() * 3;
+        rCtx.beginPath();
+        rCtx.moveTo(512, 512);
+        rCtx.lineTo(512 + Math.cos(ang) * len, 512 + Math.sin(ang) * len);
+        rCtx.stroke();
+      }
+
+      // Convert canvases to Three.js Textures
+      const bumpTexture = new THREE.CanvasTexture(bumpCanvas);
+      bumpTexture.generateMipmaps = true;
+      bumpTexture.minFilter = THREE.LinearMipmapLinearFilter;
+
+      const roughTexture = new THREE.CanvasTexture(roughCanvas);
+      roughTexture.wrapS = THREE.RepeatWrapping;
+      roughTexture.wrapT = THREE.RepeatWrapping;
+
+      // 3. RIM REEDED TEXTURE (For coin circumference ridges)
+      const rimCanvas = document.createElement('canvas');
+      rimCanvas.width = 1024;
+      rimCanvas.height = 64;
+      const rimCtx = rimCanvas.getContext('2d');
+      rimCtx.fillStyle = '#808080';
+      rimCtx.fillRect(0, 0, 1024, 64);
+      for (let x = 0; x < 1024; x += 8) {
+        rimCtx.fillStyle = '#ffffff';
+        rimCtx.fillRect(x, 0, 4, 64);
+        rimCtx.fillStyle = '#333333';
+        rimCtx.fillRect(x + 4, 0, 4, 64);
+      }
+      const rimBumpTexture = new THREE.CanvasTexture(rimCanvas);
+      rimBumpTexture.wrapS = THREE.RepeatWrapping;
+      rimBumpTexture.repeat.set(16, 1);
+
+      window.generatedTextures = {
+        bump: bumpTexture,
+        rough: roughTexture,
+        rimBump: rimBumpTexture
+      };
+    }
+
+    /**
+     * Builds the multi-material 3D coin with beveled edges, milled rim, and embossed faces.
+     */
+    function buildCoinMesh() {
+      const radius = 1.65;
+      const thickness = 0.22;
+      const radialSegments = 128;
+
+      // Geometry for the coin body
+      const coinGeometry = new THREE.CylinderGeometry(radius, radius, thickness, radialSegments, 1, false);
+
+      // Define presets
+      materials.goldFace = new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#ffd24d'),
+        metalness: 0.96,
+        roughness: 0.26,
+        bumpMap: window.generatedTextures.bump,
+        bumpScale: 0.045,
+        roughnessMap: window.generatedTextures.rough,
+        envMapIntensity: 1.8
+      });
+
+      materials.goldRim = new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#ffc107'),
+        metalness: 0.98,
+        roughness: 0.32,
+        bumpMap: window.generatedTextures.rimBump,
+        bumpScale: 0.03,
+        envMapIntensity: 1.5
+      });
+
+      materials.platinumFace = new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#f0f4f8'),
+        metalness: 0.98,
+        roughness: 0.18,
+        bumpMap: window.generatedTextures.bump,
+        bumpScale: 0.045,
+        envMapIntensity: 2.0
+      });
+
+      materials.platinumRim = new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#e2e8f0'),
+        metalness: 0.99,
+        roughness: 0.25,
+        bumpMap: window.generatedTextures.rimBump,
+        bumpScale: 0.03,
+        envMapIntensity: 1.8
+      });
+
+      materials.obsidianFace = new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#15131a'),
+        metalness: 0.92,
+        roughness: 0.14,
+        bumpMap: window.generatedTextures.bump,
+        bumpScale: 0.05,
+        envMapIntensity: 2.2
+      });
+
+      materials.obsidianRim = new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#0d0c10'),
+        metalness: 0.95,
+        roughness: 0.2,
+        bumpMap: window.generatedTextures.rimBump,
+        bumpScale: 0.03,
+        envMapIntensity: 2.0
+      });
+
+      // Cylinder materials: [0: Side Rim, 1: Top Face, 2: Bottom Face]
+      const currentFaceMat = materials.goldFace;
+      const currentRimMat = materials.goldRim;
+
+      coinMesh = new THREE.Mesh(coinGeometry, [currentRimMat, currentFaceMat, currentFaceMat]);
+      coinMesh.rotation.x = Math.PI / 2; // Orient upright
+      coinMesh.castShadow = true;
+      coinMesh.receiveShadow = true;
+      coinGroup.add(coinMesh);
+
+      // Glowing Neon Accent Rim Band (Subtle inner cyber core)
+      const glowRingGeom = new THREE.TorusGeometry(radius * 1.01, 0.012, 16, 128);
+      const glowRingMat = new THREE.MeshBasicMaterial({
+        color: 0x00f3ff,
+        transparent: true,
+        opacity: 0.65
+      });
+      rimEmissiveMesh = new THREE.Mesh(glowRingGeom, glowRingMat);
+      coinGroup.add(rimEmissiveMesh);
+    }
+
+    /**
+     * Constructs futuristic holographic tracking circles and coordinate reticles.
+     */
+    function buildHudRings() {
+      hudRingsGroup = new THREE.Group();
+
+      // Outer Cyan HUD Ring
+      const ring1Geom = new THREE.RingGeometry(2.1, 2.13, 64);
+      const ring1Mat = new THREE.MeshBasicMaterial({
+        color: 0x00f3ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.25
+      });
+      const ring1 = new THREE.Mesh(ring1Geom, ring1Mat);
+      hudRingsGroup.add(ring1);
+
+      // Dashed Outer Magenta Orbit
+      const ring2Geom = new THREE.RingGeometry(2.35, 2.37, 48);
+      const ring2Mat = new THREE.MeshBasicMaterial({
+        color: 0xff00ff,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.2
+      });
+      const ring2 = new THREE.Mesh(ring2Geom, ring2Mat);
+      hudRingsGroup.add(ring2);
+
+      // 4 Geometric Targeting brackets
+      for (let i = 0; i < 4; i++) {
+        const bracketGeom = new THREE.PlaneGeometry(0.12, 0.02);
+        const bracketMat = new THREE.MeshBasicMaterial({ color: 0xffd700, transparent: true, opacity: 0.7 });
+        const bracket = new THREE.Mesh(bracketGeom, bracketMat);
+        const angle = (i * Math.PI) / 2;
+        bracket.position.set(Math.cos(angle) * 2.11, Math.sin(angle) * 2.11, 0);
+        bracket.rotation.z = angle;
+        hudRingsGroup.add(bracket);
+      }
+
+      scene.add(hudRingsGroup);
+    }
+
+    /**
+     * Creates a floating cyber dust field of glowing golden & cyan micro particles.
+     */
+    function buildParticleSparkField() {
+      const particleCount = 180;
+      const geometry = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+      const colors = new Float32Array(particleCount * 3);
+      const scales = new Float32Array(particleCount);
+
+      const colorGold = new THREE.Color(0xffd700);
+      const colorCyan = new THREE.Color(0x00f3ff);
+      const colorMagenta = new THREE.Color(0xff00ff);
+
+      for (let i = 0; i < particleCount; i++) {
+        // Spherical distribution around the coin
+        const r = 1.8 + Math.random() * 3.5;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = (Math.random() - 0.5) * Math.PI;
+
+        positions[i * 3] = r * Math.cos(phi) * Math.cos(theta);
+        positions[i * 3 + 1] = r * Math.sin(phi);
+        positions[i * 3 + 2] = r * Math.cos(phi) * Math.sin(theta);
+
+        // Palette blend
+        let pColor;
+        const rand = Math.random();
+        if (rand < 0.6) pColor = colorGold;
+        else if (rand < 0.85) pColor = colorCyan;
+        else pColor = colorMagenta;
+
+        colors[i * 3] = pColor.r;
+        colors[i * 3 + 1] = pColor.g;
+        colors[i * 3 + 2] = pColor.b;
+
+        scales[i] = 0.02 + Math.random() * 0.04;
+      }
+
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      // Particle material
+      const particleMaterial = new THREE.PointsMaterial({
+        size: 0.04,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.75,
+        blending: THREE.AdditiveBlending
+      });
+
+      particleSystem = new THREE.Points(geometry, particleMaterial);
+      scene.add(particleSystem);
+    }
+
+    /**
+     * High-contrast cinematic studio 3-point cyber lighting setup:
+     * - Key Warm Gold Light for metallic luster
+     * - Vivid Neon Cyan Rim Light on left
+     * - Vivid Neon Magenta Rim Light on right
+     */
+    function setupLighting() {
+      // Ambient Light for soft fill
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
+      scene.add(ambientLight);
+
+      // 1. Warm Gold Key Directional Light
+      goldKeyLight = new THREE.DirectionalLight(0xffea9f, 2.4);
+      goldKeyLight.position.set(2, 4, 3);
+      goldKeyLight.castShadow = true;
+      scene.add(goldKeyLight);
+
+      // 2. Electric Cyan Neon Rim Light (Left)
+      cyanLight = new THREE.PointLight(0x00f3ff, 4.2, 12);
+      cyanLight.position.set(-3.5, 0.5, 1.8);
+      scene.add(cyanLight);
+
+      // Cyan flare helper light (Backlight rim)
+      const cyanBackLight = new THREE.PointLight(0x00f3ff, 2.5, 8);
+      cyanBackLight.position.set(-2, -1.5, -2.5);
+      scene.add(cyanBackLight);
+
+      // 3. Vivid Neon Magenta Rim Light (Right)
+      magentaLight = new THREE.PointLight(0xff00ff, 4.2, 12);
+      magentaLight.position.set(3.5, -0.5, 1.8);
+      scene.add(magentaLight);
+
+      // Magenta flare helper light (Backlight rim)
+      const magentaBackLight = new THREE.PointLight(0xff00ff, 2.5, 8);
+      magentaBackLight.position.set(2, 1.5, -2.5);
+      scene.add(magentaBackLight);
+
+      // Top specular highlight
+      topLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      topLight.position.set(0, 5, 0);
+      scene.add(topLight);
+    }
+
+    /**
+     * Main 60fps Render Loop.
+     */
+    function animate(time) {
+      requestAnimationFrame(animate);
+
+      const delta = (time - lastTime) * 0.001 || 0.016;
+      lastTime = time;
+
+      // Seamless 360-Degree Continuous Coin Rotation
+      if (isAutoSpinning && coinGroup) {
+        coinGroup.rotation.y += 0.85 * spinSpeed * delta;
+        // Keep within 0 - 2PI
+        if (coinGroup.rotation.y > Math.PI * 2) {
+          coinGroup.rotation.y -= Math.PI * 2;
+        }
+      }
+
+      // Update Live Rotation Telemetry Display
+      if (coinGroup) {
+        const degrees = Math.round((coinGroup.rotation.y * 180 / Math.PI) % 360);
+        const normalizedDeg = degrees < 0 ? degrees + 360 : degrees;
+        document.getElementById('rotation-angle-display').textContent = `ROT: ${String(normalizedDeg).padStart(3, '0')}°`;
+      }
+
+      // Slow counter-rotation of Cyber HUD Rings
+      if (hudRingsGroup && hudRingsVisible) {
+        hudRingsGroup.rotation.z -= 0.12 * delta;
+        // Align HUD rings slightly with camera forward
+        hudRingsGroup.quaternion.copy(camera.quaternion);
+      }
+
+      // Floating Particle drift
+      if (particleSystem) {
+        particleSystem.rotation.y += 0.04 * delta;
+        particleSystem.rotation.x += 0.02 * delta;
+      }
+
+      // Subtle breathing light fluctuation
+      if (cyberGlowEnabled) {
+        const pulse = Math.sin(time * 0.0025) * 0.4;
+        cyanLight.intensity = 4.2 + pulse;
+        magentaLight.intensity = 4.2 - pulse;
+      }
+
+      // Orbit controls update
+      controls.update();
+
+      // Render Scene
+      renderer.render(scene, camera);
+    }
+
+    /**
+     * Switches between 24K Gold, Platinum Diamond, and Obsidian Titanium finishes.
+     */
+    function setMaterialPreset(preset) {
+      currentPreset = preset;
+      const btnGold = document.getElementById('btn-mat-gold');
+      const btnPlat = document.getElementById('btn-mat-plat');
+      const btnObs = document.getElementById('btn-mat-obsidian');
+      const badge = document.getElementById('material-badge');
+
+      // Reset button classes
+      [btnGold, btnPlat, btnObs].forEach(btn => {
+        btn.className = "px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 text-gray-400 hover:text-white hover:bg-white/5 flex items-center space-x-1.5";
+      });
+
+      if (preset === 'gold') {
+        coinMesh.material[0] = materials.goldRim;
+        coinMesh.material[1] = materials.goldFace;
+        coinMesh.material[2] = materials.goldFace;
+        goldKeyLight.color.setHex(0xffea9f);
+        goldKeyLight.intensity = 2.4;
+        btnGold.className = "px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm flex items-center space-x-1.5";
+        badge.textContent = "24K GOLD";
+        badge.className = "text-amber-400 font-mono font-medium";
+        showToast("Applied 24K Brushed Gold Finish");
+      } else if (preset === 'platinum') {
+        coinMesh.material[0] = materials.platinumRim;
+        coinMesh.material[1] = materials.platinumFace;
+        coinMesh.material[2] = materials.platinumFace;
+        goldKeyLight.color.setHex(0xffffff);
+        goldKeyLight.intensity = 2.8;
+        btnPlat.className = "px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 bg-slate-500/20 text-slate-200 border border-slate-400/40 shadow-sm flex items-center space-x-1.5";
+        badge.textContent = "PLATINUM";
+        badge.className = "text-slate-300 font-mono font-medium";
+        showToast("Applied Polished Platinum Finish");
+      } else if (preset === 'obsidian') {
+        coinMesh.material[0] = materials.obsidianRim;
+        coinMesh.material[1] = materials.obsidianFace;
+        coinMesh.material[2] = materials.obsidianFace;
+        goldKeyLight.color.setHex(0xd0a0ff);
+        goldKeyLight.intensity = 1.8;
+        btnObs.className = "px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-200 bg-purple-900/30 text-purple-300 border border-purple-500/40 shadow-sm flex items-center space-x-1.5";
+        badge.textContent = "OBSIDIAN";
+        badge.className = "text-purple-400 font-mono font-medium";
+        showToast("Applied Cyber Obsidian Titanium Finish");
+      }
+    }
+
+    /**
+     * Toggles 360 Auto Rotation.
+     */
+    function toggleSpin() {
+      isAutoSpinning = !isAutoSpinning;
+      const text = document.getElementById('spin-text');
+      const icon = document.getElementById('spin-icon');
+      if (isAutoSpinning) {
+        text.textContent = "AUTO SPIN";
+        icon.classList.add('animate-spin');
+        showToast("Auto 360° Spin Resumed");
+      } else {
+        text.textContent = "PAUSED";
+        icon.classList.remove('animate-spin');
+        showToast("Rotation Paused (Free Drag Mode)");
+      }
+    }
+
+    /**
+     * Updates spin speed multiplier from slider.
+     */
+    function updateSpeed(val) {
+      spinSpeed = parseFloat(val);
+    }
+
+    /**
+     * Toggles Cyber Edge Neon reflections & rim glow.
+     */
+    function toggleCyberGlow() {
+      cyberGlowEnabled = !cyberGlowEnabled;
+      const btn = document.getElementById('glow-btn');
+      const dot = document.getElementById('glow-dot');
+      if (cyberGlowEnabled) {
+        cyanLight.intensity = 4.2;
+        magentaLight.intensity = 4.2;
+        rimEmissiveMesh.visible = true;
+        btn.className = "w-8 h-4 bg-[#00f3ff]/30 border border-[#00f3ff] rounded-full relative transition-colors focus:outline-none";
+        dot.className = "w-3 h-3 bg-[#00f3ff] rounded-full absolute top-0.5 right-0.5 transition-transform shadow-[0_0_8px_#00f3ff]";
+        showToast("Cyber Neon Reflections Active");
+      } else {
+        cyanLight.intensity = 0.5;
+        magentaLight.intensity = 0.5;
+        rimEmissiveMesh.visible = false;
+        btn.className = "w-8 h-4 bg-gray-800 border border-gray-600 rounded-full relative transition-colors focus:outline-none";
+        dot.className = "w-3 h-3 bg-gray-400 rounded-full absolute top-0.5 left-0.5 transition-transform";
+        showToast("Studio Warm Lighting Only");
+      }
+    }
+
+    /**
+     * Toggles the HUD Holographic Overlay Rings.
+     */
+    function toggleHudRings() {
+      hudRingsVisible = !hudRingsVisible;
+      hudRingsGroup.visible = hudRingsVisible;
+      const btn = document.getElementById('rings-btn');
+      const dot = document.getElementById('rings-dot');
+      if (hudRingsVisible) {
+        btn.className = "w-8 h-4 bg-[#ff00ff]/30 border border-[#ff00ff] rounded-full relative transition-colors focus:outline-none";
+        dot.className = "w-3 h-3 bg-[#ff00ff] rounded-full absolute top-0.5 right-0.5 transition-transform shadow-[0_0_8px_#ff00ff]";
+        showToast("HUD Hologram Rings Visible");
+      } else {
+        btn.className = "w-8 h-4 bg-gray-800 border border-gray-600 rounded-full relative transition-colors focus:outline-none";
+        dot.className = "w-3 h-3 bg-gray-400 rounded-full absolute top-0.5 left-0.5 transition-transform";
+        showToast("Minimal View (HUD Hidden)");
+      }
+    }
+
+    /**
+     * Resets Camera to the optimal 3D isometric presentation angle.
+     */
+    function resetCameraAngle() {
+      camera.position.set(0, 0.8, 5.2);
+      controls.target.set(0, 0, 0);
+      coinGroup.rotation.x = 0.15;
+      coinGroup.rotation.z = -0.05;
+      controls.update();
+      showToast("Camera View Reset");
+    }
+
+    /**
+     * Captures a high-resolution lossless screenshot of the 3D coin.
+     */
+    function captureSnapshot() {
+      renderer.render(scene, camera);
+      const dataURL = renderer.domElement.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Alpha-VIP-Coin-${currentPreset}-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+      showToast("High-Res 3D Snapshot Downloaded!");
+    }
+
+    /**
+     * Displays a temporary non-blocking floating toast.
+     */
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toast-message');
+      msgEl.textContent = msg;
+      toast.classList.remove('translate-x-32', 'opacity-0');
+      toast.classList.add('translate-x-0', 'opacity-100');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100');
+        toast.classList.add('translate-x-32', 'opacity-0');
+      }, 2600);
+    }
+
+    /**
+     * Window resize and responsive handler.
+     */
+    function setupEventListeners() {
+      window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+  </script>
+</body>
+</html>

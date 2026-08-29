@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ALPHA TOM - Hybrid Ecosystem & Vault</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;700;900&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050505">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="tron-grid"></div>
+    <div class="grid-fade"></div>
+
+    <div class="watermark-footer">
+        RAFAEL SANCHEZ / "ARQUITECTO DE BOTS Y MINI APPS" * TELEGRAM: <a href="#" onclick="app.openLink('https://t.me/therealonetom'); return false;">@THEREALONETOM</a>
+    </div>
+
+    <button onclick="app.toggleLanguage()" class="fab-lang levitate">
+        <i class="fa-solid fa-language text-xl text-[#00f3ff] mb-0.5"></i>
+        <span class="text-[11px] font-black text-[#00f3ff]" id="fab-lang-text">ES</span>
+    </button>
+
+    <!-- VIEW -1: AGE CONSENT -->
+    <div id="view-consent" class="min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500">
+        <i class="fa-solid fa-triangle-exclamation text-8xl text-[#ff3333] mb-6 drop-shadow-[0_0_20px_#ff3333] levitate"></i>
+        <h1 class="text-3d-red text-4xl text-center mb-3 leading-tight font-black">ADVERTENCIA</h1>
+        <h2 class="text-2xl text-[#ff00ff] font-extrabold tracking-[0.2em] mb-8 text-center" style="text-shadow: 0 0 10px #ff00ff;">+18 ADULT CONTENT</h2>
+
+        <div class="glass-panel p-6 mb-8 max-w-sm text-center border-[#ff3333]">
+            <p class="text-base text-gray-200 mb-4 font-semibold">Este espacio contiene material explícito y sexual.</p>
+            <p class="text-base text-gray-300 font-medium">Al ingresar, confirmas bajo tu responsabilidad que eres mayor de edad (18+) y consientes visualizar este contenido (Safe Harbor Compliance).</p>
+        </div>
+
+        <div class="w-full max-w-sm space-y-4">
+            <button onclick="app.acceptConsent()" class="w-full btn-neon-magenta py-4 rounded-xl text-2xl font-black uppercase tracking-wider levitate">
+                <i class="fa-solid fa-check-circle mr-2"></i> ACEPTO / I ACCEPT
+            </button>
+            <button onclick="app.exitApp()" class="w-full bg-transparent border-2 border-gray-600 text-gray-300 py-3.5 rounded-xl font-bold uppercase transition hover:text-white hover:border-white text-lg">
+                <i class="fa-solid fa-times mr-2"></i> SALIR / EXIT
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 0: LOGIN -->
+    <div id="view-login" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500">
+        <button onclick="app.switchView('consent')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(0,243,255,0.1)] transition text-sm font-bold z-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+        </button>
+        <i class="fa-brands fa-telegram text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
+        <h1 class="text-3d-cyan text-4xl text-center mb-6 leading-tight font-black">ACCESO AL VAULT</h1>
+        
+        <div class="glass-panel p-6 w-full max-w-sm">
+            <p class="text-sm text-gray-200 text-center mb-6 font-medium">Inicia sesión o crea tu cuenta conectando directamente con Telegram o ingresando tu número.</p>
+
+            <div class="mb-5">
+                <label class="block text-xs text-[#00f3ff] mb-2 font-bold tracking-wider uppercase">NÚMERO DE TELÉFONO</label>
+                <div class="relative">
+                    <i class="fa-solid fa-phone absolute left-4 top-1/2 transform -translate-y-1/2 text-[#00f3ff] text-lg"></i>
+                    <input type="tel" id="phone-input" placeholder="+1 234 567 8900" class="cyber-input pl-12 text-lg">
+                </div>
+            </div>
+
+            <button onclick="app.loginWithPhone()" class="w-full bg-transparent border-2 border-[#00f3ff] text-[#00f3ff] py-4 rounded-xl font-black text-lg uppercase hover:bg-[rgba(0,243,255,0.1)] transition-colors mb-4">
+                ACCEDER CON NÚMERO
+            </button>
+
+            <div class="flex items-center my-4">
+                <div class="flex-grow border-t border-gray-700"></div>
+                <span class="mx-3 text-gray-400 text-xs font-bold">Ó DIRECTAMENTE CON</span>
+                <div class="flex-grow border-t border-gray-700"></div>
+            </div>
+
+            <button onclick="app.loginWithTelegram()" class="w-full flex items-center justify-center gap-3 bg-[#2481cc] text-white py-4 rounded-xl font-bold text-lg shadow-[0_0_15px_rgba(36,129,204,0.5)] levitate active:scale-95 transition-transform">
+                <i class="fa-brands fa-telegram text-2xl"></i> LOGIN CON TELEGRAM
+            </button>
+
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-300 mb-2 font-medium">¿No tienes cuenta aún?</p>
+                <button onclick="app.switchView('register')" class="text-base font-bold text-[#ff00ff] hover:text-white transition border-b-2 border-[#ff00ff] hover:border-white pb-1">
+                    CREAR CUENTA NUEVA
+                </button>
+            </div>
+        </div>
+    </div> 
+
+    <!-- VIEW -0.5: CAPTCHA SECURITY -->
+    <div id="view-captcha" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500">
+        <i class="fa-solid fa-shield-halved text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
+        <h1 class="text-3d-cyan text-3xl text-center mb-3 leading-tight font-black">VERIFICACIÓN HUMANA</h1>
+        <p class="text-sm text-gray-300 text-center mb-6 font-medium">Resuelve el código de seguridad para ingresar al Vault.</p>
+
+        <div class="glass-panel p-6 w-full max-w-sm text-center border-[#00f3ff]">
+            <!-- CAJA DE CAPTCHA -->
+            <div id="captcha-display" class="bg-black border-2 border-dashed border-[#00f3ff] py-4 rounded-xl text-3xl font-black text-[#00f3ff] tracking-[0.4em] mb-4 select-none" style="text-shadow: 0 0 10px #00f3ff;">
+                A7X9K
+            </div>
+            
+            <button onclick="app.generateCaptcha()" class="text-xs text-gray-400 hover:text-white underline mb-6 block mx-1 auto">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Generar otro código
+            </button>
+
+            <div class="mb-5">
+                <input type="text" id="captcha-input" placeholder="Ingresa el código..." class="cyber-input text-center uppercase tracking-widest text-lg" maxlength="5">
+            </div>
+
+            <button onclick="app.verifyCaptcha()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-lg uppercase tracking-wider levitate">
+                <i class="fa-solid fa-check mr-2"></i> VERIFICAR ACCESO
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 0.5: REGISTRATION -->
+    <div id="view-register" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500">
+        <button onclick="app.switchView('login')" class="absolute top-6 left-6 text-[#ff00ff] border border-[#ff00ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(255,0,255,0.1)] transition text-sm font-bold z-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+        </button>
+        <i class="fa-solid fa-user-plus text-7xl text-[#ff00ff] mb-4 drop-shadow-[0_0_15px_#ff00ff] levitate"></i>
+        <h1 class="text-3d-magenta text-4xl text-center mb-6 leading-tight font-black">NUEVA CUENTA</h1>
+        
+        <div class="glass-panel p-6 w-full max-w-sm">
+            <p class="text-sm text-gray-200 text-center mb-6 font-medium">Regístrate para obtener acceso al Vault de Alpha Tom.</p>
+
+            <div class="mb-4">
+                <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase">CORREO ELECTRÓNICO</label>
+                <div class="relative">
+                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 transform -translate-y-1/2 text-[#ff00ff] text-lg"></i>
+                    <input type="email" id="reg-email-input" placeholder="tucorreo@email.com" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] focus:shadow-[0_0_15px_rgba(255,0,255,0.4)] pl-12 text-lg">
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase">NÚMERO DE TELÉFONO</label>
+                <div class="relative">
+                    <i class="fa-solid fa-phone absolute left-4 top-1/2 transform -translate-y-1/2 text-[#ff00ff] text-lg"></i>
+                    <input type="tel" id="reg-phone-input" placeholder="+1 234 567 8900" class="cyber-input border-[#ff00ff] focus:border-[#ff00ff] focus:shadow-[0_0_15px_rgba(255,0,255,0.4)] pl-12 text-lg">
+                </div>
+            </div>
+
+            <button onclick="app.registerWithData()" class="w-full bg-transparent border-2 border-[#ff00ff] text-[#ff00ff] py-4 rounded-xl font-black text-lg uppercase hover:bg-[rgba(255,0,255,0.1)] transition-colors mb-4">
+                REGISTRARSE
+            </button>
+
+            <div class="flex items-center my-4">
+                <div class="flex-grow border-t border-gray-700"></div>
+                <span class="mx-3 text-gray-400 text-xs font-bold">O RÁPIDO CON</span>
+                <div class="flex-grow border-t border-gray-700"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-2">
+                <button onclick="app.loginWithTelegram()" class="w-full flex items-center justify-center gap-2 bg-[#2481cc] text-white py-3.5 rounded-xl font-bold shadow-[0_0_10px_rgba(36,129,204,0.5)] active:scale-95 transition-transform text-sm">
+                    <i class="fa-brands fa-telegram text-xl"></i> TELEGRAM
+                </button>
+
+                <button onclick="app.registerWithGoogle()" class="w-full flex items-center justify-center gap-2 bg-white text-black py-3.5 rounded-xl font-bold shadow-[0_0_10px_rgba(255,255,255,0.5)] active:scale-95 transition-transform text-sm">
+                    <i class="fa-brands fa-google text-xl text-red-500"></i> GOOGLE
+                </button>
+            </div>
+
+            <button onclick="app.switchView('login')" class="w-full text-center text-sm text-gray-300 mt-4 hover:text-white transition font-semibold">
+                ¿Ya tienes cuenta? <span class="text-[#00f3ff] underline font-bold">Inicia Sesión</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 1: LANGUAGE SELECTION -->
+    <div id="view-lang" class="hidden min-h-screen flex flex-col items-center justify-center p-4 relative z-10 transition-opacity duration-500">
+        <div class="w-32 h-32 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] overflow-hidden mb-6 levitate">
+            <img id="avatar-lang" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" alt="User Avatar" class="w-full h-full object-cover">
+        </div>
+        
+        <h1 class="text-3d-cyan text-3xl text-center mb-2 leading-tight font-black" id="name-lang">WELCOME, USER</h1>
+        <h2 class="text-xl text-[#ff00ff] font-extrabold tracking-[0.3em] mb-10 text-center" style="text-shadow: 0 0 10px #ff00ff;">CHOOSE LANGUAGE</h2>
+
+        <div class="grid grid-cols-2 gap-4 w-full max-w-sm">
+            <button onclick="app.setLanguage('es')" class="btn-neon-cyan py-4 rounded-xl text-2xl font-black uppercase levitate">🇪🇸 ESP</button>
+            <button onclick="app.setLanguage('en')" class="btn-neon-cyan py-4 rounded-xl text-2xl font-black uppercase levitate" style="animation-delay: 0.1s;">🇺🇸 ENG</button>
+            <button onclick="app.setLanguage('it')" class="btn-neon-cyan py-4 rounded-xl text-2xl font-black uppercase levitate" style="animation-delay: 0.2s;">🇮🇹 ITA</button>
+            <button onclick="app.setLanguage('pt')" class="btn-neon-cyan py-4 rounded-xl text-2xl font-black uppercase levitate" style="animation-delay: 0.3s;">🇧🇷 POR</button>
+            <button onclick="app.setLanguage('de')" class="btn-neon-cyan py-4 rounded-xl text-2xl font-black uppercase levitate" style="animation-delay: 0.4s;">🇩🇪 DEU</button>
+            <button onclick="app.setLanguage('fr')" class="btn-neon-cyan py-4 rounded-xl text-2xl font-black uppercase levitate" style="animation-delay: 0.5s;">🇫🇷 FRA</button>
+        </div>
+    </div>
+
+    <!-- VIEW 2: FEED -->
+    <div id="view-feed" class="hidden h-screen flex flex-col relative z-10">
+        <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="app.openProfile()">
+                <div class="w-12 h-12 rounded-full border-2 border-[#00f3ff] overflow-hidden shadow-[0_0_10px_#00f3ff]">
+                    <img id="avatar-feed" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover">
+                </div>
+                <div class="flex flex-col justify-center">
+                    <h3 class="font-bold text-base text-white leading-tight" id="name-feed" onclick="app.toggleAdminSecret(); event.stopPropagation();">USER</h3>
+                    <div class="flex items-center gap-2 mt-1">
+                        <p class="text-[10px] font-black text-[#ffb703] tracking-wider bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/50" style="text-shadow: 0 0 5px #ffb703;"><span id="rank-feed">ESPÍA 🕵️</span></p>
+                        <p class="text-xs text-[#00f3ff] font-bold"><i class="fa-solid fa-eye animate-pulse mr-1"></i><span id="views-counter">1,024</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 items-center">
+                <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center hover:bg-[rgba(0,243,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#00f3ff]">
+                    <i class="fa-solid fa-wallet mr-1.5 text-xs"></i> <span id="btn-wallet-hdr">CONECTAR WALLET</span>
+                </button>
+                <button id="admin-add-btn" onclick="app.openRoleModal()" class="hidden text-[#00f3ff] p-2 hover:scale-110 transition-transform">
+                    <i class="fa-solid fa-square-plus text-2xl drop-shadow-[0_0_5px_#00f3ff]"></i>
+                </button>
+                <button onclick="app.logout()" class="text-[#ff00ff] border border-[#ff00ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center hover:bg-[rgba(255,0,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
+                    <i class="fa-solid fa-right-from-bracket mr-1.5 text-xs"></i> <span id="btn-logout">CERRAR SESIÓN</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 feed-container p-4 mt-2 snap-y snap-mandatory scroll-smooth" id="feed-container">
+        </main>
+
+        <div class="glass-panel mx-2 mb-2 p-2.5 flex justify-between items-end z-20 px-4">
+            <button onclick="app.openMenuModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
+                <i class="fa-solid fa-layer-group text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i>
+                <span class="text-[9px] font-black tracking-wide" id="nav-catalog">CATÁLOGO</span>
+            </button>
+            <button onclick="app.openCommunitiesModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
+                <i class="fa-solid fa-users text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i>
+                <span class="text-[9px] font-black tracking-wide" id="nav-communities">COMUNIDAD</span>
+            </button>
+            <button onclick="app.goHome()" class="flex flex-col items-center text-[#00f3ff] hover:scale-110 transition relative -mt-7 w-16">
+                <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
+                    <i class="fa-solid fa-house text-2xl drop-shadow-[0_0_5px_#00f3ff]"></i>
+                </div>
+                <span class="text-[10px] font-black tracking-wide text-[#00f3ff]" id="nav-home">HOME</span>
+            </button>
+            <button onclick="app.openProfile()" class="flex flex-col items-center text-[#ffb703] levitate hover:scale-110 transition w-14 pb-1">
+                <i class="fa-solid fa-user-astronaut text-2xl mb-1 drop-shadow-[0_0_5px_#ffb703]"></i>
+                <span class="text-[9px] font-black tracking-wide" id="nav-profile">MI PERFIL</span>
+            </button>
+            <button onclick="app.openSupport()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
+                <i class="fa-solid fa-envelope text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i>
+                <span class="text-[9px] font-black tracking-wide" id="nav-support">MENSAJES</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 3: UPLOAD PANEL -->
+    <div id="view-upload" class="hidden min-h-screen flex flex-col relative z-10 bg-[var(--bg-deep)]">
+        <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
+            <h3 class="font-extrabold text-xl text-[#00f3ff] leading-tight" id="upload-hdr"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i> SUBIR CONTENIDO</h3>
+            <button onclick="app.switchView('feed')" class="bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-sm">
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+            </button>
+        </header>
+        <main class="flex-1 p-5 overflow-y-auto pb-20">
+            <div class="glass-panel p-6 shadow-[0_0_20px_rgba(0,243,255,0.2)]">
+                <h4 class="text-3d-cyan text-2xl mb-6 text-center font-black">NUEVA PUBLICACIÓN</h4>
+                <form id="admin-form" onsubmit="event.preventDefault(); app.publishPost();">
+                    <div class="mb-5" id="upload-level-container">
+                        <label class="block text-xs text-[#ffb703] mb-2 font-bold tracking-wider">NIVEL REQUERIDO PARA VER 👀</label>
+                        <select id="admin-level" class="cyber-input w-full bg-black border-[#ffb703] text-white text-base">
+                            <option value="0">🆓 Público (Todos los Visitantes)</option>
+                            <option value="1">🎖️ Bloquear para SOLDIER</option>
+                            <option value="2">⚔️ Bloquear para VETERAN</option>
+                            <option value="3">👑 Bloquear para LEGEND</option>
+                        </select>
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider">FOTO O VIDEO (Galería) 📸</label>
+                        <input type="file" accept="image/*" id="admin-file" class="hidden" onchange="app.previewImage(event)">
+                        <label for="admin-file" class="w-full flex flex-col items-center justify-center border-2 border-dashed border-[#ff00ff] rounded-xl p-8 cursor-pointer hover:bg-[rgba(255,0,255,0.1)] transition active:scale-95">
+                            <i class="fa-solid fa-cloud-arrow-up text-5xl text-[#ff00ff] mb-3 drop-shadow-[0_0_8px_#ff00ff]"></i>
+                            <span class="text-sm text-gray-200 font-bold">Tocar para subir archivo</span>
+                        </label>
+                        <img id="admin-img-preview" src="" class="hidden w-full h-56 object-cover rounded-xl mt-4 border-2 border-[#00f3ff] shadow-[0_0_15px_#00f3ff]">
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-xs text-gray-300 mb-2 font-bold uppercase tracking-wider">TEXTO / DESCRIPCIÓN</label>
+                        <textarea id="admin-text-es" rows="4" class="cyber-input w-full text-base" placeholder="Escribe algo sobre esta publicación..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-xl tracking-wider levitate mt-4">
+                        <i class="fa-solid fa-paper-plane mr-2"></i> PUBLICAR AL MURO
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: PERFIL DEL USUARIO -->
+    <div id="modal-profile" class="hidden fixed inset-0 z-[65] flex items-end justify-center bg-black bg-opacity-90 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl p-6 flex flex-col relative border-b-0 overflow-y-auto">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+            </button>
+            <h2 class="text-3d-cyan text-3xl text-center mb-6 mt-2 font-black" id="prof-title">MI PERFIL</h2>
+
+            <div class="flex flex-col items-center mb-6">
+                <img id="prof-avatar" src="" class="w-28 h-28 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] object-cover mb-3">
+                <p class="text-sm font-black text-[#ffb703] mt-1 bg-[#ffb703]/20 px-4 py-1.5 rounded-full border border-[#ffb703]/50" id="prof-rank">ESPÍA</p>
+            </div>
+
+            <!-- CAMPO EDITABLE DE NOMBRE (Solo para suscriptores VIP / Pagos) -->
+            <div class="mb-4">
+                <label class="block text-xs text-[#00f3ff] mb-2 font-bold tracking-wider uppercase">NOMBRE DE USUARIO / ALIAS</label>
+                <input type="text" id="prof-name-input" class="cyber-input text-base" placeholder="Tu alias VIP...">
+            </div>
+
+            <div class="bg-gray-900 border border-[#00f3ff] rounded-xl p-5 mb-5 shadow-[0_0_12px_rgba(0,243,255,0.2)]">
+                <p class="text-xs text-[#00f3ff] font-bold mb-3 uppercase flex justify-between tracking-wider" id="prof-growth-title">
+                    <span>Crecimiento de Rango</span>
+                    <span id="prof-percent" class="font-black text-sm">20%</span>
+                </p>
+                <div class="w-full bg-gray-700 rounded-full h-3 mb-2">
+                    <div id="prof-progress" class="bg-gradient-to-r from-[#00f3ff] to-[#ff00ff] h-3 rounded-full" style="width: 20%"></div>
+                </div>
+                <p class="text-xs text-gray-300 text-right mt-2 font-semibold" id="prof-next-rank">Siguiente: SOLDIER</p>
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase">BIO / DESCRIPCIÓN VIP</label>
+                <textarea id="prof-bio" rows="3" class="cyber-input w-full text-base" placeholder="Añade una descripción ardiente sobre ti..."></textarea>
+                <button onclick="app.saveProfile()" class="mt-3 w-full border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-bold text-sm hover:bg-[#ff00ff]/20 transition uppercase tracking-wider" id="btn-save-bio">GUARDAR PERFIL</button>
+            </div>
+
+            <div id="prof-monetization" class="hidden bg-green-900/40 border-2 border-green-500 rounded-xl p-4 mb-5 shadow-[0_0_12px_rgba(0,255,0,0.2)]">
+                <p class="text-sm text-green-400 font-extrabold mb-1"><i class="fa-solid fa-sack-dollar mr-1"></i> Monetización Activa (70% RevShare)</p>
+                <p class="text-xs text-gray-200 font-medium">Ganas comisiones por cada suscripción o desbloqueo en tu contenido privado.</p>
+            </div>
+
+            <div id="prof-publish-btn" class="hidden mb-6">
+                <button onclick="app.openUploadPanel()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-base tracking-wider levitate shadow-[0_0_15px_#00f3ff]">
+                    <i class="fa-solid fa-camera mr-2"></i> PUBLICAR CONTENIDO
+                </button>
+            </div>
+            <div class="pb-10"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: SELECCIÓN DE ROL -->
+    <div id="modal-role" class="hidden fixed inset-0 z-[65] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md">
+        <div class="glass-panel w-11/12 max-w-sm rounded-2xl p-6 relative text-center">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+            </button>
+            <h3 class="text-3xl font-extrabold text-[#00f3ff] mb-3 mt-2" id="role-title">SELECCIONA TU ROL</h3>
+            <p class="text-base text-gray-200 mb-6 font-medium" id="role-desc">¿Cómo deseas interactuar con la plataforma?</p>
+            <div class="space-y-4">
+                <button onclick="app.selectCreatorRole()" class="w-full flex flex-col items-center justify-center p-5 bg-black border-2 border-[#00f3ff] rounded-xl hover:bg-[#00f3ff]/20 transition shadow-[0_0_15px_rgba(0,243,255,0.4)]">
+                    <i class="fa-solid fa-wand-magic-sparkles text-4xl text-[#00f3ff] mb-2"></i>
+                    <span class="font-black text-xl text-white tracking-wide" id="role-btn-creator">SOY CREADOR (B2B)</span>
+                    <span class="text-xs text-gray-300 mt-1 font-semibold" id="role-desc-creator">Pautas / Promos (150 XTR)</span>
+                </button>
+                <button onclick="app.selectFanRole()" class="w-full flex flex-col items-center justify-center p-5 bg-black border-2 border-[#ff00ff] rounded-xl hover:bg-[#ff00ff]/20 transition shadow-[0_0_15px_rgba(255,0,255,0.4)]">
+                    <i class="fa-solid fa-eye text-4xl text-[#ff00ff] mb-2"></i>
+                    <span class="font-black text-xl text-white tracking-wide" id="role-btn-fan">SOY FAN (B2C)</span>
+                    <span class="text-xs text-gray-300 mt-1 font-semibold" id="role-desc-fan">Suscripciones VIP por Tiers</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CATÁLOGO -->
+    <div id="modal-catalog" class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl p-6 flex flex-col relative border-b-0">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+            </button>
+            <h2 class="text-3d-cyan text-3xl text-center mb-6 mt-4 font-black" id="cat-title">UPGRADE PLAN</h2>
+            <div class="overflow-y-auto pb-10 space-y-5 pr-2" id="plans-container">
+                <div class="bg-black border border-gray-400 rounded-2xl p-5 shadow-[0_0_12px_rgba(156,163,175,0.2)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-star text-gray-300 mr-1"></i> ESPECTADOR (Soldier / Basic)</h3>
+                        <span class="text-2xl font-black text-gray-300">$15</span>
+                    </div>
+                    <p class="text-base text-gray-300 mb-4 font-medium" id="desc-trial">Desbloquea el contenido oculto Tier 1. Acceso a comunidad básica.</p>
+                    <button onclick="app.openPaymentFlow('SUBSCRIBE_VIP_BASIC', 15, 'https://t.me/+SGoetvUmHphkOWMx', 1)" class="w-full bg-gray-700 text-white py-3.5 rounded-xl font-black text-base hover:bg-gray-600 transition tracking-wide">
+                        <i class="fa-solid fa-unlock mr-2"></i> <span id="btn-trial">SELECCIONAR</span>
+                    </button>
+                </div>
+                <div class="bg-black border-2 border-[#00f3ff] rounded-2xl p-5 shadow-[0_0_12px_rgba(0,243,255,0.2)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-fire text-[#00f3ff] mr-1"></i> EXHIBICIONISTA (Vet / Advanced)</h3>
+                        <span class="text-2xl font-black text-[#00f3ff]">$30</span>
+                    </div>
+                    <p class="text-base text-gray-200 mb-4 font-medium" id="desc-1mo">Chat Privado Búnker CRM y publicación habilitada en el Muro (Tier 2).</p>
+                    <button onclick="app.openPaymentFlow('SUBSCRIBE_VIP_ADVANCED', 30, 'https://t.me/+Qn8-z2BiHuZiZjBh', 2)" class="w-full btn-neon-cyan py-3.5 rounded-xl font-black text-base tracking-wide">
+                        <i class="fa-solid fa-unlock mr-2"></i> <span id="btn-1mo">SELECCIONAR</span>
+                    </button>
+                </div>
+                <div class="bg-black border-2 border-[#ff00ff] rounded-2xl p-5 shadow-[0_0_12px_rgba(255,0,255,0.2)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-crown text-[#ff00ff] mr-1"></i> SUSCRIPTOR VIP (Leg / Elite)</h3>
+                        <span class="text-2xl font-black text-[#ff00ff]">$55</span>
+                    </div>
+                    <p class="text-base text-gray-200 mb-4 font-medium" id="desc-3mo">Habilita Video Llamada Cam2Cam y acceso Elite completo (Tier 3).</p>
+                    <button onclick="app.openPaymentFlow('SUBSCRIBE_VIP_ELITE', 55, 'https://t.me/+Giv5cMFqzS0wNzIx', 3)" class="w-full btn-neon-magenta py-3.5 rounded-xl font-black text-base tracking-wide">
+                        <i class="fa-solid fa-unlock mr-2"></i> <span id="btn-3mo">SELECCIONAR</span>
+                    </button>
+                </div>
+                <div class="bg-black border-2 border-[#ffb703] rounded-2xl p-5 shadow-[0_0_18px_rgba(255,183,3,0.3)]">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-gem text-[#ffb703] mr-1"></i> VIP & CREADOR (150 XTR Promo)</h3>
+                        <span class="text-2xl font-black text-[#ffb703]">$170 / 150 XTR</span>
+                    </div>
+                    <p class="text-base text-gray-200 mb-4 font-medium" id="desc-life">Promoción B2B (150 XTR) o Lifetime Access con RevShare 70%.</p>
+                    <button onclick="app.openPaymentFlow('BUY_PROMO_150XTR', 170, 'https://t.me/+NcbOjsh2cs80NGJh', 4)" class="w-full bg-[#ffb703] text-black border-2 border-[#ffb703] py-3.5 rounded-xl font-black text-base hover:scale-95 transition tracking-wide" style="box-shadow: 0 0 15px #ffb703;">
+                        <i class="fa-solid fa-infinity mr-2"></i> <span id="btn-life">SELECCIONAR B2B / PROMO</span>
+                    </button>
+                </div>
+                <div class="mt-6 border-t border-gray-700 pt-5 space-y-3">
+                    <button onclick="app.openManualBanks()" class="w-full glass-panel py-3.5 rounded-xl text-white font-black text-base flex justify-center items-center gap-2">
+                        <i class="fa-solid fa-building-columns text-[#00f3ff] text-lg"></i> <span id="btn-banks">Pagos Bancarios & Cripto / Stripe</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: COMUNIDADES -->
+    <div id="modal-communities" class="hidden fixed inset-0 z-[55] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md h-[70vh] rounded-t-3xl p-6 flex flex-col relative border-b-0">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+            </button>
+            <h2 class="text-3d-magenta text-3xl text-center mb-6 mt-4 font-black" id="com-title">RED DE ALIADOS</h2>
+            <div class="overflow-y-auto space-y-4 pb-10">
+                <button onclick="app.openLink('https://t.me/+M59HYbw1IoIxMThh')" class="w-full bg-gray-900 border-2 border-[#00f3ff] rounded-2xl p-5 flex items-center justify-between hover:bg-gray-800 transition shadow-[0_0_10px_rgba(0,243,255,0.2)]">
+                    <div class="flex items-center gap-4">
+                        <i class="fa-solid fa-shield-halved text-3xl text-[#00f3ff]"></i>
+                        <span class="font-extrabold text-white text-xl">THE BUNKER (CRM)</span>
+                    </div>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[#00f3ff] text-xl"></i>
+                </button>
+                <button onclick="app.openLink('https://t.me/+9PwKSlP3TCsyNTA5')" class="w-full bg-gray-900 border-2 border-[#ff00ff] rounded-2xl p-5 flex items-center justify-between hover:bg-gray-800 transition shadow-[0_0_10px_rgba(255,0,255,0.2)]">
+                    <div class="flex items-center gap-4">
+                        <i class="fa-solid fa-piggy-bank text-3xl text-[#ff00ff]"></i>
+                        <span class="font-extrabold text-white text-xl">PIGBRO'S</span>
+                    </div>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[#ff00ff] text-xl"></i>
+                </button>
+                <button onclick="app.openLink('https://t.me/+P_nFnsIvoD9iNmRh')" class="w-full bg-gray-900 border-2 border-[#ffb703] rounded-2xl p-5 flex items-center justify-between hover:bg-gray-800 transition shadow-[0_0_10px_rgba(255,183,3,0.2)]">
+                    <div class="flex items-center gap-4">
+                        <i class="fa-solid fa-globe text-3xl text-[#ffb703]"></i>
+                        <span class="font-extrabold text-white text-xl">ALPHA WORLD</span>
+                    </div>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[#ffb703] text-xl"></i>
+                </button>
+                <button onclick="app.openLink('https://t.me/+cQa9IG49qf9mNTdh')" class="w-full bg-gray-900 border-2 border-[#00ff00] rounded-2xl p-5 flex items-center justify-between hover:bg-gray-800 transition shadow-[0_0_10px_rgba(0,255,0,0.2)]">
+                    <div class="flex items-center gap-4">
+                        <i class="fa-solid fa-server text-3xl text-[#00ff00]"></i>
+                        <span class="font-extrabold text-white text-xl">THE BACKUP</span>
+                    </div>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[#00ff00] text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PAGOS -->
+    <div id="modal-payment" class="hidden fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-90 backdrop-blur-md">
+        <div class="glass-panel w-11/12 max-w-sm rounded-2xl p-6 relative text-center pt-10">
+            <button onclick="app.closePaymentModal()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+            </button>
+            <h3 class="text-3xl font-extrabold text-[#ffb703] mb-2 mt-2" id="pay-title">Plan Name</h3>
+            <p class="text-4xl font-black text-white mb-6" id="pay-price">$0</p>
+            <div class="space-y-4">
+                <button onclick="app.simulateAndPay()" class="w-full flex items-center justify-center gap-3 bg-blue-600 border-2 border-blue-400 py-4 rounded-xl font-black text-lg text-white levitate" style="box-shadow: 0 0 15px rgba(37,99,235,0.5);">
+                    <i class="fa-solid fa-star text-yellow-300 text-xl"></i> <span id="pay-btn-stars">Pagar con Telegram Stars (150 XTR)</span>
+                </button>
+                <button onclick="app.simulateAndPay(true)" class="w-full flex items-center justify-center gap-3 bg-purple-700 border-2 border-purple-400 py-4 rounded-xl font-black text-lg text-white">
+                    <i class="fa-solid fa-credit-card text-white text-xl"></i> <span>Stripe / Checkout Externo</span>
+                </button>
+                <div class="grid grid-cols-2 gap-3 mt-3">
+                    <button onclick="app.openLink('https://paypal.me/Felipecosmic')" class="glass-panel py-3.5 rounded-xl font-extrabold text-sm text-[#00f3ff]">
+                        <i class="fa-brands fa-paypal mr-1"></i> PayPal
+                    </button>
+                    <button onclick="app.openLink('https://s.binance.com/YrQTGqwm')" class="glass-panel py-3.5 rounded-xl font-extrabold text-sm text-[#ffb703]">
+                        <i class="fa-brands fa-bitcoin mr-1"></i> Binance Pay
+                    </button>
+                </div>
+            </div>
+            <p class="text-sm text-gray-300 mt-6 font-medium">Envía el comprobante al bot/Búnker (CRM) tras realizar pagos externos.</p>
+        </div>
+    </div>
+
+    <!-- MODAL: DATOS BANCARIOS -->
+    <div id="modal-banks" class="hidden fixed inset-0 z-[70] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md h-[80vh] rounded-t-3xl p-6 flex flex-col relative border-b-0">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
+                <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
+            </button>
+            <h2 class="text-3d-cyan text-2xl text-center mb-6 mt-2 font-black" id="bank-title">DATOS BANCARIOS</h2>
+            <div class="overflow-y-auto space-y-5 pb-10">
+                <div class="bg-gray-900 border-2 border-[#00f3ff] rounded-2xl p-5">
+                    <h4 class="font-extrabold text-lg text-[#00f3ff] mb-2"><i class="fa-solid fa-building-columns mr-2"></i> GLOBAL 66</h4>
+                    <div class="text-sm text-gray-200 space-y-1.5 mb-4 font-mono">
+                        <p>Holder: Felipe Rafael Sanchez Piñeros</p>
+                        <p>Account: 8338457346</p>
+                        <p>Type: Checking | ACH: 026073150</p>
+                        <p>Bank: Community Federal Savings Bank</p>
+                    </div>
+                    <button onclick="app.copyText('Felipe Rafael Sanchez Piñeros\nAccount: 8338457346\nType: Checking\nACH Routing: 026073150\nBank: Community Federal Savings Bank')" class="w-full bg-gray-800 py-3 rounded-xl text-[#00f3ff] font-bold text-sm">
+                        <i class="fa-solid fa-copy mr-1"></i> <span id="copy-global">Copiar Datos</span>
+                    </button>
+                </div>
+                <div class="bg-gray-900 border-2 border-[#ff00ff] rounded-2xl p-5">
+                    <h4 class="font-extrabold text-lg text-[#ff00ff] mb-2"><i class="fa-solid fa-money-bill-transfer mr-2"></i> AIRTM / LEAD BANK</h4>
+                    <div class="text-sm text-gray-200 space-y-1.5 mb-4 font-mono">
+                        <p>Beneficiario: FELIPE RAFAEL SANCHEZ PIÑEROS</p>
+                        <p>Account: 215069784455</p>
+                        <p>Routing: 101019644</p>
+                    </div>
+                    <button onclick="app.copyText('FELIPE RAFAEL SANCHEZ PIÑEROS\nBanco: Lead Bank\nCuenta: 215069784455\nRouting: 101019644')" class="w-full bg-gray-800 py-3 rounded-xl text-[#ff00ff] font-bold text-sm">
+                        <i class="fa-solid fa-copy mr-1"></i> <span id="copy-airtm">Copiar Datos</span>
+                    </button>
+                </div>
+                <div class="bg-gray-900 border-2 border-[#ffb703] rounded-2xl p-5">
+                    <h4 class="font-extrabold text-lg text-[#ffb703] mb-2"><i class="fa-brands fa-telegram mr-2"></i> TON WALLET</h4>
+                    <p class="text-xs text-gray-200 mb-4 font-mono break-all">UQDWI2auHgQ5a9KnWn9_by-RSswIaKfz38b_Yib_cIy-Jklp</p>
+                    <button onclick="app.copyText('UQDWI2auHgQ5a9KnWn9_by-RSswIaKfz38b_Yib_cIy-Jklp')" class="w-full bg-gray-800 py-3 rounded-xl text-[#ffb703] font-bold text-sm">
+                        <i class="fa-solid fa-copy mr-1"></i> <span id="copy-ton">Copiar Address</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: IN-APP CHAT (CRM) -->
+    <div id="modal-chat" class="hidden fixed inset-0 z-[80] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(0,243,255,0.2)]">
+            <div class="bg-black bg-opacity-60 p-4 flex items-center justify-between border-b border-[#00f3ff] shadow-[0_0_15px_rgba(0,243,255,0.1)]">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <img src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-12 h-12 rounded-full border-2 border-[#00f3ff] object-cover">
+                        <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-[#00ff00] rounded-full border-2 border-black"></div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-white text-base" id="chat-title">SOPORTE BÚNKER (CRM)</h3>
+                        <p class="text-xs text-[#00ff00] uppercase tracking-widest font-extrabold"><i class="fa-solid fa-circle text-[6px] animate-pulse align-middle"></i> Enrutado al Grupo Privado</p>
+                    </div>
+                </div>
+                <div>
+                    <button onclick="app.startVideoCall()" class="text-[#00f3ff] hover:text-white transition text-2xl p-2 mr-2 drop-shadow-[0_0_5px_#00f3ff]" id="btn-video-call">
+                        <i class="fa-solid fa-video"></i>
+                    </button>
+                    <button onclick="app.closeModals()" class="bg-red-600 rounded-full inline-flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-sm">
+                        <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text">VOLVER</span>
+                    </button>
+                </div>
+            </div>
+            <div class="px-4 pt-4">
+                <button onclick="app.openLink('https://t.me/m/kdQVqcdDNmMx')" class="w-full bg-[#00f3ff] text-black font-extrabold py-3 rounded-xl text-sm mb-1 shadow-[0_0_15px_#00f3ff] hover:scale-[1.02] transition">
+                    <i class="fa-brands fa-telegram mr-2 text-lg"></i> ENVIAR COMPROBANTE AL BÚNKER
+                </button>
+            </div>
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-black/50">
+                <div class="flex flex-col items-start animate-fade-in">
+                    <div class="bg-gray-800 text-white text-base p-4 rounded-2xl rounded-tl-sm border border-[#00f3ff] max-w-[85%] shadow-[0_0_10px_rgba(0,243,255,0.2)]">
+                        <span id="chat-welcome">¡Sistema Búnker CRM Activo! Envía tu consulta o comprobante para reenvío directo al equipo de operaciones.</span>
+                    </div>
+                    <span class="text-xs text-gray-400 mt-1.5 ml-1" id="chat-time-1">10:00 AM</span>
+                </div>
+            </div>
+            <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-3 pb-6">
+                <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-6 border-[#ff00ff] focus:border-[#ff00ff] focus:shadow-[0_0_15px_rgba(255,0,255,0.3)]" placeholder="Escribe tu mensaje o soporte..." onkeypress="app.handleChatKeyPress(event)">
+                <button onclick="app.sendChatMessage()" class="w-14 h-14 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_0_15px_rgba(0,243,255,0.5)] text-xl">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">¡Copiado! 📋</div>
+    
+    <script src="js/security.js"></script>
+    <script src="js/translations.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js" defer></script>
+</body>
+</html>

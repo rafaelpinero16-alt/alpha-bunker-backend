@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VIP Cyber Bunker Splash Screen</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@500;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Orbitron', 'sans-serif'],
+            wide: ['Syncopate', 'sans-serif'],
+          },
+          colors: {
+            cyber: {
+              black: '#050505',
+              cyan: '#00f3ff',
+              magenta: '#ff00ff',
+              gold: '#ffd700',
+              panel: '#0a0a0c'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050505;
+      color: #e2e8f0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    /* Container for 9:16 aspect ratio simulation on desktop */
+    #app-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #050505;
+      overflow: hidden;
+    }
+
+    @media (min-width: 768px) {
+      #app-container {
+        width: 405px; /* 9:16 ratio height/width */
+        height: 720px;
+        border-radius: 40px;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.05), 0 25px 50px -12px rgba(0, 0, 0, 1), 0 0 100px -20px rgba(0, 243, 255, 0.15);
+      }
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Glassmorphism UI Overlay */
+    .ui-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 3rem 2rem;
+      pointer-events: none;
+    }
+
+    .glass-btn {
+      pointer-events: auto;
+      background: rgba(10, 10, 15, 0.4);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .glass-btn:hover {
+      border-color: #00f3ff;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    .glass-btn:active {
+      transform: translateY(1px);
+    }
+
+    /* Animations */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 8px rgba(0,243,255,0.5)); }
+      50% { opacity: 1; filter: drop-shadow(0 0 15px rgba(0,243,255,0.8)); }
+    }
+    
+    .animate-glow {
+      animation: pulse-glow 3s infinite ease-in-out;
+    }
+    
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+    
+    .scan-effect {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, transparent, rgba(0, 243, 255, 0.05), transparent);
+      animation: scanline 4s linear infinite;
+      pointer-events: none;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body class="bg-cyber-black text-white font-sans antialiased">
+
+  <!-- Main 9:16 Application Container -->
+  <div id="app-container">
+    
+    <!-- 3D Canvas -->
+    <canvas id="webgl-canvas"></canvas>
+    
+    <!-- Subtle Scanner Line -->
+    <div class="scan-effect"></div>
+
+    <!-- UI Overlay (HTML/CSS) -->
+    <div class="ui-layer">
+      
+      <!-- Top Branding -->
+      <div class="flex flex-col items-center text-center space-y-4 opacity-0 animate-[fadeIn_1s_ease-out_0.5s_forwards]">
+        <!-- Geometric Alpha Logo -->
+        <div class="relative w-16 h-16 flex items-center justify-center animate-glow">
+          <svg viewBox="0 0 100 100" class="w-full h-full text-cyber-cyan" fill="none" stroke="currentColor" stroke-width="3">
+            <polygon points="50,15 85,85 15,85" stroke-linejoin="round"/>
+            <line x1="35" y1="65" x2="65" y2="65" />
+            <polygon points="50,35 60,65 40,65" stroke-linejoin="round" opacity="0.5"/>
+          </svg>
+        </div>
+        
+        <div>
+          <h1 class="text-xs font-wide tracking-[0.4em] text-white/90 uppercase">Sovereign</h1>
+          <h2 class="text-[9px] font-mono tracking-widest text-cyber-gold/80 mt-1 uppercase">VIP Access Terminal</h2>
+        </div>
+      </div>
+
+      <!-- Center Spacer / Empty Zone for composition -->
+      <div class="flex-1"></div>
+
+      <!-- Bottom Authentication -->
+      <div class="w-full flex flex-col items-center space-y-6 opacity-0 animate-[fadeIn_1s_ease-out_1.5s_forwards]">
+        
+        <!-- Biometric Scan Icon -->
+        <div class="relative w-12 h-12 flex items-center justify-center rounded-full border border-cyber-magenta/30 bg-cyber-magenta/5 text-cyber-magenta mb-2">
+          <svg class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+          </svg>
+        </div>
+
+        <!-- Auth Button -->
+        <button class="glass-btn w-full py-4 rounded-xl flex items-center justify-center space-x-3 group">
+          <span class="text-xs font-wide tracking-[0.2em] text-white group-hover:text-cyber-cyan transition-colors">INITIALIZE CONNECTION</span>
+          <svg class="w-4 h-4 text-cyber-cyan opacity-70 group-hover:opacity-100 group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </button>
+
+        <!-- Footer status -->
+        <div class="flex items-center space-x-2 text-[8px] font-mono text-gray-500 tracking-widest uppercase">
+          <div class="w-1.5 h-1.5 rounded-full bg-cyber-cyan animate-pulse"></div>
+          <span>Secure Channel Active</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+
+  <script>
+    // System Architecture: Three.js Real-time Render
+    const canvas = document.getElementById('webgl-canvas');
+    const container = document.getElementById('app-container');
+    
+    // Scene Setup
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+    scene.fog = new THREE.FogExp2(0x050505, 0.025); // Deep fog for depth falloff
+
+    // Camera Setup (Vertical Field of View optimized)
+    const camera = new THREE.PerspectiveCamera(65, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(0, 0, 15);
+
+    // Renderer Setup
+    const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2 for performance
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+
+    // Materials
+    const darkMetalMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a0c,
+      metalness: 0.9,
+      roughness: 0.2,
+    });
+    
+    const highlightMetalMat = new THREE.MeshStandardMaterial({
+      color: 0x111115,
+      metalness: 1.0,
+      roughness: 0.1,
+    });
+
+    const bunkerGroup = new THREE.Group();
+    scene.add(bunkerGroup);
+
+    // Procedural Corridor Generation
+    const corridorLength = 15;
+    const spacing = 4;
+
+    for (let i = 0; i < corridorLength; i++) {
+      const zDepth = -i * spacing;
+      
+      // Left Wall Panels
+      const leftPanelGeo = new THREE.BoxGeometry(2, 12, 2);
+      const leftPanel = new THREE.Mesh(leftPanelGeo, darkMetalMat);
+      leftPanel.position.set(-5, 0, zDepth);
+      leftPanel.rotation.y = Math.PI / 12; // Slight angle inwards
+      bunkerGroup.add(leftPanel);
+      
+      // Right Wall Panels
+      const rightPanelGeo = new THREE.BoxGeometry(2, 12, 2);
+      const rightPanel = new THREE.Mesh(rightPanelGeo, darkMetalMat);
+      rightPanel.position.set(5, 0, zDepth);
+      rightPanel.rotation.y = -Math.PI / 12;
+      bunkerGroup.add(rightPanel);
+
+      // Top Angular Beams
+      const topBeamGeo = new THREE.BoxGeometry(10, 1, 1);
+      const topBeam = new THREE.Mesh(topBeamGeo, highlightMetalMat);
+      topBeam.position.set(0, 6, zDepth);
+      bunkerGroup.add(topBeam);
+      
+      // Bottom Flooring Rails
+      const floorRailGeo = new THREE.BoxGeometry(8, 0.5, 2);
+      const floorRail = new THREE.Mesh(floorRailGeo, darkMetalMat);
+      floorRail.position.set(0, -6, zDepth);
+      bunkerGroup.add(floorRail);
+    }
+
+    // Ambient Light (Very low for high contrast)
+    const ambientLight = new THREE.AmbientLight(0x0a0a0c, 1.0);
+    scene.add(ambientLight);
+
+    // Electric Cyan Left Rail Light
+    const cyanLight = new THREE.PointLight(0x00f3ff, 5, 30);
+    cyanLight.position.set(-4, 0, 5);
+    scene.add(cyanLight);
+    
+    // Vivid Magenta Right Rail Light
+    const magentaLight = new THREE.PointLight(0xff00ff, 5, 30);
+    magentaLight.position.set(4, 0, 5);
+    scene.add(magentaLight);
+
+    // Deep Core Light (Mix)
+    const coreLight = new THREE.PointLight(0x8800ff, 8, 50);
+    coreLight.position.set(0, 0, -30);
+    scene.add(coreLight);
+
+    const particleCount = 600;
+    const particleGeo = new THREE.BufferGeometry();
+    const particlePos = new Float32Array(particleCount * 3);
+    const particleVel = [];
+
+    for (let i = 0; i < particleCount; i++) {
+      // Spread across the corridor
+      const x = (Math.random() - 0.5) * 12;
+      const y = (Math.random() - 0.5) * 16;
+      const z = (Math.random() - 1.0) * 40 + 10; // From camera deep into tunnel
+      
+      particlePos[i * 3] = x;
+      particlePos[i * 3 + 1] = y;
+      particlePos[i * 3 + 2] = z;
+
+      // Subtle upward/drift velocities
+      particleVel.push({
+        x: (Math.random() - 0.5) * 0.01,
+        y: Math.random() * 0.02 + 0.01,
+        z: (Math.random() - 0.5) * 0.01
+      });
+    }
+
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+    
+    const particleMat = new THREE.PointsMaterial({
+      color: 0xffd700, // Pure Gold
+      size: 0.08,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+
+    const particles = new THREE.Points(particleGeo, particleMat);
+    scene.add(particles);
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const elapsedTime = clock.getElapsedTime();
+
+      // Camera subtle drift (breathing effect)
+      camera.position.x = Math.sin(elapsedTime * 0.5) * 0.5;
+      camera.position.y = Math.cos(elapsedTime * 0.3) * 0.5;
+      camera.lookAt(0, 0, -20);
+
+      // Light Pulsing
+      cyanLight.intensity = 4 + Math.sin(elapsedTime * 2) * 1;
+      magentaLight.intensity = 4 + Math.cos(elapsedTime * 2.5) * 1;
+
+      // Particle Animation
+      const positions = particles.geometry.attributes.position.array;
+      for (let i = 0; i < particleCount; i++) {
+        positions[i * 3] += particleVel[i].x;
+        positions[i * 3 + 1] += particleVel[i].y;
+        positions[i * 3 + 2] += particleVel[i].z;
+
+        // Reset particle if it drifts too high
+        if (positions[i * 3 + 1] > 8) {
+          positions[i * 3 + 1] = -8;
+        }
+      }
+      particles.geometry.attributes.position.needsUpdate = true;
+      
+      // Very slow corridor advance simulation
+      bunkerGroup.position.z = (elapsedTime * 1.5) % spacing;
+
+      renderer.render(scene, camera);
+    }
+
+    // Handle Resize (Responsive to both desktop mockup and mobile screens)
+    window.addEventListener('resize', () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      
+      renderer.setSize(width, height);
+    });
+
+    // Start Simulation
+    animate();
+  </script>
+</body>
+</html>

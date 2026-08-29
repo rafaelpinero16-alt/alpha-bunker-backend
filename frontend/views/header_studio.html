@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cyber Vault Ultra-Wide Header Studio</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@500;700;900&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- OrbitControls -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Orbitron', 'sans-serif'],
+            wide: ['Syncopate', 'sans-serif'],
+          },
+          colors: {
+            cyber: {
+              black: '#050505',
+              cyan: '#00f3ff',
+              magenta: '#ff00ff',
+              gold: '#ffd700',
+              panel: '#0a0a0c',
+              steel: '#1a1a24'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050505;
+      color: #e2e8f0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      user-select: none;
+    }
+
+    /* Container maintaining aspect ratio */
+    #banner-container {
+      position: relative;
+      width: 100%;
+      /* Default 3:1 ratio for Ultra-Wide Header */
+      aspect-ratio: 3 / 1; 
+      max-height: 70vh;
+      background: #050505;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 1), 0 0 100px -20px rgba(0, 243, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    /* Fallback for browsers that don't support aspect-ratio */
+    @supports not (aspect-ratio: 3 / 1) {
+      #banner-container {
+        height: 33.33vw;
+      }
+    }
+
+    #webgl-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      cursor: grab;
+    }
+    
+    #webgl-canvas:active {
+      cursor: grabbing;
+    }
+
+    /* Glassmorphism Control Panel */
+    .control-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(5, 5, 5, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 1.5rem;
+      z-index: 50;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2rem;
+    }
+
+    .glass-btn {
+      background: rgba(26, 26, 36, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .glass-btn:hover {
+      background: rgba(26, 26, 36, 0.9);
+      border-color: rgba(0, 243, 255, 0.5);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
+    }
+    
+    .glass-btn.active {
+      border-color: #00f3ff;
+      background: rgba(0, 243, 255, 0.1);
+    }
+
+    /* Custom Range Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #00f3ff;
+      cursor: pointer;
+      margin-top: -6px;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 4px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+    }
+
+    /* Mock Avatar Overlay */
+    .avatar-mockup {
+      position: absolute;
+      bottom: -40px; /* Overlap the bottom edge slightly */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1a1a24 0%, #0a0a0c 100%);
+      border: 4px solid #050505;
+      box-shadow: 0 0 0 2px rgba(0, 243, 255, 0.5), 0 15px 30px rgba(0,0,0,0.8);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s ease;
+    }
+    
+    .avatar-mockup::after {
+      content: 'AVATAR';
+      font-family: 'Syncopate', sans-serif;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: rgba(255,255,255,0.5);
+    }
+    
+    /* Subtle Scanline Overlay */
+    .scanlines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+      background-size: 100% 4px;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.3;
+    }
+  </style>
+</head>
+
+<body class="bg-cyber-black text-white font-sans antialiased">
+
+  <!-- Header Area -->
+  <div class="w-full px-8 py-4 flex justify-between items-center bg-cyber-black z-20">
+    <div>
+      <h1 class="text-sm font-wide tracking-[0.3em] text-white/90 uppercase flex items-center">
+        <span class="w-2 h-2 rounded-full bg-cyber-cyan animate-pulse mr-3"></span>
+        Vault Banner Studio
+      </h1>
+      <p class="text-[10px] font-mono text-cyber-gold/60 mt-1 uppercase tracking-widest">Ultra-Wide 3:1 Generation</p>
+    </div>
+    
+    <div class="flex space-x-3">
+       <button id="btn-toggle-avatar" class="glass-btn px-4 py-2 rounded-lg text-xs font-mono text-white/70 hover:text-white flex items-center">
+        <svg class="w-4 h-4 mr-2 text-cyber-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        Toggle Safe Zone
+      </button>
+      <button id="btn-export" class="glass-btn px-4 py-2 rounded-lg text-xs font-mono text-white/70 hover:text-white flex items-center group">
+        <svg class="w-4 h-4 mr-2 text-cyber-magenta group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        Export 4K PNG
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Viewport Container -->
+  <div class="flex-1 w-full flex items-center justify-center p-8 relative">
+    
+    <!-- The 3:1 Banner Container -->
+    <div id="banner-container">
+      <canvas id="webgl-canvas"></canvas>
+      <div class="scanlines"></div>
+      
+      <!-- Safe Zone / Avatar Overlay Mockup -->
+      <div id="avatar-overlay" class="avatar-mockup"></div>
+    </div>
+    
+  </div>
+
+  <!-- Lower Control Deck -->
+  <div class="control-panel flex-col md:flex-row">
+    
+    <!-- Environment Config -->
+    <div class="flex-1 w-full md:w-auto space-y-3">
+      <div class="flex justify-between items-center text-[10px] font-mono text-white/50 tracking-widest uppercase mb-1">
+        <span>Neon Grid Intensity</span>
+        <span id="val-grid" class="text-cyber-cyan">80%</span>
+      </div>
+      <input type="range" id="slider-grid" min="0" max="100" value="80">
+    </div>
+    
+    <div class="flex-1 w-full md:w-auto space-y-3">
+      <div class="flex justify-between items-center text-[10px] font-mono text-white/50 tracking-widest uppercase mb-1">
+        <span>Camera Dolly (Depth)</span>
+        <span id="val-depth" class="text-cyber-magenta">Center</span>
+      </div>
+      <input type="range" id="slider-depth" min="-15" max="15" value="0">
+    </div>
+    
+    <div class="flex-1 w-full md:w-auto space-y-3">
+      <div class="flex justify-between items-center text-[10px] font-mono text-white/50 tracking-widest uppercase mb-1">
+        <span>Gold Particle Density</span>
+        <span id="val-particles" class="text-cyber-gold">Med</span>
+      </div>
+      <input type="range" id="slider-particles" min="0" max="2000" value="800">
+    </div>
+
+  </div>
+
+  <script>
+    // --- Global Application State ---
+    const config = {
+      avatarVisible: true,
+      gridIntensity: 0.8,
+      particleCount: 800
+    };
+
+    // --- DOM Elements ---
+    const canvas = document.getElementById('webgl-canvas');
+    const container = document.getElementById('banner-container');
+    const avatarOverlay = document.getElementById('avatar-overlay');
+    
+    const btnToggleAvatar = document.getElementById('btn-toggle-avatar');
+    const btnExport = document.getElementById('btn-export');
+    
+    const sliderGrid = document.getElementById('slider-grid');
+    const valGrid = document.getElementById('val-grid');
+    const sliderDepth = document.getElementById('slider-depth');
+    const valDepth = document.getElementById('val-depth');
+    const sliderParticles = document.getElementById('slider-particles');
+    const valParticles = document.getElementById('val-particles');
+
+    // --- Three.js Setup ---
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+    // Deep fog for dramatic falloff fading to absolute black
+    scene.fog = new THREE.FogExp2(0x050505, 0.035);
+
+    // Camera setup for Ultra-Wide 3:1
+    // We use a slightly wider FOV to capture the grandeur of the vault
+    const camera = new THREE.PerspectiveCamera(55, container.clientWidth / container.clientHeight, 0.1, 200);
+    camera.position.set(0, 0, 10);
+
+    // Renderer Setup with high-end settings
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas: canvas, 
+      antialias: true, 
+      alpha: false,
+      preserveDrawingBuffer: true // Required for canvas export
+    });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    
+    // Cinematic Tone Mapping
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+
+    // Orbit Controls (Restricted for banner composition)
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.enableZoom = false; // Handled by dolly slider
+    controls.enablePan = false;
+    // Restrict angles to keep the framing solid
+    controls.minPolarAngle = Math.PI / 2.5; // Don't look too far up
+    controls.maxPolarAngle = Math.PI / 1.8; // Don't look too far down
+    controls.minAzimuthAngle = -Math.PI / 8; // Slight pan left
+    controls.maxAzimuthAngle = Math.PI / 8;  // Slight pan right
+
+    // --- STREAMING_CHUNK:Building the Cyber Vault Architecture Materials... ---
+    
+    // Deep OLED Black Metal Material
+    const vaultMetalMat = new THREE.MeshStandardMaterial({
+      color: 0x050505, // Pure black base
+      metalness: 0.95,
+      roughness: 0.15, // Very glossy
+    });
+    
+    // Slightly lighter structural steel
+    const structureMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a0c,
+      metalness: 0.8,
+      roughness: 0.3,
+    });
+
+    // Emissive Grid Materials
+    const cyanGridMat = new THREE.MeshBasicMaterial({
+      color: 0x00f3ff,
+      transparent: true,
+      opacity: 0.8,
+      wireframe: true
+    });
+    
+    const magentaGridMat = new THREE.MeshBasicMaterial({
+      color: 0xff00ff,
+      transparent: true,
+      opacity: 0.8,
+      wireframe: true
+    });
+
+    // --- STREAMING_CHUNK:Procedural Geometry Generation... ---
+    
+    const vaultGroup = new THREE.Group();
+    scene.add(vaultGroup);
+    
+    const gridElements = []; // Store grid elements to update opacity
+
+    // Generate corridor panels stretching into depth
+    const tunnelLength = 80;
+    const segments = 12;
+    const spacing = tunnelLength / segments;
+
+    for(let i=0; i<segments; i++) {
+      const zPos = -i * spacing;
+      
+      // Outer Vault Ring (Octagonal)
+      const ringGeo = new THREE.CylinderGeometry(15, 15, 2, 8);
+      const ring = new THREE.Mesh(ringGeo, vaultMetalMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.z = zPos;
+      vaultGroup.add(ring);
+      
+      // Structural Beams
+      const beamGeo = new THREE.BoxGeometry(32, 1, 1);
+      
+      // Top/Bottom
+      const beamTop = new THREE.Mesh(beamGeo, structureMat);
+      beamTop.position.set(0, 14, zPos - spacing/2);
+      vaultGroup.add(beamTop);
+      
+      const beamBot = new THREE.Mesh(beamGeo, structureMat);
+      beamBot.position.set(0, -14, zPos - spacing/2);
+      vaultGroup.add(beamBot);
+      
+      // Left/Right Walls (Vertical)
+      const beamVGeo = new THREE.BoxGeometry(1, 28, 1);
+      
+      const beamLeft = new THREE.Mesh(beamVGeo, structureMat);
+      beamLeft.position.set(-14, 0, zPos - spacing/2);
+      vaultGroup.add(beamLeft);
+      
+      const beamRight = new THREE.Mesh(beamVGeo, structureMat);
+      beamRight.position.set(14, 0, zPos - spacing/2);
+      vaultGroup.add(beamRight);
+
+      // --- Add Geometric Wireframe/Grid details ---
+      // Left side Magenta
+      if(i % 2 === 0) {
+        const gridLGeo = new THREE.PlaneGeometry(10, 20, 4, 8);
+        const gridL = new THREE.Mesh(gridLGeo, magentaGridMat);
+        gridL.position.set(-13.5, 0, zPos);
+        gridL.rotation.y = Math.PI / 2;
+        vaultGroup.add(gridL);
+        gridElements.push(gridL);
+      }
+      
+      // Right side Cyan
+      if(i % 2 !== 0) {
+        const gridRGeo = new THREE.PlaneGeometry(10, 20, 4, 8);
+        const gridR = new THREE.Mesh(gridRGeo, cyanGridMat);
+        gridR.position.set(13.5, 0, zPos);
+        gridR.rotation.y = -Math.PI / 2;
+        vaultGroup.add(gridR);
+        gridElements.push(gridR);
+      }
+    }
+    
+    // Central clean floor (mirrored effect)
+    const floorGeo = new THREE.PlaneGeometry(20, tunnelLength + 20);
+    const floor = new THREE.Mesh(floorGeo, vaultMetalMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.position.set(0, -10, -tunnelLength/2 + 10);
+    vaultGroup.add(floor);
+
+    // --- STREAMING_CHUNK:Lighting and Volumetric setups... ---
+    
+    // Minimal ambient to keep shadows pure black
+    const ambientLight = new THREE.AmbientLight(0x050505, 1.0);
+    scene.add(ambientLight);
+
+    // Cyan Neon Arrays (Right Side)
+    for(let i=0; i<4; i++) {
+      const cyanLight = new THREE.PointLight(0x00f3ff, 8, 40);
+      cyanLight.position.set(12, 0, -i * 20);
+      vaultGroup.add(cyanLight);
+    }
+    
+    // Magenta Neon Arrays (Left Side)
+    for(let i=0; i<4; i++) {
+      const magentaLight = new THREE.PointLight(0xff00ff, 8, 40);
+      magentaLight.position.set(-12, 0, -i * 20 + 10); // Offset from cyan
+      vaultGroup.add(magentaLight);
+    }
+
+    // --- STREAMING_CHUNK:Floating Golden Particle System... ---
+    
+    let particles;
+    let particlePos;
+    let particleVel;
+    
+    function initParticles(count) {
+      if(particles) {
+        scene.remove(particles);
+      }
+      
+      const particleGeo = new THREE.BufferGeometry();
+      particlePos = new Float32Array(count * 3);
+      particleVel = [];
+
+      for (let i = 0; i < count; i++) {
+        // Spread widely across the vault volume
+        const x = (Math.random() - 0.5) * 30;
+        const y = (Math.random() - 0.5) * 20;
+        const z = (Math.random() - 1.0) * tunnelLength + 5; 
+        
+        particlePos[i * 3] = x;
+        particlePos[i * 3 + 1] = y;
+        particlePos[i * 3 + 2] = z;
+
+        // Slow drifting velocities
+        particleVel.push({
+          x: (Math.random() - 0.5) * 0.02,
+          y: (Math.random() - 0.5) * 0.02,
+          z: (Math.random() - 0.5) * 0.01 + 0.02 // General drift forward
+        });
+      }
+
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePos, 3));
+      
+      const particleMat = new THREE.PointsMaterial({
+        color: 0xffd700, // Floating Gold Dust
+        size: 0.15,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      particles = new THREE.Points(particleGeo, particleMat);
+      scene.add(particles);
+    }
+    
+    // Initialize default particle count
+    initParticles(config.particleCount);
+
+    // --- STREAMING_CHUNK:Animation Loop and Event Listeners... ---
+    
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta();
+      const elapsedTime = clock.getElapsedTime();
+
+      // Subtle camera breathing
+      camera.position.x = Math.sin(elapsedTime * 0.2) * 0.5;
+      camera.position.y = Math.cos(elapsedTime * 0.3) * 0.5;
+      // Note: Z position is handled by Dolly slider
+
+      // Animate Particles
+      if(particles) {
+        const positions = particles.geometry.attributes.position.array;
+        for (let i = 0; i < config.particleCount; i++) {
+          positions[i * 3] += particleVel[i].x;
+          positions[i * 3 + 1] += particleVel[i].y;
+          positions[i * 3 + 2] += particleVel[i].z;
+  
+          // Loop particles if they float past camera or boundaries
+          if (positions[i * 3 + 2] > 10) {
+            positions[i * 3 + 2] = -tunnelLength + 5;
+          }
+          if (Math.abs(positions[i * 3]) > 15) particleVel[i].x *= -1;
+          if (Math.abs(positions[i * 3 + 1]) > 10) particleVel[i].y *= -1;
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    // Responsive Resize Handler (maintains 3:1 aspect ratio constraint via CSS)
+    window.addEventListener('resize', () => {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    });
+
+    // --- UI Interactions ---
+    
+    // Toggle Avatar Safe Zone
+    btnToggleAvatar.addEventListener('click', () => {
+      config.avatarVisible = !config.avatarVisible;
+      avatarOverlay.style.opacity = config.avatarVisible ? '1' : '0';
+      btnToggleAvatar.classList.toggle('active');
+    });
+
+    // Grid Opacity Slider
+    sliderGrid.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value);
+      config.gridIntensity = val / 100;
+      valGrid.innerText = val + '%';
+      
+      gridElements.forEach(mesh => {
+        mesh.material.opacity = config.gridIntensity;
+      });
+    });
+
+    // Dolly / Depth Slider
+    sliderDepth.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      
+      // Map slider (-15 to 15) to Z position (25 to -5)
+      // Moving in (negative slider) pushes camera Z closer to origin
+      // Default slider 0 maps to Z=10.
+      camera.position.z = 10 - val; 
+      
+      if(val > 5) valDepth.innerText = 'Deep';
+      else if(val < -5) valDepth.innerText = 'Wide';
+      else valDepth.innerText = 'Center';
+    });
+
+    // Particle Density Slider
+    sliderParticles.addEventListener('change', (e) => {
+      const val = parseInt(e.target.value);
+      config.particleCount = val;
+      
+      if(val < 500) valParticles.innerText = 'Low';
+      else if(val > 1500) valParticles.innerText = 'High';
+      else valParticles.innerText = 'Med';
+      
+      initParticles(config.particleCount);
+    });
+
+    // 4K PNG Exporter
+    btnExport.addEventListener('click', () => {
+      // Force a render to ensure canvas is up to date
+      renderer.render(scene, camera);
+      
+      // Grab data URL (preserving current resolution, which is 2x device pixel ratio)
+      const dataURL = canvas.toDataURL('image/png', 1.0);
+      
+      // Create temp link and download
+      const link = document.createElement('a');
+      link.download = `Cyber_Vault_Banner_${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+    });
+
+    // Start Simulation
+    animate();
+    
+    // Set initial button states
+    btnToggleAvatar.classList.add('active');
+
+  </script>
+</body>
+</html>

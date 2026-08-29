@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>3D Cybernetic Avatar Silhouette</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            oled: '#050505',
+            cyan: '#00f3ff',
+            magenta: '#ff00ff',
+            gold: '#ffd700',
+            obsidian: '#111111'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #050505;
+      color: #ffffff;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #050505;
+    }
+
+    #glcanvas {
+      width: 100%;
+      height: 100%;
+      outline: none;
+    }
+
+    .ui-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Circular Profile Mask for preview */
+    .profile-mask-overlay {
+      position: absolute;
+      inset: 0;
+      box-shadow: 0 0 0 9999px rgba(5, 5, 5, 0.95);
+      border-radius: 50%;
+      width: 320px;
+      height: 320px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: opacity 0.5s ease;
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    .profile-mask-overlay.hidden-mask {
+      opacity: 0;
+    }
+
+    .glass-panel {
+      background: rgba(15, 15, 15, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Custom Radio Buttons */
+    .color-radio input[type="radio"] {
+      display: none;
+    }
+    .color-radio .radio-bg {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .color-radio input[type="radio"]:checked + .radio-bg {
+      transform: scale(1.2);
+      border-color: white;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 3D Canvas Background -->
+  <div id="canvas-container">
+    <canvas id="glcanvas"></canvas>
+  </div>
+
+  <div class="ui-layer justify-between p-6 md:p-8">
+    
+    <!-- Top Header -->
+    <div class="w-full flex justify-between items-start">
+      <div>
+        <h1 class="font-sans font-semibold text-lg tracking-widest text-white uppercase drop-shadow-md">Avatar Profile Generator</h1>
+        <p class="font-mono text-cyan text-xs tracking-[0.2em] uppercase mt-2">Status: Authenticated // UI Asset</p>
+      </div>
+      
+      <!-- Mask Toggle -->
+      <button id="btn-mask" class="interactive flex items-center gap-2 px-4 py-2 glass-panel rounded-full text-xs font-mono tracking-widest hover:bg-white/10 transition-colors">
+        <div class="w-2 h-2 rounded-full bg-cyan shadow-[0_0_8px_#00f3ff]" id="mask-indicator"></div>
+        CROP PREVIEW
+      </button>
+    </div>
+
+    <!-- Center Profile Mask Overlay -->
+    <div id="profile-mask" class="profile-mask-overlay"></div>
+
+    <!-- Bottom Controls -->
+    <div class="w-full flex flex-col md:flex-row justify-center md:justify-between items-center gap-6 interactive">
+      
+      <!-- Visor Color Selection -->
+      <div class="glass-panel px-6 py-4 rounded-2xl flex items-center gap-6">
+        <span class="font-mono text-[10px] text-white/50 tracking-widest uppercase">Visor Color</span>
+        <div class="flex gap-4">
+          <label class="color-radio">
+            <input type="radio" name="visorColor" value="cyan" checked>
+            <div class="radio-bg bg-cyan shadow-[0_0_15px_rgba(0,243,255,0.4)]"></div>
+          </label>
+          <label class="color-radio">
+            <input type="radio" name="visorColor" value="magenta">
+            <div class="radio-bg bg-magenta shadow-[0_0_15px_rgba(255,0,255,0.4)]"></div>
+          </label>
+          <label class="color-radio">
+            <input type="radio" name="visorColor" value="gold">
+            <div class="radio-bg bg-gold shadow-[0_0_15px_rgba(255,215,0,0.4)]"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Export Action -->
+      <button id="btn-export" class="px-8 py-4 bg-white text-black rounded-xl text-xs font-bold font-sans tracking-[0.15em] uppercase hover:bg-cyan hover:text-black transition-all hover:shadow-[0_0_20px_rgba(0,243,255,0.4)] flex items-center gap-3">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+        Export 4K Avatar
+      </button>
+
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('glcanvas');
+    // Preserve drawing buffer is required to export the canvas to an image
+    const renderer = new THREE.WebGLRenderer({ 
+      canvas, 
+      antialias: true, 
+      alpha: false,
+      preserveDrawingBuffer: true 
+    });
+    
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050505);
+
+    // Camera framed perfectly for a profile picture
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.set(0, 0.5, 6);
+
+    // Dynamic resize handler
+    function resizeCanvas() {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const avatarGroup = new THREE.Group();
+    scene.add(avatarGroup);
+
+    // Shared Materials
+    // Dark Metallic Obsidian for the helmet and armor
+    const obsidianMat = new THREE.MeshPhysicalMaterial({
+      color: 0x0a0a0c,
+      metalness: 0.9,
+      roughness: 0.25,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1,
+      flatShading: true // Gives a faceted, high-tech architectural look
+    });
+
+    // Glowing Visor Material (Starts Cyan)
+    const visorMat = new THREE.MeshStandardMaterial({
+      color: 0x00f3ff,
+      emissive: 0x00f3ff,
+      emissiveIntensity: 2.0,
+      transparent: true,
+      opacity: 0.9
+    });
+
+    // Inner neck mechanical details
+    const mechanicalMat = new THREE.MeshStandardMaterial({
+      color: 0x111111,
+      metalness: 0.8,
+      roughness: 0.6,
+      wireframe: true
+    });
+
+    // 1. Base Torso / Shoulders
+    const torsoGeo = new THREE.CylinderGeometry(1.6, 2.2, 1.5, 8);
+    const torso = new THREE.Mesh(torsoGeo, obsidianMat);
+    torso.position.y = -1.5;
+    avatarGroup.add(torso);
+
+    // Collar Plate
+    const collarGeo = new THREE.TorusGeometry(1.3, 0.25, 8, 8);
+    const collar = new THREE.Mesh(collarGeo, obsidianMat);
+    collar.position.y = -0.6;
+    collar.rotation.x = Math.PI / 2;
+    avatarGroup.add(collar);
+
+    // 2. Neck structure
+    const neckGeo = new THREE.CylinderGeometry(0.6, 0.7, 1.2, 16);
+    const neck = new THREE.Mesh(neckGeo, mechanicalMat);
+    neck.position.y = -0.2;
+    avatarGroup.add(neck);
+
+    // 3. Cybernetic Helmet (Head)
+    // Using Icosahedron for a faceted, stealth-fighter look
+    const headGeo = new THREE.IcosahedronGeometry(1.1, 2);
+    const head = new THREE.Mesh(headGeo, obsidianMat);
+    head.position.y = 0.8;
+    avatarGroup.add(head);
+
+    // Side ear-pieces (Audio/Sensory nodes)
+    const nodeGeo = new THREE.CylinderGeometry(0.3, 0.3, 2.4, 16);
+    const nodes = new THREE.Mesh(nodeGeo, obsidianMat);
+    nodes.position.y = 0.8;
+    nodes.rotation.z = Math.PI / 2;
+    avatarGroup.add(nodes);
+
+    // 4. Glowing Visor (The focal point)
+    // A curved box stretched across the front of the face
+    const visorGeo = new THREE.BoxGeometry(2.0, 0.35, 1.2);
+    const visor = new THREE.Mesh(visorGeo, visorMat);
+    visor.position.set(0, 0.9, 0.45);
+    // Bevel the visor by scaling vertices slightly if we wanted, but overlapping geometry works cleanly in silhouette
+    avatarGroup.add(visor);
+
+    // Ambient light to barely illuminate the dark shadows
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+    scene.add(ambientLight);
+
+    // High-contrast Rim Light (Top Right Behind) to highlight the obsidian edges
+    const rimLight = new THREE.DirectionalLight(0xffffff, 3.0);
+    rimLight.position.set(5, 5, -5);
+    scene.add(rimLight);
+
+    // Secondary Rim Light (Left) for depth
+    const rimLight2 = new THREE.DirectionalLight(0xaaaaaa, 1.0);
+    rimLight2.position.set(-5, 0, -5);
+    scene.add(rimLight2);
+
+    // Emissive Point Light attached to the visor to cast glow onto the helmet/shoulders
+    const visorLight = new THREE.PointLight(0x00f3ff, 2.0, 5.0);
+    visorLight.position.set(0, 0.9, 1.5);
+    avatarGroup.add(visorLight);
+
+    // Mouse Parallax Logic
+    let targetRotationX = 0;
+    let targetRotationY = 0;
+    let mouseX = 0;
+    let mouseY = 0;
+
+    const windowHalfX = window.innerWidth / 2;
+    const windowHalfY = window.innerHeight / 2;
+
+    document.addEventListener('mousemove', (event) => {
+      mouseX = (event.clientX - windowHalfX);
+      mouseY = (event.clientY - windowHalfY);
+      
+      // Calculate target rotation based on mouse position
+      targetRotationY = (mouseX / windowHalfX) * 0.3; // Limit rotation amount
+      targetRotationX = (mouseY / windowHalfY) * 0.2;
+    });
+
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const time = clock.getElapsedTime();
+
+      // Smooth interpolation for parallax looking
+      avatarGroup.rotation.y += (targetRotationY - avatarGroup.rotation.y) * 0.05;
+      avatarGroup.rotation.x += (targetRotationX - avatarGroup.rotation.x) * 0.05;
+
+      // Subtle floating breathing animation
+      avatarGroup.position.y = Math.sin(time * 1.5) * 0.05;
+
+      // Pulse the visor light slightly
+      visorMat.emissiveIntensity = 2.0 + Math.sin(time * 4) * 0.5;
+      visorLight.intensity = 2.0 + Math.sin(time * 4) * 0.5;
+
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // Visor Color Change Logic
+    const colorRadios = document.querySelectorAll('input[name="visorColor"]');
+    const hexColors = {
+      cyan: 0x00f3ff,
+      magenta: 0xff00ff,
+      gold: 0xffd700
+    };
+
+    colorRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const color = hexColors[e.target.value];
+        visorMat.color.setHex(color);
+        visorMat.emissive.setHex(color);
+        visorLight.color.setHex(color);
+      });
+    });
+
+    // Mask Toggle Logic
+    const btnMask = document.getElementById('btn-mask');
+    const profileMask = document.getElementById('profile-mask');
+    const maskIndicator = document.getElementById('mask-indicator');
+    let maskActive = true;
+
+    btnMask.addEventListener('click', () => {
+      maskActive = !maskActive;
+      if(maskActive) {
+        profileMask.classList.remove('hidden-mask');
+        maskIndicator.classList.remove('bg-white/30', 'shadow-none');
+        maskIndicator.classList.add('bg-cyan', 'shadow-[0_0_8px_#00f3ff]');
+      } else {
+        profileMask.classList.add('hidden-mask');
+        maskIndicator.classList.add('bg-white/30', 'shadow-none');
+        maskIndicator.classList.remove('bg-cyan', 'shadow-[0_0_8px_#00f3ff]');
+      }
+    });
+
+    // 4K Export Logic
+    const btnExport = document.getElementById('btn-export');
+    
+    btnExport.addEventListener('click', () => {
+      // Temporarily resize canvas to 4K for a crisp render
+      const originalWidth = window.innerWidth;
+      const originalHeight = window.innerHeight;
+      
+      // Target 4K square resolution (or based on aspect ratio)
+      const exportSize = 3840;
+      renderer.setSize(exportSize, exportSize);
+      camera.aspect = 1; // Force square aspect for profile pic
+      camera.updateProjectionMatrix();
+      
+      // Force a render pass at new resolution
+      renderer.render(scene, camera);
+      
+      // Get image data
+      const dataURL = canvas.toDataURL('image/png');
+      
+      // Restore original canvas size
+      renderer.setSize(originalWidth, originalHeight);
+      camera.aspect = originalWidth / originalHeight;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+
+      // Trigger download
+      const link = document.createElement('a');
+      const currentColor = document.querySelector('input[name="visorColor"]:checked').value;
+      link.download = `Cyber_Avatar_${currentColor}_4K.png`;
+      link.href = dataURL;
+      link.click();
+    });
+
+  </script>
+</body>
+</html>

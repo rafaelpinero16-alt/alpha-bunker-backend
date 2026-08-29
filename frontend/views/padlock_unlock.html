@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Padlock - 3D Quantum Decryption Emblem</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Space Grotesk, JetBrains Mono, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            serif: ['Cinzel', 'serif']
+          },
+          colors: {
+            cyber: {
+              magenta: '#ff00ff',
+              gold: '#ffd700',
+              cyan: '#00f3ff',
+              dark: '#0a0a12',
+              bg: '#050505'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050505;
+      color: #e2e8f0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Frosted Cyber Glass HUD */
+    .cyber-glass {
+      background: rgba(10, 10, 18, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+
+    /* Cyber grid overlay */
+    .cyber-grid {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 0, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 243, 255, 0.03) 1px, transparent 1px);
+    }
+
+    /* Range slider custom styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.12);
+      height: 4px;
+      border-radius: 2px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px;
+      width: 14px;
+      border-radius: 50%;
+      background: #ff00ff;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255, 0, 255, 0.9);
+      border: 2px solid #050505;
+      transition: transform 0.1s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    /* Pulse Glow Keyframes */
+    @keyframes pulseAura {
+      0%, 100% { opacity: 0.2; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(1.1); }
+    }
+    .ambient-pulse {
+      animation: pulseAura 6s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="h-full w-full relative flex flex-col justify-between font-sans select-none cyber-grid">
+
+  <!-- Ambient Light Orbs -->
+  <div class="pointer-events-none absolute inset-0 overflow-hidden z-0">
+    <div class="ambient-pulse absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-[#ff00ff] opacity-20 blur-[150px]"></div>
+    <div class="ambient-pulse absolute -bottom-32 -right-32 w-[500px] h-[500px] rounded-full bg-[#ffd700] opacity-20 blur-[150px]" style="animation-delay: -3s;"></div>
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[#ff00ff]/5 blur-[200px]"></div>
+  </div>
+
+  <!-- 3D Canvas Viewport -->
+  <div id="canvas-container" class="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing z-0"></div>
+
+  <header class="relative z-20 w-full p-4 md:p-6 flex items-center justify-between pointer-events-none">
+    <div class="flex items-center space-x-3.5 pointer-events-auto">
+      <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-500 via-purple-600 to-amber-400 p-[1.5px] flex items-center justify-center shadow-lg shadow-fuchsia-500/20">
+        <div class="w-full h-full bg-[#09090f] rounded-[14px] flex items-center justify-center">
+          <svg class="w-5 h-5 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-sm md:text-base font-bold tracking-wider text-white uppercase font-display">CYBERLOCK MK-VII</h1>
+          <span id="state-pill" class="px-2 py-0.5 text-[10px] font-mono font-bold bg-fuchsia-500/10 text-[#ff00ff] border border-fuchsia-500/30 rounded-full tracking-wider">LOCKED</span>
+        </div>
+        <p class="text-[11px] text-gray-400 font-mono tracking-wider">QUANTUM PARTICLE MATRIX</p>
+      </div>
+    </div>
+
+    <!-- Live Telemetry Status HUD -->
+    <div class="hidden sm:flex items-center space-x-4 cyber-glass px-4 py-2.5 rounded-2xl text-xs pointer-events-auto border border-white/10">
+      <div class="flex items-center space-x-2">
+        <span id="telemetry-dot" class="w-2.5 h-2.5 rounded-full bg-[#ff00ff] animate-ping" style="animation-duration: 1.5s;"></span>
+        <span class="text-gray-300 font-mono font-bold" id="telemetry-state-text">STATUS: ENCRYPTED</span>
+      </div>
+      <div class="w-[1px] h-3.5 bg-white/15"></div>
+      <div class="text-amber-400 font-mono" id="particle-stat">3,600 GOLDEN QUARKS</div>
+      <div class="w-[1px] h-3.5 bg-white/15"></div>
+      <div class="text-fuchsia-400 font-mono font-bold" id="telemetry-timer">CYCLE: 0.0s</div>
+    </div>
+  </header>
+
+  <div class="hidden lg:flex flex-col space-y-3 absolute left-6 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
+    <div class="cyber-glass p-4 rounded-2xl w-64 border-l-2 border-l-[#ff00ff] space-y-3 pointer-events-auto">
+      <div class="flex items-center justify-between text-[10px] uppercase font-mono font-bold tracking-widest text-fuchsia-400">
+        <span>Decryption Telemetry</span>
+        <span class="w-2 h-2 rounded-full bg-fuchsia-400 animate-pulse"></span>
+      </div>
+      
+      <!-- Progress Bar -->
+      <div class="space-y-1.5">
+        <div class="flex justify-between text-[11px] font-mono text-gray-300">
+          <span>DISSOLUTION PROGRESS</span>
+          <span id="dissolve-percent" class="text-amber-400 font-bold">0%</span>
+        </div>
+        <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div id="dissolve-bar" class="h-full bg-gradient-to-r from-fuchsia-500 to-amber-400 w-0 transition-all duration-75"></div>
+        </div>
+      </div>
+
+      <div class="text-xs font-mono text-gray-300 flex items-center justify-between pt-1">
+        <span class="text-gray-500">SHACKLE CLEARANCE:</span>
+        <span id="shackle-stat" class="font-bold text-white">LOCKED (0.0mm)</span>
+      </div>
+
+      <div class="text-xs font-mono text-gray-300 flex items-center justify-between">
+        <span class="text-gray-500">CORE ENTROPY:</span>
+        <span id="entropy-stat" class="text-amber-400 font-bold">0.00 eV</span>
+      </div>
+
+      <div class="pt-2 border-t border-white/10 flex justify-between items-center text-[11px] font-mono">
+        <span class="text-gray-500">MATRIX FLUX</span>
+        <span id="matrix-status" class="text-emerald-400 font-bold">STABLE 60 FPS</span>
+      </div>
+    </div>
+
+    <!-- Quick Sequence Triggers -->
+    <div class="cyber-glass p-3 rounded-2xl w-64 space-y-2 pointer-events-auto border-l-2 border-l-amber-400">
+      <div class="text-[10px] uppercase font-mono font-bold tracking-widest text-amber-400">Sequence Control</div>
+      <div class="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+        <button onclick="setLoopMode('auto')" id="btn-mode-auto" class="px-2 py-1.5 rounded-xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 text-center transition">Auto Loop</button>
+        <button onclick="setLoopMode('manual')" id="btn-mode-manual" class="px-2 py-1.5 rounded-xl bg-white/5 text-gray-400 hover:text-white border border-transparent text-center transition">Manual Step</button>
+        <button onclick="triggerDissolveStep('unlock')" class="px-2 py-1.5 rounded-xl bg-white/5 text-amber-300 hover:bg-amber-400/20 border border-amber-400/30 text-center transition">Unlock & Melt</button>
+        <button onclick="triggerDissolveStep('reconstruct')" class="px-2 py-1.5 rounded-xl bg-white/5 text-fuchsia-300 hover:bg-fuchsia-400/20 border border-fuchsia-400/30 text-center transition">Reassemble</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="relative z-20 w-full p-4 md:p-6 flex flex-col lg:flex-row items-center justify-between gap-4 pointer-events-none">
+    
+    <!-- Colorway Themes -->
+    <div class="cyber-glass p-1.5 rounded-2xl flex items-center space-x-1 pointer-events-auto shadow-2xl">
+      <button onclick="setThemePreset('magentaGold')" id="btn-theme-mg" class="px-3.5 py-2 rounded-xl text-xs font-medium transition-all bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 flex items-center space-x-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400 shadow-[0_0_8px_#ff00ff]"></span>
+        <span>Neon & Gold</span>
+      </button>
+      <button onclick="setThemePreset('cyanGold')" id="btn-theme-cg" class="px-3.5 py-2 rounded-xl text-xs font-medium transition-all text-gray-400 hover:text-white hover:bg-white/5 flex items-center space-x-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f3ff]"></span>
+        <span>Cyber Cyan</span>
+      </button>
+      <button onclick="setThemePreset('solarGold')" id="btn-theme-sg" class="px-3.5 py-2 rounded-xl text-xs font-medium transition-all text-gray-400 hover:text-white hover:bg-white/5 flex items-center space-x-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_#ffd700]"></span>
+        <span>Pure Solar</span>
+      </button>
+    </div>
+
+    <!-- Sliders & Interactive Actions -->
+    <div class="cyber-glass px-5 py-3 rounded-2xl flex flex-wrap items-center justify-center gap-4 md:gap-6 pointer-events-auto shadow-2xl">
+      
+      <!-- Turntable Toggle -->
+      <button id="toggle-spin-btn" onclick="toggleSpin()" class="flex items-center space-x-2 text-xs font-semibold text-white bg-white/10 hover:bg-white/20 active:scale-95 px-3.5 py-2 rounded-xl transition border border-white/10">
+        <svg id="spin-icon" class="w-4 h-4 text-fuchsia-400 animate-spin" style="animation-duration: 4s;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        <span id="spin-text" class="font-mono">360° TURNTABLE</span>
+      </button>
+
+      <!-- Particle Vortex Expansion Slider -->
+      <div class="flex items-center space-x-2 text-xs">
+        <span class="text-gray-400 font-mono">Vortex Radius:</span>
+        <input type="range" id="radius-slider" min="1.0" max="3.5" step="0.1" value="2.2" class="w-20 md:w-24 cursor-pointer" oninput="updateVortexRadius(this.value)">
+      </div>
+
+      <!-- Animation Speed Slider -->
+      <div class="flex items-center space-x-2 text-xs border-l border-white/10 pl-4">
+        <span class="text-gray-400 font-mono">Loop Speed:</span>
+        <input type="range" id="speed-slider" min="0.5" max="2.5" step="0.1" value="1.0" class="w-16 md:w-20 cursor-pointer" oninput="updateAnimSpeed(this.value)">
+      </div>
+
+      <!-- High-Res Snapshot Capture -->
+      <button onclick="capturePadlockSnapshot()" title="Capture 4K 3D Emblem" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-fuchsia-300 hover:text-white transition border border-fuchsia-400/30 active:scale-95">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </button>
+
+    </div>
+
+    <!-- Quick Reset View Button -->
+    <div class="pointer-events-auto">
+      <button onclick="resetFrontalView()" class="cyber-glass px-4 py-2.5 rounded-2xl text-xs font-mono font-semibold text-gray-300 hover:text-white hover:border-fuchsia-400/50 transition flex items-center space-x-2">
+        <svg class="w-4 h-4 text-fuchsia-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+        <span>FRONTAL VIEW</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Feedback -->
+  <div id="toast" class="fixed top-20 right-6 z-50 transform translate-x-32 opacity-0 pointer-events-none transition-all duration-300 cyber-glass px-4 py-3 rounded-2xl border border-fuchsia-400/50 text-fuchsia-300 text-xs flex items-center space-x-2.5 shadow-2xl">
+    <svg class="w-4 h-4 text-fuchsia-400" fill="currentColor" viewBox="0 0 20 20">
+      <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+    </svg>
+    <span id="toast-message" class="font-mono">Decryption Matrix Initialized</span>
+  </div>
+
+  <script>
+    /* Scene Variables */
+    let scene, camera, renderer, controls;
+    let masterLockGroup, padlockMeshGroup, shacklePivotGroup, coreRotorGroup;
+    let particleSystem, energyRingsGroup;
+    let pointLightMagenta, pointLightGold, pointLightCyan, keyLight;
+
+    let neonMagentaMaterials = [];
+    let metallicMaterials = [];
+    let goldMaterials = [];
+
+    /* Animation States & Configuration */
+    let loopMode = 'auto'; // 'auto', 'manual'
+    let isAutoSpinning = false;
+    let animSpeed = 1.0;
+    let vortexRadius = 2.2;
+    let activeTheme = 'magentaGold';
+    
+    // Timeline variables
+    const CYCLE_DURATION = 9.0; // Total seconds for full locked -> unlocked -> dissolve -> reassemble loop
+    let timelineTime = 0.0;
+    let targetManualPhase = 0.0; // 0.0 (locked) to 1.0 (fully dissolved)
+    let currentPhase = 0.0;
+    let lastTime = performance.now();
+
+    /* Particle Data Arrays */
+    const PARTICLE_COUNT = 3600;
+    let particlePositions, particleInitialPositions, particleScatterVectors, particleSpeeds, particleColors;
+
+    window.onload = function() {
+      initScene();
+      buildMaterials();
+      buildPadlockBody();
+      buildPadlockShackle();
+      buildCyberCore();
+      buildParticleMatrix();
+      buildEnergyShockwaveRings();
+      setupStudioLighting();
+      setupEvents();
+      animate();
+    };
+
+    function initScene() {
+      const container = document.getElementById('canvas-container');
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x050505);
+      scene.fog = new THREE.FogExp2(0x050505, 0.04);
+
+      camera = new THREE.PerspectiveCamera(38, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 0.2, 5.6);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.5;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.minDistance = 2.5;
+      controls.maxDistance = 11.0;
+
+      masterLockGroup = new THREE.Group();
+      scene.add(masterLockGroup);
+
+      padlockMeshGroup = new THREE.Group();
+      masterLockGroup.add(padlockMeshGroup);
+    }
+
+    function buildMaterials() {
+      // 1. Procedural Anisotropic Texture
+      const brushCanvas = document.createElement('canvas');
+      brushCanvas.width = 512;
+      brushCanvas.height = 512;
+      const bCtx = brushCanvas.getContext('2d');
+      bCtx.fillStyle = '#202028';
+      bCtx.fillRect(0, 0, 512, 512);
+      for (let i = 0; i < 300; i++) {
+        bCtx.strokeStyle = `rgba(255, 255, 255, ${0.03 + Math.random() * 0.08})`;
+        bCtx.lineWidth = 1 + Math.random() * 2;
+        bCtx.beginPath();
+        const y = Math.random() * 512;
+        bCtx.moveTo(0, y);
+        bCtx.lineTo(512, y);
+        bCtx.stroke();
+      }
+      const brushTex = new THREE.CanvasTexture(brushCanvas);
+      brushTex.wrapS = THREE.RepeatWrapping;
+      brushTex.wrapT = THREE.RepeatWrapping;
+
+      // Obsidian Dark Titanium
+      const darkMetalMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(0x12131a),
+        metalness: 0.94,
+        roughness: 0.18,
+        roughnessMap: brushTex,
+        envMapIntensity: 2.5,
+        transparent: true,
+        opacity: 1.0
+      });
+      metallicMaterials.push(darkMetalMat);
+
+      // Gold Trim
+      const goldMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(0xffd700),
+        metalness: 0.95,
+        roughness: 0.22,
+        envMapIntensity: 2.8,
+        transparent: true,
+        opacity: 1.0
+      });
+      goldMaterials.push(goldMat);
+
+      // Neon Magenta Emissive Material
+      const neonMagentaMat = new THREE.MeshStandardMaterial({
+        color: new THREE.Color(0xff00ff),
+        emissive: new THREE.Color(0xff00ff),
+        emissiveIntensity: 1.6,
+        roughness: 0.1,
+        transparent: true,
+        opacity: 1.0
+      });
+      neonMagentaMaterials.push(neonMagentaMat);
+    }
+
+    function buildPadlockBody() {
+      // 1. Octagonal / Chamfered Cyber Bunker Body
+      const bodyShape = new THREE.Shape();
+      const w = 1.05;
+      const h = 0.9;
+      const r = 0.25;
+
+      bodyShape.moveTo(-w + r, -h);
+      bodyShape.lineTo(w - r, -h);
+      bodyShape.lineTo(w, -h + r);
+      bodyShape.lineTo(w, h - r);
+      bodyShape.lineTo(w - r, h);
+      bodyShape.lineTo(-w + r, h);
+      bodyShape.lineTo(-w, h - r);
+      bodyShape.lineTo(-w, -h + r);
+      bodyShape.closePath();
+
+      const extrudeSettings = {
+        depth: 0.45,
+        bevelEnabled: true,
+        bevelSegments: 5,
+        steps: 1,
+        bevelSize: 0.08,
+        bevelThickness: 0.08
+      };
+
+      const bodyGeom = new THREE.ExtrudeGeometry(bodyShape, extrudeSettings);
+      bodyGeom.center();
+      const bodyMesh = new THREE.Mesh(bodyGeom, metallicMaterials[0]);
+      bodyMesh.castShadow = true;
+      bodyMesh.receiveShadow = true;
+      padlockMeshGroup.add(bodyMesh);
+
+      // 2. Front Chamfered Recessed Armor Plate
+      const innerScale = 0.82;
+      const innerGeom = new THREE.ExtrudeGeometry(bodyShape, {
+        depth: 0.1,
+        bevelEnabled: true,
+        bevelSize: 0.04,
+        bevelThickness: 0.04
+      });
+      innerGeom.center();
+      const frontPlate = new THREE.Mesh(innerGeom, metallicMaterials[0]);
+      frontPlate.scale.set(innerScale, innerScale, 1.0);
+      frontPlate.position.z = 0.26;
+      padlockMeshGroup.add(frontPlate);
+
+      // 3. Glowing Neon Seam Conduits (Magenta Perimeters)
+      const seamCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-0.95, -0.75, 0.32),
+        new THREE.Vector3(0.95, -0.75, 0.32),
+        new THREE.Vector3(0.95, 0.75, 0.32),
+        new THREE.Vector3(-0.95, 0.75, 0.32),
+        new THREE.Vector3(-0.95, -0.75, 0.32)
+      ]);
+      const tubeGeom = new THREE.TubeGeometry(seamCurve, 32, 0.024, 8, true);
+      const seamMesh = new THREE.Mesh(tubeGeom, neonMagentaMaterials[0]);
+      padlockMeshGroup.add(seamMesh);
+
+      // 4. Heavy Reinforced Gold Corner Bolts
+      const boltGeom = new THREE.CylinderGeometry(0.06, 0.06, 0.1, 6);
+      const boltPositions = [
+        [-0.82, -0.65], [0.82, -0.65],
+        [-0.82, 0.65], [0.82, 0.65]
+      ];
+      boltPositions.forEach(([bx, by]) => {
+        const bolt = new THREE.Mesh(boltGeom, goldMaterials[0]);
+        bolt.rotation.x = Math.PI / 2;
+        bolt.position.set(bx, by, 0.32);
+        padlockMeshGroup.add(bolt);
+      });
+    }
+
+    function buildPadlockShackle() {
+      shacklePivotGroup = new THREE.Group();
+      // Pivot located at left post insertion point so shackle can rotate outward
+      shacklePivotGroup.position.set(-0.62, 0.8, 0);
+      padlockMeshGroup.add(shacklePivotGroup);
+
+      // Create Shackle Arch Geometry relative to pivot
+      const path = new THREE.CurvePath();
+      
+      // Right vertical leg
+      const leg1 = new THREE.LineCurve3(new THREE.Vector3(1.24, -0.7, 0), new THREE.Vector3(1.24, 0.35, 0));
+      // Top semi-circular arch
+      const arc = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(1.24, 0.35, 0),
+        new THREE.Vector3(0.62, 1.45, 0),
+        new THREE.Vector3(0, 0.35, 0)
+      );
+      // Left vertical leg
+      const leg2 = new THREE.LineCurve3(new THREE.Vector3(0, 0.35, 0), new THREE.Vector3(0, -0.7, 0));
+
+      path.add(leg1);
+      path.add(arc);
+      path.add(leg2);
+
+      const shackleGeom = new THREE.TubeGeometry(path, 64, 0.14, 16, false);
+      const shackleMesh = new THREE.Mesh(shackleGeom, metallicMaterials[0]);
+      shackleMesh.castShadow = true;
+      shacklePivotGroup.add(shackleMesh);
+
+      // Shackle Neon Accent Rings & Locking Notches
+      const ringGeom = new THREE.TorusGeometry(0.145, 0.02, 16, 32);
+      const ringLeft = new THREE.Mesh(ringGeom, neonMagentaMaterials[0]);
+      ringLeft.rotation.x = Math.PI / 2;
+      ringLeft.position.set(0, 0.1, 0);
+      shacklePivotGroup.add(ringLeft);
+
+      const ringRight = new THREE.Mesh(ringGeom, neonMagentaMaterials[0]);
+      ringRight.rotation.x = Math.PI / 2;
+      ringRight.position.set(1.24, 0.1, 0);
+      shacklePivotGroup.add(ringRight);
+
+      // Gold Locking Collar
+      const collarGeom = new THREE.CylinderGeometry(0.16, 0.16, 0.14, 16);
+      const collar = new THREE.Mesh(collarGeom, goldMaterials[0]);
+      collar.position.set(1.24, -0.2, 0);
+      shacklePivotGroup.add(collar);
+    }
+
+    function buildCyberCore() {
+      coreRotorGroup = new THREE.Group();
+      coreRotorGroup.position.set(0, -0.05, 0.32);
+      padlockMeshGroup.add(coreRotorGroup);
+
+      // Outer Beveled Golden Keyway Ring
+      const outerRingGeom = new THREE.RingGeometry(0.38, 0.46, 32);
+      const outerRing = new THREE.Mesh(outerRingGeom, goldMaterials[0]);
+      coreRotorGroup.add(outerRing);
+
+      // Concentric Cyber Code Dial
+      const dialGeom = new THREE.RingGeometry(0.24, 0.34, 6);
+      const dial = new THREE.Mesh(dialGeom, neonMagentaMaterials[0]);
+      coreRotorGroup.add(dial);
+
+      // Stylized Greek Alpha Core Keyhole Symbol (α / A)
+      const alphaShape = new THREE.Shape();
+      alphaShape.moveTo(0, 0.22);
+      alphaShape.lineTo(0.16, -0.16);
+      alphaShape.lineTo(0.08, -0.16);
+      alphaShape.lineTo(0.04, -0.05);
+      alphaShape.lineTo(-0.04, -0.05);
+      alphaShape.lineTo(-0.08, -0.16);
+      alphaShape.lineTo(-0.16, -0.16);
+      alphaShape.closePath();
+
+      // Inner triangle cut
+      const holePath = new THREE.Path();
+      holePath.moveTo(0, 0.1);
+      holePath.lineTo(0.04, 0.0);
+      holePath.lineTo(-0.04, 0.0);
+      holePath.closePath();
+      alphaShape.holes.push(holePath);
+
+      const alphaGeom = new THREE.ShapeGeometry(alphaShape);
+      const alphaMesh = new THREE.Mesh(alphaGeom, goldMaterials[0]);
+      alphaMesh.position.z = 0.02;
+      coreRotorGroup.add(alphaMesh);
+    }
+
+    function buildParticleMatrix() {
+      particlePositions = new Float32Array(PARTICLE_COUNT * 3);
+      particleInitialPositions = new Float32Array(PARTICLE_COUNT * 3);
+      particleScatterVectors = new Float32Array(PARTICLE_COUNT * 3);
+      particleSpeeds = new Float32Array(PARTICLE_COUNT);
+      particleColors = new Float32Array(PARTICLE_COUNT * 3);
+
+      const colorGold = new THREE.Color(0xffd700);
+      const colorMagenta = new THREE.Color(0xff00ff);
+      const colorAmber = new THREE.Color(0xffaa00);
+
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        // Sample points conforming to padlock bounds (body + shackle volume)
+        let x, y, z;
+        const isShackle = Math.random() > 0.65;
+
+        if (isShackle) {
+          // Shackle Arch shape distribution
+          const angle = Math.PI * Math.random();
+          const rad = 0.62 + (Math.random() - 0.5) * 0.25;
+          x = Math.cos(angle) * rad;
+          y = 0.8 + Math.sin(angle) * rad + (Math.random() - 0.5) * 0.4;
+          z = (Math.random() - 0.5) * 0.3;
+        } else {
+          // Padlock Chassis volume distribution
+          x = (Math.random() - 0.5) * 2.0;
+          y = (Math.random() - 0.5) * 1.6 - 0.1;
+          z = (Math.random() - 0.5) * 0.6;
+        }
+
+        particleInitialPositions[i * 3] = x;
+        particleInitialPositions[i * 3 + 1] = y;
+        particleInitialPositions[i * 3 + 2] = z;
+
+        particlePositions[i * 3] = x;
+        particlePositions[i * 3 + 1] = y;
+        particlePositions[i * 3 + 2] = z;
+
+        // Spiral vortex outward scatter trajectories
+        const spiralAngle = Math.atan2(y, x) + (Math.random() - 0.5) * 1.5;
+        const dist = 1.8 + Math.random() * vortexRadius * 1.6;
+        const scatterY = (Math.random() - 0.5) * 3.5 + (Math.random() > 0.5 ? 1.0 : -0.5);
+
+        particleScatterVectors[i * 3] = Math.cos(spiralAngle) * dist;
+        particleScatterVectors[i * 3 + 1] = scatterY;
+        particleScatterVectors[i * 3 + 2] = Math.sin(spiralAngle) * dist + (Math.random() - 0.5) * 2.0;
+
+        particleSpeeds[i] = 0.7 + Math.random() * 0.6;
+
+        // Color blending: mostly radiant pure gold with sparkling magenta highlights
+        let col = colorGold;
+        const rnd = Math.random();
+        if (rnd < 0.65) col = colorGold;
+        else if (rnd < 0.85) col = colorAmber;
+        else col = colorMagenta;
+
+        particleColors[i * 3] = col.r;
+        particleColors[i * 3 + 1] = col.g;
+        particleColors[i * 3 + 2] = col.b;
+      }
+
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+      geom.setAttribute('color', new THREE.BufferAttribute(particleColors, 3));
+
+      const particleMaterial = new THREE.PointsMaterial({
+        size: 0.048,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      particleSystem = new THREE.Points(geom, particleMaterial);
+      masterLockGroup.add(particleSystem);
+    }
+
+    function buildEnergyShockwaveRings() {
+      energyRingsGroup = new THREE.Group();
+      masterLockGroup.add(energyRingsGroup);
+
+      for (let i = 0; i < 3; i++) {
+        const ringGeom = new THREE.RingGeometry(0.8 + i * 0.4, 0.85 + i * 0.4, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: (i % 2 === 0) ? 0xffd700 : 0xff00ff,
+          transparent: true,
+          opacity: 0.0,
+          side: THREE.DoubleSide,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const ringMesh = new THREE.Mesh(ringGeom, ringMat);
+        ringMesh.rotation.x = Math.PI / 2;
+        energyRingsGroup.add(ringMesh);
+      }
+    }
+
+    function setupStudioLighting() {
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+      scene.add(ambientLight);
+
+      keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+      keyLight.position.set(2, 4, 5);
+      keyLight.castShadow = true;
+      scene.add(keyLight);
+
+      // Neon Magenta Accent Light (Left)
+      pointLightMagenta = new THREE.PointLight(0xff00ff, 6.0, 12);
+      pointLightMagenta.position.set(-3.8, 1.2, 2.5);
+      scene.add(pointLightMagenta);
+
+      // Golden Warm Energy Light (Right)
+      pointLightGold = new THREE.PointLight(0xffd700, 5.0, 12);
+      pointLightGold.position.set(3.8, -1.0, 2.5);
+      scene.add(pointLightGold);
+
+      // Cyan Specular Fill
+      pointLightCyan = new THREE.PointLight(0x00f3ff, 2.5, 8);
+      pointLightCyan.position.set(0, -3.0, 2.0);
+      scene.add(pointLightCyan);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const now = performance.now();
+      const delta = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      // 1. Timeline and Dissolution Phase Computations
+      if (loopMode === 'auto') {
+        timelineTime = (timelineTime + delta * animSpeed) % CYCLE_DURATION;
+      } else {
+        // Smoothly interpolate currentPhase toward manual target
+        currentPhase += (targetManualPhase - currentPhase) * 4.0 * delta;
+        timelineTime = currentPhase * CYCLE_DURATION;
+      }
+
+      // Progression phases within the seamless cycle:
+      // [0.0 - 2.0s] : Locked state, floating, pulsing neon magenta
+      // [2.0 - 3.8s] : Decryption sequence - core spins, shackle clicks up and swings open 85 degrees
+      // [3.8 - 6.2s] : Full Dissolution - lock meshes fade out into swirling golden vortex particles
+      // [6.2 - 8.2s] : Reconstitution - golden particle matrix converges back into solid padlock geometry
+      // [8.2 - 9.0s] : Shackle closes & snaps locked into place
+      
+      let shackleLift = 0.0;
+      let shackleAngle = 0.0;
+      let coreSpin = 0.0;
+      let dissolveFactor = 0.0; // 0.0 (Solid Mesh) -> 1.0 (Pure Golden Energy Vortex)
+      let shockwaveScale = 0.0;
+
+      const t = timelineTime;
+      document.getElementById('telemetry-timer').textContent = `CYCLE: ${t.toFixed(1)}s`;
+
+      if (t < 2.0) {
+        // Locked State
+        updateHUDState("LOCKED", "#ff00ff", "STATUS: ENCRYPTED", 0);
+        shackleLift = 0.0;
+        shackleAngle = 0.0;
+        dissolveFactor = 0.0;
+      } else if (t < 3.8) {
+        // Unlocking Action
+        const p = (t - 2.0) / 1.8;
+        const liftEase = Math.min(p * 1.5, 1.0);
+        const rotateEase = Math.max((p - 0.4) / 0.6, 0.0);
+        shackleLift = liftEase * 0.45;
+        shackleAngle = -rotateEase * (Math.PI * 0.48);
+        coreSpin = p * Math.PI * 4;
+        updateHUDState("UNLOCKING", "#ffd700", "DECRYPTING SHACKLE", Math.round(p * 30));
+      } else if (t < 6.2) {
+        // Dissolving into Golden Particles
+        shackleLift = 0.45;
+        shackleAngle = -(Math.PI * 0.48);
+        const p = (t - 3.8) / 2.4;
+        // Dissolve ramps up to 1.0
+        dissolveFactor = Math.sin(p * Math.PI * 0.5);
+        shockwaveScale = p * 3.5;
+        updateHUDState("DISSOLVING", "#ffd700", "PARTICLE DISSOLUTION", Math.round(30 + p * 70));
+      } else if (t < 8.2) {
+        // Reconstitution / Convergence
+        shackleLift = 0.45;
+        shackleAngle = -(Math.PI * 0.48);
+        const p = (t - 6.2) / 2.0;
+        // Dissolve ramps down from 1.0 to 0.0
+        dissolveFactor = 1.0 - Math.sin(p * Math.PI * 0.5);
+        updateHUDState("REASSEMBLING", "#00f3ff", "RECONSTITUTING ATOMS", Math.round(100 - p * 80));
+      } else {
+        // Closing & Relocking
+        const p = (t - 8.2) / 0.8;
+        shackleLift = (1.0 - p) * 0.45;
+        shackleAngle = -(1.0 - p) * (Math.PI * 0.48);
+        dissolveFactor = 0.0;
+        updateHUDState("RELOCKING", "#ff00ff", "SEALING APEX CORE", 0);
+      }
+
+      // 2. Apply Transform to Shackle and Core Rotor
+      if (shacklePivotGroup) {
+        shacklePivotGroup.position.y = 0.8 + shackleLift;
+        shacklePivotGroup.rotation.y = shackleAngle;
+      }
+      if (coreRotorGroup) {
+        coreRotorGroup.rotation.z = (t * 0.5) + coreSpin;
+      }
+
+      // Update Telemetry Panel Numbers
+      document.getElementById('dissolve-percent').textContent = `${Math.round(dissolveFactor * 100)}%`;
+      document.getElementById('dissolve-bar').style.width = `${dissolveFactor * 100}%`;
+      document.getElementById('shackle-stat').textContent = `${(shackleLift * 20).toFixed(1)}mm (${(Math.abs(shackleAngle) * 180 / Math.PI).toFixed(0)}°)`;
+      document.getElementById('entropy-stat').textContent = `${(dissolveFactor * 14.8).toFixed(2)} eV`;
+
+      // 3. Mesh Opacity vs. Particle Vortex Dynamics
+      const meshOpacity = THREE.MathUtils.clamp(1.0 - dissolveFactor * 1.3, 0.0, 1.0);
+      metallicMaterials.forEach(m => m.opacity = meshOpacity);
+      goldMaterials.forEach(m => m.opacity = meshOpacity);
+      neonMagentaMaterials.forEach(m => {
+        m.opacity = meshOpacity;
+        m.emissiveIntensity = 1.0 + Math.sin(t * 4.0) * 0.8;
+      });
+
+      // 4. Update Particle Matrix Vortex System
+      if (particleSystem) {
+        const pMat = particleSystem.material;
+        pMat.opacity = THREE.MathUtils.clamp(dissolveFactor * 1.2, 0.0, 1.0);
+        
+        const posAttr = particleSystem.geometry.attributes.position;
+        const array = posAttr.array;
+        const timeOffset = t * 1.8;
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+          const ix = i * 3;
+          const iy = i * 3 + 1;
+          const iz = i * 3 + 2;
+
+          const initX = particleInitialPositions[ix];
+          const initY = particleInitialPositions[iy];
+          const initZ = particleInitialPositions[iz];
+
+          const targetX = particleScatterVectors[ix];
+          const targetY = particleScatterVectors[iy];
+          const targetZ = particleScatterVectors[iz];
+
+          // Swirl Physics with Sin/Cos noise
+          const spd = particleSpeeds[i];
+          const swirlAngle = timeOffset * spd + i * 0.02;
+          const swirlRadius = dissolveFactor * vortexRadius * 0.8;
+
+          const currentX = THREE.MathUtils.lerp(initX, targetX, dissolveFactor) + Math.sin(swirlAngle) * swirlRadius;
+          const currentY = THREE.MathUtils.lerp(initY, targetY, dissolveFactor) + Math.cos(swirlAngle * 0.8) * (dissolveFactor * 0.5);
+          const currentZ = THREE.MathUtils.lerp(initZ, targetZ, dissolveFactor) + Math.cos(swirlAngle) * swirlRadius;
+
+          array[ix] = currentX;
+          array[iy] = currentY;
+          array[iz] = currentZ;
+        }
+        posAttr.needsUpdate = true;
+      }
+
+      // 5. Energy Shockwave Rings Expansion
+      if (energyRingsGroup) {
+        energyRingsGroup.children.forEach((ring, index) => {
+          if (dissolveFactor > 0.1 && dissolveFactor < 0.95) {
+            ring.material.opacity = (1.0 - (shockwaveScale / 3.5)) * 0.45;
+            const s = 1.0 + shockwaveScale * (0.8 + index * 0.3);
+            ring.scale.set(s, s, s);
+            ring.rotation.z += (index + 1) * 0.02;
+          } else {
+            ring.material.opacity = 0.0;
+          }
+        });
+      }
+
+      // 6. Master Floating & Turntable Physics
+      if (masterLockGroup) {
+        const floatY = Math.sin(t * 1.8) * 0.08;
+        const floatTilt = Math.cos(t * 1.2) * 0.025;
+        masterLockGroup.position.y = floatY;
+
+        if (isAutoSpinning) {
+          masterLockGroup.rotation.y += 0.8 * delta;
+        } else {
+          masterLockGroup.rotation.y = floatTilt * 2.0;
+          masterLockGroup.rotation.x = floatTilt;
+        }
+      }
+
+      // 7. Dynamic Point Lighting Pulsing
+      if (pointLightGold && pointLightMagenta) {
+        pointLightGold.intensity = 2.0 + dissolveFactor * 7.0;
+        pointLightMagenta.intensity = 5.0 * (1.0 - dissolveFactor * 0.7);
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+
+    function updateHUDState(status, colorHex, statusText, pct) {
+      const pill = document.getElementById('state-pill');
+      const dot = document.getElementById('telemetry-dot');
+      const stateTxt = document.getElementById('telemetry-state-text');
+
+      pill.textContent = status;
+      pill.style.color = colorHex;
+      pill.style.borderColor = `${colorHex}66`;
+      pill.style.backgroundColor = `${colorHex}1a`;
+
+      dot.style.backgroundColor = colorHex;
+      stateTxt.textContent = statusText;
+    }
+
+    function setLoopMode(mode) {
+      loopMode = mode;
+      const btnAuto = document.getElementById('btn-mode-auto');
+      const btnManual = document.getElementById('btn-mode-manual');
+
+      if (mode === 'auto') {
+        btnAuto.className = "px-2 py-1.5 rounded-xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 text-center transition";
+        btnManual.className = "px-2 py-1.5 rounded-xl bg-white/5 text-gray-400 hover:text-white border border-transparent text-center transition";
+        showToast("Auto Decryption Loop Active");
+      } else {
+        btnManual.className = "px-2 py-1.5 rounded-xl bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 text-center transition";
+        btnAuto.className = "px-2 py-1.5 rounded-xl bg-white/5 text-gray-400 hover:text-white border border-transparent text-center transition";
+        showToast("Manual Control Mode Enabled");
+      }
+    }
+
+    function triggerDissolveStep(step) {
+      loopMode = 'manual';
+      setLoopMode('manual');
+      if (step === 'unlock') {
+        targetManualPhase = 0.55;
+        showToast("Unlocking & Dispersing Matrix");
+      } else {
+        targetManualPhase = 0.0;
+        showToast("Reconstructing Solid Padlock");
+      }
+    }
+
+    function setThemePreset(theme) {
+      activeTheme = theme;
+      const btnMg = document.getElementById('btn-theme-mg');
+      const btnCg = document.getElementById('btn-theme-cg');
+      const btnSg = document.getElementById('btn-theme-sg');
+
+      [btnMg, btnCg, btnSg].forEach(b => {
+        b.className = "px-3.5 py-2 rounded-xl text-xs font-medium transition-all text-gray-400 hover:text-white hover:bg-white/5 flex items-center space-x-2";
+      });
+
+      if (theme === 'magentaGold') {
+        neonMagentaMaterials.forEach(m => {
+          m.color.setHex(0xff00ff);
+          m.emissive.setHex(0xff00ff);
+        });
+        pointLightMagenta.color.setHex(0xff00ff);
+        btnMg.className = "px-3.5 py-2 rounded-xl text-xs font-medium transition-all bg-fuchsia-500/20 text-fuchsia-300 border border-fuchsia-500/40 flex items-center space-x-2";
+        showToast("Theme: Neon Magenta & 24K Gold");
+      } else if (theme === 'cyanGold') {
+        neonMagentaMaterials.forEach(m => {
+          m.color.setHex(0x00f3ff);
+          m.emissive.setHex(0x00f3ff);
+        });
+        pointLightMagenta.color.setHex(0x00f3ff);
+        btnCg.className = "px-3.5 py-2 rounded-xl text-xs font-medium transition-all bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center space-x-2";
+        showToast("Theme: Cyber Cyan & Gold");
+      } else if (theme === 'solarGold') {
+        neonMagentaMaterials.forEach(m => {
+          m.color.setHex(0xffaa00);
+          m.emissive.setHex(0xffaa00);
+        });
+        pointLightMagenta.color.setHex(0xffaa00);
+        btnSg.className = "px-3.5 py-2 rounded-xl text-xs font-medium transition-all bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center space-x-2";
+        showToast("Theme: Pure Solar Gold");
+      }
+    }
+
+    function toggleSpin() {
+      isAutoSpinning = !isAutoSpinning;
+      const text = document.getElementById('spin-text');
+      const icon = document.getElementById('spin-icon');
+      if (isAutoSpinning) {
+        text.textContent = "SPINNING";
+        icon.classList.add('animate-spin');
+        showToast("360° Turntable Mode Active");
+      } else {
+        text.textContent = "360° TURNTABLE";
+        icon.classList.remove('animate-spin');
+        masterLockGroup.rotation.y = 0;
+        showToast("Frontal View Locked");
+      }
+    }
+
+    function updateVortexRadius(val) {
+      vortexRadius = parseFloat(val);
+      // Re-scatter vectors smoothly
+      for (let i = 0; i < PARTICLE_COUNT; i++) {
+        const angle = Math.atan2(particleScatterVectors[i * 3 + 1], particleScatterVectors[i * 3]) + (Math.random() - 0.5) * 0.5;
+        const dist = 1.5 + Math.random() * vortexRadius * 1.5;
+        particleScatterVectors[i * 3] = Math.cos(angle) * dist;
+        particleScatterVectors[i * 3 + 2] = Math.sin(angle) * dist;
+      }
+    }
+
+    function updateAnimSpeed(val) {
+      animSpeed = parseFloat(val);
+    }
+
+    function resetFrontalView() {
+      camera.position.set(0, 0.2, 5.6);
+      controls.target.set(0, 0, 0);
+      if (masterLockGroup) {
+        masterLockGroup.rotation.set(0, 0, 0);
+      }
+      controls.update();
+      showToast("Camera Reset to Frontal View");
+    }
+
+    function capturePadlockSnapshot() {
+      renderer.render(scene, camera);
+      const dataURL = renderer.domElement.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `Cyber-Padlock-Matrix-${activeTheme}-${Date.now()}.png`;
+      link.href = dataURL;
+      link.click();
+      showToast("4K 3D Emblem Snapshot Downloaded!");
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toast-message');
+      msgEl.textContent = msg;
+      toast.classList.remove('translate-x-32', 'opacity-0');
+      toast.classList.add('translate-x-0', 'opacity-100');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('translate-x-0', 'opacity-100');
+        toast.classList.add('translate-x-32', 'opacity-0');
+      }, 2500);
+    }
+
+    function setupEvents() {
+      window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#050505]">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cyber Security DRM Watermark</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Orbitron', 'sans-serif'],
+            mono: ['Share Tech Mono', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              black: '#050505',
+              cyan: '#00f3ff',
+              magenta: '#ff00ff',
+              gold: '#ffd700'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #050505;
+      color: #e2e8f0;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .glass-panel {
+      background: rgba(10, 10, 15, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 243, 255, 0.15);
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    /* Custom Range Slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.05);
+      height: 4px;
+      border-radius: 2px;
+      width: 100%;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #00f3ff;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.8);
+      border: 2px solid #050505;
+      transition: transform 0.1s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* The layer that will hold the repeating pattern */
+    #watermark-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 10;
+      /* background-image set via JS */
+      background-repeat: repeat;
+      background-position: center;
+    }
+    
+    .mock-asset-bg {
+      background: radial-gradient(circle at center, #1a1a24 0%, #050505 100%);
+    }
+  </style>
+</head>
+
+<body class="h-full w-full flex items-center justify-center relative">
+
+  <!-- Main Container -->
+  <div class="flex items-stretch justify-center w-full h-full p-0 md:p-6 space-x-0 md:space-x-8">
+
+    <!-- Desktop Sidebar Controls -->
+    <div class="hidden lg:flex flex-col w-80 space-y-4 z-20 h-full justify-center">
+      
+      <!-- Brand Header -->
+      <div class="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center text-center">
+        <svg class="w-10 h-10 text-cyber-cyan mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+        <h1 class="text-sm font-display font-bold text-white tracking-widest uppercase">DRM Generator</h1>
+        <p class="text-[10px] font-mono text-cyber-cyan/70 mt-1">SEAMLESS WATERMARK TILE</p>
+      </div>
+
+      <div class="glass-panel p-6 rounded-2xl">
+        <h2 class="text-xs font-display font-bold tracking-widest text-cyber-cyan uppercase mb-5 flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+          Overlay Parameters
+        </h2>
+        
+        <div class="space-y-6">
+          <!-- Opacity -->
+          <div>
+            <div class="flex justify-between text-[10px] font-mono text-gray-400 mb-2">
+              <span>PATTERN OPACITY</span>
+              <span id="val-opacity">100%</span>
+            </div>
+            <input type="range" id="slider-opacity" min="0" max="100" step="1" value="100" oninput="updatePattern()">
+          </div>
+          
+          <!-- Tile Scale -->
+          <div>
+            <div class="flex justify-between text-[10px] font-mono text-gray-400 mb-2">
+              <span>TILE SCALE</span>
+              <span id="val-scale">1.0x</span>
+            </div>
+            <input type="range" id="slider-scale" min="0.2" max="2.0" step="0.1" value="1.0" oninput="updatePattern()">
+          </div>
+
+          <!-- Color Mode (Cyan vs Magenta accent) -->
+          <div>
+            <div class="text-[10px] font-mono text-gray-400 mb-2">ACCENT COLOR</div>
+            <div class="flex space-x-2">
+              <button onclick="setAccent('#00f3ff')" class="flex-1 py-2 rounded border border-cyber-cyan/50 bg-cyber-cyan/10 text-cyber-cyan text-xs font-display font-bold hover:bg-cyber-cyan/20 transition">CYAN</button>
+              <button onclick="setAccent('#ff00ff')" class="flex-1 py-2 rounded border border-cyber-magenta/50 bg-cyber-magenta/10 text-cyber-magenta text-xs font-display font-bold hover:bg-cyber-magenta/20 transition">MAGENTA</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button onclick="exportSeamlessTile()" class="glass-panel p-4 rounded-2xl flex items-center justify-center space-x-2 text-xs font-display font-bold text-white hover:bg-white/5 transition border border-cyber-cyan/30 group">
+        <svg class="w-4 h-4 text-cyber-cyan group-hover:animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+        </svg>
+        <span>EXPORT 512x512 TILE (PNG)</span>
+      </button>
+    </div>
+
+    <!-- Preview Canvas Area -->
+    <div class="flex-1 relative rounded-0 md:rounded-3xl overflow-hidden border-0 md:border border-white/5 shadow-2xl flex items-center justify-center mock-asset-bg max-w-5xl">
+      
+      <!-- Mock Asset Underneath (to show transparency) -->
+      <div class="absolute inset-0 flex flex-col items-center justify-center opacity-40">
+        <div class="w-64 h-64 border border-white/10 rounded-full flex items-center justify-center mb-8 relative">
+           <div class="absolute inset-0 border border-cyber-cyan/20 rounded-full animate-ping opacity-20"></div>
+           <svg class="w-24 h-24 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+           </svg>
+        </div>
+        <h2 class="font-display text-3xl font-bold tracking-widest text-gray-500 uppercase">Classified Asset</h2>
+        <p class="font-mono text-xs text-gray-600 mt-2 tracking-widest">DRM OVERLAY PREVIEW MODE</p>
+      </div>
+
+      <!-- The dynamic repeating watermark layer -->
+      <div id="watermark-overlay"></div>
+
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-10 left-1/2 -translate-x-1/2 z-50 transform -translate-y-10 opacity-0 pointer-events-none transition-all duration-300 glass-panel px-6 py-3 rounded-full border border-cyber-cyan/50 text-cyber-cyan text-xs flex items-center space-x-3 shadow-2xl">
+    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+    <span id="toast-msg" class="font-mono font-bold tracking-widest">ACTION COMPLETED</span>
+  </div>
+
+  <script>
+    let currentAccent = '#00f3ff';
+    let generatedDataUrl = '';
+    const TILE_SIZE = 512;
+
+    // Initialize on load
+    window.onload = function() {
+      updatePattern();
+    };
+
+    function setAccent(color) {
+      currentAccent = color;
+      updatePattern();
+    }
+
+    function updatePattern() {
+      const opacityVal = document.getElementById('slider-opacity').value;
+      const scaleVal = document.getElementById('slider-scale').value;
+      
+      // Update UI text
+      document.getElementById('val-opacity').textContent = opacityVal + '%';
+      document.getElementById('val-scale').textContent = parseFloat(scaleVal).toFixed(1) + 'x';
+
+      // Generate the base64 image
+      generatedDataUrl = generateTileBase64(opacityVal / 100);
+
+      // Apply to overlay
+      const overlay = document.getElementById('watermark-overlay');
+      overlay.style.backgroundImage = `url(${generatedDataUrl})`;
+      
+      // Calculate background size based on scale
+      // Base tile is 512px. If scale is 1.0, it's 512px. If 0.5, it's 256px.
+      const bgSize = TILE_SIZE * parseFloat(scaleVal);
+      overlay.style.backgroundSize = `${bgSize}px ${bgSize}px`;
+    }
+
+    function generateTileBase64(globalOpacity) {
+      const canvas = document.createElement('canvas');
+      canvas.width = TILE_SIZE;
+      canvas.height = TILE_SIZE;
+      const ctx = canvas.getContext('2d');
+
+      // Clear with absolute transparency
+      ctx.clearRect(0, 0, TILE_SIZE, TILE_SIZE);
+
+      // The prompt asks for "10% low opacity electric cyan accents"
+      // We scale internal opacities by the user's global slider.
+      const baseOp = 0.10 * globalOpacity;
+
+      // --- 1. Grid Lines ---
+      // Ultra-subtle, faint grid
+      ctx.strokeStyle = `rgba(255, 255, 255, ${baseOp * 0.4})`; // Very faint white/gray
+      ctx.lineWidth = 1;
+      const gridStep = 64;
+      
+      // Draw grid. Use strict < TILE_SIZE to prevent overlapping double-lines when repeated seamlessly.
+      for (let i = 0; i < TILE_SIZE; i += gridStep) {
+        // Vertical lines
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, TILE_SIZE);
+        ctx.stroke();
+        
+        // Horizontal lines
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(TILE_SIZE, i);
+        ctx.stroke();
+      }
+
+      // --- 2. Micro Circuit Lines ---
+      // We draw these strictly within bounds or aligned to grid to ensure seamless tiling.
+      // Accent color is hex, we need to convert to rgba for opacity support.
+      const rgb = hexToRgb(currentAccent);
+      ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOp * 1.5})`;
+      ctx.fillStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOp * 2.0})`;
+      ctx.lineWidth = 1.5;
+
+      const drawCircuit = (pts) => {
+        if (pts.length === 0) return;
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          ctx.lineTo(pts[i].x, pts[i].y);
+        }
+        ctx.stroke();
+        
+        // Draw terminal node (dot) at the end
+        const lastPt = pts[pts.length - 1];
+        ctx.beginPath();
+        ctx.arc(lastPt.x, lastPt.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      };
+
+      // Draw some circuit paths (aligned to grid intersections for cleanliness)
+      // Top left area
+      drawCircuit([{x: 64, y: 64}, {x: 128, y: 64}, {x: 128, y: 128}]);
+      // Top right area
+      drawCircuit([{x: 448, y: 128}, {x: 384, y: 128}, {x: 384, y: 192}]);
+      // Bottom left area
+      drawCircuit([{x: 128, y: 384}, {x: 128, y: 448}, {x: 192, y: 448}]);
+      // Bottom right area
+      drawCircuit([{x: 384, y: 384}, {x: 384, y: 320}, {x: 320, y: 320}]);
+      
+      // Small disconnected nodes
+      const drawNode = (x, y) => {
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      };
+      drawNode(256, 64);
+      drawNode(64, 256);
+      drawNode(448, 256);
+      drawNode(256, 448);
+
+      // --- 3. Geometric Alpha Logo ---
+      // Faint, centered geometric Greek Alpha (A / α)
+      ctx.strokeStyle = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${baseOp * 2.5})`;
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'miter';
+      
+      const cx = TILE_SIZE / 2; // 256
+      const cy = TILE_SIZE / 2; // 256
+      
+      ctx.beginPath();
+      // Outer angular 'A' shape
+      ctx.moveTo(cx, cy - 60);         // Top peak
+      ctx.lineTo(cx + 45, cy + 50);    // Bottom right outer
+      ctx.lineTo(cx + 25, cy + 50);    // Bottom right inner
+      ctx.lineTo(cx + 15, cy + 20);    // Right crossbar junction
+      ctx.lineTo(cx - 15, cy + 20);    // Left crossbar junction
+      ctx.lineTo(cx - 25, cy + 50);    // Bottom left inner
+      ctx.lineTo(cx - 45, cy + 50);    // Bottom left outer
+      ctx.closePath();
+      
+      // Inner triangle cutout
+      ctx.moveTo(cx, cy - 25);         // Inner peak
+      ctx.lineTo(cx + 10, cy + 5);     // Inner bottom right
+      ctx.lineTo(cx - 10, cy + 5);     // Inner bottom left
+      ctx.closePath();
+      
+      ctx.stroke();
+
+      // Return the base64 transparent PNG
+      return canvas.toDataURL('image/png');
+    }
+
+    // Helper: Convert HEX to RGB for opacity manipulation
+    function hexToRgb(hex) {
+      // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+      var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+      hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+        return r + r + g + g + b + b;
+      });
+      var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+      return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+      } : {r: 0, g: 243, b: 255}; // Default cyan fallback
+    }
+
+    // Export functionality
+    function exportSeamlessTile() {
+      // We already have the 512x512 tile generated in memory at the correct base scale (scale slider only affects CSS)
+      // Wait, we should export at 100% opacity of the base 10% design, regardless of UI slider?
+      // Actually, exporting exactly what they see is better.
+      
+      showToast("Downloading Seamless Tile...");
+      
+      const link = document.createElement('a');
+      link.download = `Cyber-DRM-Watermark-${Date.now()}.png`;
+      link.href = generatedDataUrl;
+      link.click();
+      
+      setTimeout(() => showToast("Exported Successfully!"), 1000);
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const msgEl = document.getElementById('toast-msg');
+      msgEl.textContent = msg;
+      
+      toast.classList.remove('-translate-y-10', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('-translate-y-10', 'opacity-0');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
