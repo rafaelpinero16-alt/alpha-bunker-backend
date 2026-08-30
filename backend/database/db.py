@@ -56,3 +56,46 @@ def init_db():
                     conn.execute(text(query))
             except Exception as e:
                 print(f"[MIGRATION NOTICE]: {e}")
+                def init_db():
+    import database.models
+    from database.models import Package
+
+    # 1. Crear tablas
+    Base.metadata.create_all(bind=engine)
+
+    # 2. Migración individual a BIGINT
+    if "postgresql" in DATABASE_URL:
+        migrations = [
+            "ALTER TABLE users ALTER COLUMN user_id TYPE BIGINT;",
+            "ALTER TABLE wallets ALTER COLUMN user_id TYPE BIGINT;",
+            "ALTER TABLE transactions ALTER COLUMN sender_id TYPE BIGINT;",
+            "ALTER TABLE transactions ALTER COLUMN receiver_id TYPE BIGINT;",
+            "ALTER TABLE posts ALTER COLUMN creator_id TYPE BIGINT;",
+            "ALTER TABLE unlocked_posts ALTER COLUMN user_id TYPE BIGINT;"
+        ]
+        for query in migrations:
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text(query))
+            except Exception as e:
+                print(f"[MIGRATION NOTICE]: {e}")
+
+    # 3. Sembrado inicial de paquetes de tokens $ALPHA
+    db = SessionLocal()
+    try:
+        if db.query(Package).count() == 0:
+            default_packages = [
+                Package(slug="starter", name="Starter Spy", description="Acceso inicial al Búnker", alpha_base=50, bonus_percentage=0, alpha_total=50, price_stars=250, price_ton=1, badge="🕵️ Recluta"),
+                Package(slug="agent", name="Agent Pack", description="Bonificación +20%", alpha_base=100, bonus_percentage=20, alpha_total=120, price_stars=500, price_ton=2, badge="🎖️ Agent"),
+                Package(slug="combat", name="Combat Pack", description="Bonificación +30%", alpha_base=250, bonus_percentage=30, alpha_total=325, price_stars=1150, price_ton=5, badge="⚔️ Veteran"),
+                Package(slug="boss", name="Bunker Boss", description="Bonificación +45%", alpha_base=600, bonus_percentage=45, alpha_total=870, price_stars=2600, price_ton=10, badge="👑 Boss"),
+                Package(slug="whale", name="Whale VIP", description="Bonificación máxima +65%", alpha_base=1500, bonus_percentage=65, alpha_total=2475, price_stars=6000, price_ton=24, badge="💎 Whale")
+            ]
+            db.add_all(default_packages)
+            db.commit()
+            print("[DB SEED]: Paquetes de tokens $ALPHA registrados exitosamente.")
+    except Exception as e:
+        db.rollback()
+        print(f"[DB SEED ERROR]: {e}")
+    finally:
+        db.close()

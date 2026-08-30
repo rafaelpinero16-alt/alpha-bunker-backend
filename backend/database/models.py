@@ -62,3 +62,18 @@ class UnlockedPost(Base):
     user_id = Column(BigInteger, nullable=False)
     post_id = Column(Integer, nullable=False)
     unlocked_at = Column(DateTime, default=datetime.utcnow)
+    class Package(Base):
+    __tablename__ = "packages"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    slug = Column(String(50), unique=True, index=True, nullable=False) # starter, agent, combat, boss, whale
+    name = Column(String(100), nullable=False)
+    description = Column(String(255), nullable=True)
+    alpha_base = Column(Integer, nullable=False)
+    bonus_percentage = Column(Integer, default=0)
+    alpha_total = Column(Integer, nullable=False)
+    price_stars = Column(Integer, nullable=False)      # Precio en Telegram Stars (XTR)
+    price_ton = Column(Integer, nullable=False)        # Precio en nanoTON o unidades TON
+    badge = Column(String(50), nullable=True)          # Insignia asociada al paquete
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
