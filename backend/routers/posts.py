@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional
@@ -21,6 +21,10 @@ class UnlockPostRequest(BaseModel):
     user_id: int
     post_id: int
 
+class DeletePostRequest(BaseModel):
+    user_id: int
+    post_id: int
+
 # ==========================================
 # 1. CREAR PUBLICACIÓN (Conexión BD + KYC)
 # ==========================================
@@ -40,10 +44,9 @@ def create_post(data: CreatePostRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
 
-    # Verificación de mayoría de edad y KYC
     if user.kyc_status != "verified" and not user.is_adult:
         raise HTTPException(
-            status_code=403, 
+            status_code=status.HTTP_403_FORBIDDEN, 
             detail="Acceso restringido: debes completar la verificación KYC (+18) para publicar en el Muro."
         )
 
@@ -105,7 +108,7 @@ def get_user_feed(user_id: int, db: Session = Depends(get_db)):
     return {"status": "success", "posts": feed}
 
 # ==========================================
-# 3. FEED GLOBAL LEGACY (Compatibilidad)
+# 3. FEED GLOBAL (COMPATIBILIDAD)
 # ==========================================
 @router.get("/get-posts")
 def get_all_posts(db: Session = Depends(get_db)):
@@ -135,7 +138,7 @@ def get_all_posts(db: Session = Depends(get_db)):
 def unlock_post(data: UnlockPostRequest, db: Session = Depends(get_db)):
     post = db.query(Post).filter(Post.id == data.post_id).first()
     if not post:
-        raise HTTPException(status_code=404, detail="Publicación no encontrada")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicación no encontrada")
 
     already_unlocked = db.query(UnlockedPost).filter(
         UnlockedPost.user_id == data.user_id,
@@ -150,7 +153,7 @@ def unlock_post(data: UnlockPostRequest, db: Session = Depends(get_db)):
 
     wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
     if not wallet or wallet.alpha_balance < post.price_alpha:
-        raise HTTPException(status_code=400, detail="Saldo insuficiente de tokens $ALPHA")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Saldo insuficiente de tokens $ALPHA")
 
     wallet.alpha_balance -= post.price_alpha
     wallet.total_spent += post.price_alpha
@@ -176,4 +179,32 @@ def unlock_post(data: UnlockPostRequest, db: Session = Depends(get_db)):
         "status": "success",
         "message": "Contenido desbloqueado con éxito",
         "media_url": post.image_url
+    }
+
+# ==========================================
+# 5. ELIMINAR PUBLICACIÓN (AUTOR O MASTER ADMIN)
+# ==========================================
+@router.post("/posts/delete")
+def delete_post(data: DeletePostRequest, db: Session = Depends(get_db)):
+    post = db.query(Post).filter(Post.id == data.post_id).first()
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publicación no encontrada")
+
+    ADMIN_ID = 8269470905
+    if post.creator_id != data.user_id and data.user_id != ADMIN_ID:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="No tienes autorización para eliminar este contenido"
+        )
+
+    # Limpiar desbloqueos relacionados con este post
+    db.query(UnlockedPost).filter(UnlockedPost.post_id == data.post_id).delete()
+
+    # Eliminar registro del post
+    db.delete(post)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Publicación #{data.post_id} eliminada permanentemente del Muro."
     }
