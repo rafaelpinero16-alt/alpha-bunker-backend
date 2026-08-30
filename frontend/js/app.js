@@ -6,8 +6,8 @@ const app = {
     isAdmin: false,
     userAccessLevel: 0,
     userData: { name: 'USER', access_tier: 0 },
-    lastView: 'consent', // Memoria de pantalla actual[cite: 8]
-    tempPostMedia: null, // Buffer de imagen cargada para publicaciones
+    lastView: 'consent', // Memoria de pantalla actual
+    tempPostMedia: null, // Buffer de imagen para publicaciones
 
     // ==========================================
     // 1. UTILIDADES Y SISTEMA
@@ -58,7 +58,7 @@ const app = {
                 }
             }
 
-            const balanceDisplays = document.querySelectorAll('#wallet-balance, .wallet-balance-val');
+            const balanceDisplays = document.querySelectorAll('#prof-alpha-balance, #wallet-balance, .wallet-balance-val');
             balanceDisplays.forEach(el => {
                 el.innerText = `${balance} $ALPHA`;
             });
@@ -68,7 +68,7 @@ const app = {
     },
 
     updateProfileUI() {
-        // Cargar Alias[cite: 8]
+        // Cargar Alias
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
         const aliasInput = document.getElementById('prof-alias');
         if (aliasInput && savedName) {
@@ -76,26 +76,51 @@ const app = {
             this.userData.name = savedName;
         }
 
-        // Cargar Biografía[cite: 8]
+        // Actualizar nombre en el Header
+        const nameFeed = document.getElementById('name-feed');
+        if (nameFeed && savedName) {
+            nameFeed.innerText = savedName;
+        }
+
+        // Cargar Biografía
         const savedBio = localStorage.getItem('alpha_user_bio');
         const bioInput = document.getElementById('prof-bio');
         if (bioInput && savedBio) {
             bioInput.value = savedBio;
         }
 
-        // Cargar Foto de Perfil[cite: 8]
+        // Cargar Foto de Perfil en modal y header
         const savedAvatar = localStorage.getItem('alpha_user_avatar');
         const avatarImg = document.getElementById('prof-avatar-img');
-        if (avatarImg && savedAvatar) {
-            avatarImg.src = savedAvatar;
-            avatarImg.classList.remove('hidden');
+        const avatarFeed = document.getElementById('avatar-feed');
+        if (savedAvatar) {
+            if (avatarImg) {
+                avatarImg.src = savedAvatar;
+                avatarImg.classList.remove('hidden');
+            }
+            if (avatarFeed) {
+                avatarFeed.src = savedAvatar;
+            }
         }
 
-        // Cargar Rango[cite: 8]
+        // Cargar Rango
         const rankDisplay = document.getElementById('prof-rank');
-        if (rankDisplay) {
-            const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICONIC 💎'];
-            rankDisplay.innerText = ranks[this.userData?.access_tier || 0] || ranks[0];
+        const rankFeed = document.getElementById('rank-feed');
+        const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICONIC 💎'];
+        const currentRank = ranks[this.userData?.access_tier || 0] || ranks[0];
+
+        if (rankDisplay) rankDisplay.innerText = currentRank;
+        if (rankFeed) rankFeed.innerText = currentRank;
+    },
+
+    updateViewsCounter() {
+        let views = parseInt(localStorage.getItem('alpha_vault_views') || '1024');
+        views += Math.floor(Math.random() * 3) + 1; // Incremento progresivo y orgánico
+        localStorage.setItem('alpha_vault_views', views.toString());
+
+        const viewsEl = document.getElementById('views-counter');
+        if (viewsEl) {
+            viewsEl.innerText = views.toLocaleString();
         }
     },
 
@@ -133,9 +158,13 @@ const app = {
             localStorage.setItem('alpha_user_avatar', avatarUrl);
             
             const avatarImg = document.getElementById('prof-avatar-img');
+            const avatarFeed = document.getElementById('avatar-feed');
             if (avatarImg) {
                 avatarImg.src = avatarUrl;
                 avatarImg.classList.remove('hidden');
+            }
+            if (avatarFeed) {
+                avatarFeed.src = avatarUrl;
             }
             this.showToast('¡Foto de perfil actualizada! 📸');
         };
@@ -351,6 +380,7 @@ const app = {
             if (isLoggedIn === 'true') { 
                 this.switchView('feed'); 
                 this.updateProfileUI();
+                this.updateViewsCounter();
                 this.refreshUserData();
                 this.renderFeed();
             } else if (hasConsent === 'true') { 
@@ -367,6 +397,7 @@ const app = {
         localStorage.setItem('alpha_logged_in', 'true'); 
         this.switchView('feed'); 
         this.updateProfileUI();
+        this.updateViewsCounter();
         this.refreshUserData();
         this.renderFeed();
     },
@@ -376,6 +407,7 @@ const app = {
         localStorage.setItem('alpha_logged_in', 'true'); 
         this.switchView('feed'); 
         this.updateProfileUI();
+        this.updateViewsCounter();
         this.refreshUserData();
         this.renderFeed();
     },
@@ -386,6 +418,7 @@ const app = {
         localStorage.setItem('alpha_logged_in', 'true'); 
         this.switchView('feed'); 
         this.updateProfileUI();
+        this.updateViewsCounter();
         this.refreshUserData();
         this.renderFeed();
     },
@@ -428,7 +461,7 @@ const app = {
     },
     
     // ==========================================
-    // 8. MURO, SUBIDA DE POSTS Y PROPINAS
+    // 8. MURO, LIKES Y PROPINAS
     // ==========================================
     previewImage(event) {
         const file = event.target.files[0];
@@ -461,7 +494,7 @@ const app = {
         const newPost = {
             id: Date.now(),
             creator_id: this.userId || 99999,
-            author_name: this.userData?.name || "Cyber Operative",
+            author_name: this.userData?.name || "mastertom",
             content: content,
             media_url: this.tempPostMedia,
             tier: tierRequired,
@@ -490,6 +523,38 @@ const app = {
         this.renderFeed();
     },
 
+    toggleLike(postId) {
+        this.haptic('light');
+        let likedPosts = [];
+        try {
+            likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
+        } catch (e) {
+            likedPosts = [];
+        }
+
+        const isLiked = likedPosts.includes(postId);
+        if (isLiked) {
+            likedPosts = likedPosts.filter(id => id !== postId);
+        } else {
+            likedPosts.push(postId);
+        }
+        localStorage.setItem('alpha_user_liked_posts', JSON.stringify(likedPosts));
+
+        // Actualizar el contador en localPosts si existe
+        let localPosts = [];
+        try {
+            localPosts = JSON.parse(localStorage.getItem('alpha_local_posts') || '[]');
+            const postIdx = localPosts.findIndex(p => p.id === postId);
+            if (postIdx !== -1) {
+                localPosts[postIdx].likes = (localPosts[postIdx].likes || 0) + (isLiked ? -1 : 1);
+                if (localPosts[postIdx].likes < 0) localPosts[postIdx].likes = 0;
+                localStorage.setItem('alpha_local_posts', JSON.stringify(localPosts));
+            }
+        } catch (e) {}
+
+        this.renderFeed();
+    },
+
     async renderFeed() {
         const feedContainer = document.getElementById('feed-container') || document.querySelector('#view-feed .feed-posts');
         if (!feedContainer) return;
@@ -513,35 +578,50 @@ const app = {
                 localPosts = [];
             }
 
+            let likedPosts = [];
+            try {
+                likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
+            } catch (e) {
+                likedPosts = [];
+            }
+
             const allPosts = [...localPosts, ...(Array.isArray(posts) ? posts : [])];
 
             if (!allPosts || allPosts.length === 0) {
                 allPosts.push({
                     id: 1,
                     creator_id: 99999,
-                    author_name: "Alpha Operative",
+                    author_name: "mastertom",
                     content: "Bienvenido al Muro VIP de Alpha Vault. Apoya a los creadores enviando propinas en tokens $ALPHA.",
                     media_url: null,
                     likes: 24
                 });
             }
 
-            feedContainer.innerHTML = allPosts.map(post => `
-                <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="font-bold text-amber-400">@${post.author_name || 'Creador VIP'}</div>
-                        <span class="text-xs text-neutral-500">ID #${post.id}</span>
+            feedContainer.innerHTML = allPosts.map(post => {
+                const isLiked = likedPosts.includes(post.id);
+                const currentLikes = post.likes || 0;
+
+                return `
+                    <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="font-bold text-amber-400">@${post.author_name || 'mastertom'}</div>
+                            <span class="text-xs text-neutral-500">ID #${post.id}</span>
+                        </div>
+                        ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${post.content}</p>` : ''}
+                        ${post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-72 object-cover mb-3 border border-neutral-800" alt="Media"/>` : ''}
+                        <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
+                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1.5 text-xs font-semibold py-1 px-2.5 rounded-lg border transition ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400 hover:text-white'}">
+                                <i class="fa-solid fa-heart ${isLiked ? 'text-red-500' : 'text-neutral-400'}"></i>
+                                <span>${currentLikes} Likes</span>
+                            </button>
+                            <button onclick="app.sendTipFromPost(${post.creator_id || 99999}, 10, ${post.id})" class="bg-amber-500 hover:bg-amber-600 text-black font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs shadow-md transition active:scale-95">
+                                🪙 Dar 10 $ALPHA
+                            </button>
+                        </div>
                     </div>
-                    ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${post.content}</p>` : ''}
-                    ${post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-72 object-cover mb-3 border border-neutral-800" alt="Media"/>` : ''}
-                    <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
-                        <span class="text-xs text-neutral-400">❤️ ${post.likes || 0} Likes</span>
-                        <button onclick="app.sendTipFromPost(${post.creator_id || 99999}, 10, ${post.id})" class="bg-amber-500 hover:bg-amber-600 text-black font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs shadow-md transition active:scale-95">
-                            🪙 Dar 10 $ALPHA
-                        </button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         } catch (err) {
             console.warn('[FEED RENDER ERROR]:', err);
         }
