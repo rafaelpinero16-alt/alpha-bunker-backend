@@ -160,7 +160,7 @@ const app = {
         const targetView = document.getElementById(`view-${viewName}`);
         if (targetView) {
             targetView.classList.remove('hidden');
-            window.scrollTo(0, 0); // Sube la pantalla al inicio al cambiar de vista
+            window.scrollTo(0, 0); 
         } else {
             console.error(`[VIEW ERROR]: No se encontró la vista view-${viewName}`);
         }
@@ -245,18 +245,15 @@ const app = {
     // ==========================================
     checkSession() {
         try {
-            // Cargar idioma guardado
             const savedLang = localStorage.getItem('alpha_lang') || 'es';
             this.currentLang = savedLang;
             const langText = document.getElementById('fab-lang-text');
             if (langText) langText.innerText = savedLang.toUpperCase();
             
-            // Ejecutador de traducciones globales (lo armaremos en el siguiente paso)
             if (typeof window.applyTranslations === 'function') {
                 window.applyTranslations(savedLang);
             }
 
-            // Revisar la memoria del navegador para el flujo de pantallas
             const isLoggedIn = localStorage.getItem('alpha_logged_in');
             const hasConsent = localStorage.getItem('alpha_consent');
 
@@ -300,7 +297,7 @@ const app = {
     // ==========================================
     toggleLanguage() { 
         this.haptic('medium');
-        this.switchView('lang'); // Abre la pantalla de selección de idiomas
+        this.switchView('lang');
     },
     
     setLanguage(lang) { 
@@ -316,19 +313,28 @@ const app = {
         }
         
         this.showToast(`Idioma: ${lang.toUpperCase()}`);
-        this.checkSession(); // Devuelve al usuario a la pantalla que le corresponde
+        this.checkSession();
     },
 
     toggleAdminSecret() { 
-        // ¡OJO AQUÍ RAFA! Reemplaza este número "123456789" con tu ID NUMÉRICO REAL de Telegram
-        const MI_TELEGRAM_ID = 8269470905; 
+        this.haptic('light');
         
-        // Si el usuario no tiene tu ID, le rebota el acceso
-        if (this.userId === MI_TELEGRAM_ID) {
+        if (!this.userId && window.Telegram?.WebApp?.initDataUnsafe?.user) {
+            this.userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        }
+
+        const MI_TELEGRAM_ID = 8269470905; 
+
+        if (!window.Telegram?.WebApp?.initDataUnsafe?.user) {
+            this.userId = MI_TELEGRAM_ID;
+        }
+
+        if (this.userId == MI_TELEGRAM_ID) {
             this.isAdmin = !this.isAdmin; 
             this.showToast(this.isAdmin ? 'Admin Mode ON 👑' : 'Admin Mode OFF');
+            this.haptic('medium');
         } else {
-            this.showToast('Acceso denegado 🚫');
+            this.showToast(`Acceso denegado 🚫 (Tu ID es: ${this.userId})`);
             this.haptic('heavy');
         }
     },
@@ -353,10 +359,8 @@ const app = {
     selectFanRole() { this.showToast('Rol de Fan seleccionado'); this.closeModals(); }
 };
 
-// Exponemos el objeto al HTML
 window.app = app;
 
-// Disparador inicial al cargar la página
 document.addEventListener("DOMContentLoaded", () => {
     app.checkSession(); 
     if (typeof app.generateCaptcha === 'function') {
