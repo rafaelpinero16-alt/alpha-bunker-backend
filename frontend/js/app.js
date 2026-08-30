@@ -6,7 +6,8 @@ const app = {
     isAdmin: false,
     userAccessLevel: 0,
     userData: { name: 'USER', access_tier: 0 },
-    lastView: 'consent', // Memoria de pantalla actual
+    lastView: 'consent', // Memoria de pantalla actual[cite: 8]
+    tempPostMedia: null, // Buffer de imagen cargada para publicaciones
 
     // ==========================================
     // 1. UTILIDADES Y SISTEMA
@@ -67,7 +68,7 @@ const app = {
     },
 
     updateProfileUI() {
-        // Cargar Alias
+        // Cargar Alias[cite: 8]
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
         const aliasInput = document.getElementById('prof-alias');
         if (aliasInput && savedName) {
@@ -75,14 +76,14 @@ const app = {
             this.userData.name = savedName;
         }
 
-        // Cargar Biografía
+        // Cargar Biografía[cite: 8]
         const savedBio = localStorage.getItem('alpha_user_bio');
         const bioInput = document.getElementById('prof-bio');
         if (bioInput && savedBio) {
             bioInput.value = savedBio;
         }
 
-        // Cargar Foto de Perfil
+        // Cargar Foto de Perfil[cite: 8]
         const savedAvatar = localStorage.getItem('alpha_user_avatar');
         const avatarImg = document.getElementById('prof-avatar-img');
         if (avatarImg && savedAvatar) {
@@ -90,7 +91,7 @@ const app = {
             avatarImg.classList.remove('hidden');
         }
 
-        // Cargar Rango
+        // Cargar Rango[cite: 8]
         const rankDisplay = document.getElementById('prof-rank');
         if (rankDisplay) {
             const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICONIC 💎'];
@@ -427,8 +428,68 @@ const app = {
     },
     
     // ==========================================
-    // 8. MURO, PROPINAS Y ACCIONES
+    // 8. MURO, SUBIDA DE POSTS Y PROPINAS
     // ==========================================
+    previewImage(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        this.haptic('light');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.tempPostMedia = e.target.result;
+            const uploadTxt = document.getElementById('txt-upload');
+            if (uploadTxt) uploadTxt.innerText = `¡Imagen cargada! 📸 (${file.name})`;
+            this.showToast('Foto cargada correctamente 📸');
+        };
+        reader.readAsDataURL(file);
+    },
+
+    publishPost() {
+        this.haptic('medium');
+        const descInput = document.getElementById('admin-text-es');
+        const levelSelect = document.getElementById('admin-level');
+
+        const content = descInput ? descInput.value.trim() : '';
+        const tierRequired = levelSelect ? parseInt(levelSelect.value) : 0;
+
+        if (!content && !this.tempPostMedia) {
+            this.showToast('⚠️ Ingresa una descripción o selecciona una imagen.');
+            return;
+        }
+
+        const newPost = {
+            id: Date.now(),
+            creator_id: this.userId || 99999,
+            author_name: this.userData?.name || "Cyber Operative",
+            content: content,
+            media_url: this.tempPostMedia,
+            tier: tierRequired,
+            likes: 0
+        };
+
+        let localPosts = [];
+        try {
+            localPosts = JSON.parse(localStorage.getItem('alpha_local_posts') || '[]');
+        } catch (e) {
+            localPosts = [];
+        }
+        localPosts.unshift(newPost);
+        localStorage.setItem('alpha_local_posts', JSON.stringify(localPosts));
+
+        // Limpiar inputs
+        if (descInput) descInput.value = '';
+        this.tempPostMedia = null;
+        const uploadTxt = document.getElementById('txt-upload');
+        if (uploadTxt) uploadTxt.innerText = 'Tocar para subir archivo';
+        const fileInput = document.getElementById('admin-file');
+        if (fileInput) fileInput.value = '';
+
+        this.showToast('¡Publicación subida al muro con éxito! 🚀');
+        this.switchView('feed');
+        this.renderFeed();
+    },
+
     async renderFeed() {
         const feedContainer = document.getElementById('feed-container') || document.querySelector('#view-feed .feed-posts');
         if (!feedContainer) return;
@@ -445,27 +506,34 @@ const app = {
                 }
             }
 
-            if (!posts || posts.length === 0) {
-                posts = [
-                    {
-                        id: 1,
-                        creator_id: 99999,
-                        author_name: "Alpha Operative",
-                        content: "Bienvenido al Muro VIP de Alpha Vault. Apoya a los creadores enviando propinas en tokens $ALPHA.",
-                        media_url: null,
-                        likes: 24
-                    }
-                ];
+            let localPosts = [];
+            try {
+                localPosts = JSON.parse(localStorage.getItem('alpha_local_posts') || '[]');
+            } catch (e) {
+                localPosts = [];
             }
 
-            feedContainer.innerHTML = posts.map(post => `
+            const allPosts = [...localPosts, ...(Array.isArray(posts) ? posts : [])];
+
+            if (!allPosts || allPosts.length === 0) {
+                allPosts.push({
+                    id: 1,
+                    creator_id: 99999,
+                    author_name: "Alpha Operative",
+                    content: "Bienvenido al Muro VIP de Alpha Vault. Apoya a los creadores enviando propinas en tokens $ALPHA.",
+                    media_url: null,
+                    likes: 24
+                });
+            }
+
+            feedContainer.innerHTML = allPosts.map(post => `
                 <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
                     <div class="flex items-center justify-between mb-2">
                         <div class="font-bold text-amber-400">@${post.author_name || 'Creador VIP'}</div>
                         <span class="text-xs text-neutral-500">ID #${post.id}</span>
                     </div>
-                    <p class="text-sm text-neutral-200 mb-3">${post.content || ''}</p>
-                    ${post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-60 object-cover mb-3" alt="Media"/>` : ''}
+                    ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${post.content}</p>` : ''}
+                    ${post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-72 object-cover mb-3 border border-neutral-800" alt="Media"/>` : ''}
                     <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
                         <span class="text-xs text-neutral-400">❤️ ${post.likes || 0} Likes</span>
                         <button onclick="app.sendTipFromPost(${post.creator_id || 99999}, 10, ${post.id})" class="bg-amber-500 hover:bg-amber-600 text-black font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs shadow-md transition active:scale-95">
@@ -511,8 +579,6 @@ const app = {
         } 
     },
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
-    publishPost() { this.showToast('Publicación enviada'); this.switchView('feed'); this.renderFeed(); },
-    previewImage(event) { this.showToast('Imagen cargada'); },
     selectCreatorRole() { this.showToast('Rol de Creador seleccionado'); this.closeModals(); },
     selectFanRole() { this.showToast('Rol de Fan seleccionado'); this.closeModals(); }
 };
