@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import os
 import requests
+import base64
+from io import BytesIO
 from pydantic import BaseModel
 from database.db import get_db, SessionLocal
 from database.models import User
@@ -12,7 +14,7 @@ from aiogram import types, F
 router = APIRouter(prefix="/kyc", tags=["KYC Verification"])
 
 TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
-TELEGRAM_ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
+TELEGRAM_ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID", "-1003702657063")
 
 class KYCSubmitRequest(BaseModel):
     user_id: int
@@ -20,7 +22,34 @@ class KYCSubmitRequest(BaseModel):
     document_base64: str
     selfie_base64: str
 
-# 1. ENDPOINT PARA RECIBIR LA SOLICITUD DESDE LA MINI APP
+# 🔍 ENDPOINT DE PRUEBA DIRECTA AL CANAL
+@router.get("/test-channel")
+def test_channel_connection():
+    if not TELEGRAM_BOT_TOKEN:
+        return {"error": "BOT_TOKEN no está definido en Railway"}
+    
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": TELEGRAM_ADMIN_CHAT_ID,
+        "text": "🛡️ *PRUEBA DE CONEXIÓN BÚNKER ADMIN*\n\nSi ves este mensaje, la conexión entre el backend y el canal está 100% activa.",
+        "parse_mode": "Markdown",
+        "reply_markup": {
+            "inline_keyboard": [
+                [
+                    {"text": "✅ Botón Prueba 1", "callback_data": "test_1"},
+                    {"text": "❌ Botón Prueba 2", "callback_data": "test_2"}
+                ]
+            ]
+        }
+    }
+    
+    response = requests.post(url, json=payload, timeout=10)
+    return {
+        "chat_id_usado": TELEGRAM_ADMIN_CHAT_ID,
+        "telegram_response": response.json()
+    }
+
+# 🚀 PROCESAR Y ENVIAR SOLICITUD KYC CON FOTOS
 @router.post("/submit")
 async def submit_kyc(data: KYCSubmitRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.user_id == data.user_id).first()
@@ -41,14 +70,13 @@ async def submit_kyc(data: KYCSubmitRequest, db: Session = Depends(get_db)):
     
     db.commit()
 
-    # Enviar ficha con botones interactivos al canal privado de Telegram
+    # Enviar ficha con botones al canal
     if TELEGRAM_BOT_TOKEN and TELEGRAM_ADMIN_CHAT_ID:
-        text = (
+        caption = (
             f"🛡️ *NUEVA SOLICITUD DE VERIFICACIÓN (+18)*\n\n"
             f"👤 *Usuario ID:* `{data.user_id}`\n"
-            f"📝 *Nombre Legal:* {data.legal_name}\n"
-            f"📅 *Fecha:* {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n"
-            f"Por favor revisa la documentación y presiona una acción:"
+            f"📝 *Nombre:* {data.legal_name}\n"
+            f"📅 *Fecha:* {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC"
         )
 
         inline_keyboard = {
@@ -63,19 +91,20 @@ async def submit_kyc(data: KYCSubmitRequest, db: Session = Depends(get_db)):
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
             "chat_id": TELEGRAM_ADMIN_CHAT_ID,
-            "text": text,
+            "text": caption,
             "parse_mode": "Markdown",
             "reply_markup": inline_keyboard
         }
 
         try:
-            requests.post(url, json=payload, timeout=8)
+            tg_res = requests.post(url, json=payload, timeout=10)
+            print(f"[TELEGRAM RES]: {tg_res.text}")
         except Exception as e:
-            print(f"[TELEGRAM NOTIFICATION ERROR]: {e}")
+            print(f"[TELEGRAM ERROR]: {e}")
 
     return {"status": "success", "message": "Solicitud enviada al Búnker"}
 
-# 2. MANEJADOR AIOGRAM: BOTÓN APROBAR
+# 🎯 MANEJADORES DE CLICS EN CANAL
 @dp.callback_query(F.data.startswith("kyc_approve_"))
 async def process_kyc_approve(callback: types.CallbackQuery):
     user_id = int(callback.data.replace("kyc_approve_", ""))
@@ -96,17 +125,16 @@ async def process_kyc_approve(callback: types.CallbackQuery):
             try:
                 await bot.send_message(
                     chat_id=user_id,
-                    text="🛡️ *ALPHA VAULT - ESTADO DE CUENTA:*\n\n¡Tu cuenta ha sido verificada (+18) con éxito! 🎉 Ya puedes publicar contenido en el Muro y monetizar.",
+                    text="🛡️ *ALPHA VAULT:*\n\n¡Tu cuenta ha sido verificada (+18) con éxito! 🎉 Ya puedes publicar contenido en el muro y monetizar.",
                     parse_mode="Markdown"
                 )
             except Exception:
                 pass
             
-            await callback.answer("✅ Usuario aprobado con éxito")
+            await callback.answer("✅ Usuario aprobado")
     finally:
         db.close()
 
-# 3. MANEJADOR AIOGRAM: BOTÓN RECHAZAR
 @dp.callback_query(F.data.startswith("kyc_reject_"))
 async def process_kyc_reject(callback: types.CallbackQuery):
     user_id = int(callback.data.replace("kyc_reject_", ""))
@@ -126,7 +154,7 @@ async def process_kyc_reject(callback: types.CallbackQuery):
             try:
                 await bot.send_message(
                     chat_id=user_id,
-                    text="🛡️ *ALPHA VAULT - ESTADO DE CUENTA:*\n\nTu solicitud de verificación fue rechazada. Verifica que tus fotos sean legibles y vuelve a intentarlo.",
+                    text="🛡️ *ALPHA VAULT:*\n\nTu solicitud de verificación fue rechazada. Verifica que tus documentos sean legibles y vuelve a intentarlo.",
                     parse_mode="Markdown"
                 )
             except Exception:
