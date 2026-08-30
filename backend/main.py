@@ -5,51 +5,68 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# Importamos nuestros módulos independientes incluyendo el módulo KYC
-from routers import payments, users, posts, wallet, kyc
-from database.db import init_db
-from core.config import bot, dp
+# Importación de routers modulares y base de datos
+from routers import payments, users, posts, wallet, kyc[cite: 8]
+from database.db import init_db[cite: 8]
+from core.config import bot, dp[cite: 8]
+
+# Asegurar existencia del directorio de archivos multimedia antes de montar la app
+os.makedirs("uploads", exist_ok=True)
 
 # Configuramos el ciclo de vida para encender el bot y limpiar webhooks en segundo plano
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Inicializa la base de datos
-    init_db()
-    
-    # Creamos la carpeta de subidas si no existe (para guardar las fotos de perfil y posts reales)
-    if not os.path.exists("uploads"):
-        os.makedirs("uploads")
+    # 1. Inicializar tablas en la base de datos
+    try:
+        init_db()[cite: 8]
+    except Exception as e:
+        print(f"[DB INIT ERROR]: {e}")
+
+    # 2. Asegurar existencia de carpeta uploads en el contenedor
+    os.makedirs("uploads", exist_ok=True)[cite: 8]
         
-    # Elimina cualquier webhook anterior de Telegram para evitar conflictos con el polling
-    await bot.delete_webhook(drop_pending_updates=True)
-    # Pone a Aiogram a escuchar los pagos y eventos de Telegram
-    bot_task = asyncio.create_task(dp.start_polling(bot))
+    # 3. Eliminar cualquier webhook residual en Telegram y purgar actualizaciones pendientes
+    try:
+        await bot.delete_webhook(drop_pending_updates=True)[cite: 8]
+    except Exception as e:
+        print(f"[TG WEBHOOK CLEANUP ERROR]: {e}")
+
+    # 4. Iniciar Polling de Aiogram como tarea en segundo plano sin congelar FastAPI
+    bot_task = asyncio.create_task(dp.start_polling(bot))[cite: 8]
     yield
-    # Detiene el bot limpiamente al apagar el servidor
-    bot_task.cancel()
+    # 5. Cierre limpio al detener el contenedor
+    bot_task.cancel()[cite: 8]
+    try:
+        await bot.session.close()
+    except Exception:
+        pass
 
-app = FastAPI(title="Alpha Tom Vault API", lifespan=lifespan)
+app = FastAPI(
+    title="Alpha Tom Vault API",
+    description="Backend API Modular con soporte KYC, Wallet TON, Muro de Publicaciones y Pagos",
+    version="1.0.0",
+    lifespan=lifespan
+)[cite: 8]
 
-# Configuración de CORS para permitir la conexión con Netlify
+# Configuración de CORS para permitir la conexión desde Telegram Mini App y Netlify
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-)
+)[cite: 8]
 
-# Habilitamos la lectura pública de la carpeta de imágenes para que la Mini App pueda mostrarlas
-if os.path.exists("uploads"):
-    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+# Montaje de la carpeta estática para servir fotos de perfil y multimedia de publicaciones
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")[cite: 8]
 
 # Conexión de las rutas (Endpoints)
-app.include_router(payments.router)
-app.include_router(users.router)
-app.include_router(posts.router)
+app.include_router(payments.router)[cite: 8]
+app.include_router(users.router)[cite: 8]
+app.include_router(posts.router)[cite: 8]
 app.include_router(wallet.router)  # Módulo financiero $ALPHA y Propinas
-app.include_router(kyc.router)     # Módulo de verificación de identidad (+18)
+app.include_router(kyc.router)     # Módulo de verificación de identidad (+18)[cite: 8]
 
 @app.get("/")
 def read_root():
-    return {"status": "Búnker Backend Modular Online 🚀", "author": "Master Tom"}
+    return {"status": "Búnker Backend Modular Online 🚀", "author": "Master Tom"}[cite: 8]
