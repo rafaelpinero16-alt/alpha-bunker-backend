@@ -46,6 +46,34 @@ const app = {
         }
     },
 
+    compressImage(file, maxWidth = 1024, quality = 0.7) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    },
+
     async refreshUserData() {
         if (!this.userId) this.initUserId();
         if (!this.userId) return;
@@ -193,27 +221,25 @@ const app = {
         if (input) input.click();
     },
 
-    handleAvatarChange(event) {
+    async handleAvatarChange(event) {
         const file = event.target.files[0];
         if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const avatarUrl = e.target.result;
-            localStorage.setItem('alpha_user_avatar', avatarUrl);
-            
-            const avatarImg = document.getElementById('prof-avatar-img');
-            const avatarFeed = document.getElementById('avatar-feed');
-            if (avatarImg) {
-                avatarImg.src = avatarUrl;
-                avatarImg.classList.remove('hidden');
-            }
-            if (avatarFeed) {
-                avatarFeed.src = avatarUrl;
-            }
-            this.showToast('¡Foto de perfil actualizada! 📸');
-        };
-        reader.readAsDataURL(file);
+        this.haptic('light');
+        this.showToast('Optimizando foto... 📸');
+        const avatarUrl = await this.compressImage(file, 400, 0.8);
+        localStorage.setItem('alpha_user_avatar', avatarUrl);
+        
+        const avatarImg = document.getElementById('prof-avatar-img');
+        const avatarFeed = document.getElementById('avatar-feed');
+        if (avatarImg) {
+            avatarImg.src = avatarUrl;
+            avatarImg.classList.remove('hidden');
+        }
+        if (avatarFeed) {
+            avatarFeed.src = avatarUrl;
+        }
+        this.showToast('¡Foto de perfil actualizada! 📸');
     },
 
     saveProfile() {
@@ -248,34 +274,30 @@ const app = {
         document.getElementById('modal-kyc')?.classList.remove('hidden');
     },
 
-    handleKYCDocPreview(event) {
+    async handleKYCDocPreview(event) {
         const file = event.target.files[0];
         if (!file) return;
 
         this.haptic('light');
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.tempKYCDoc = e.target.result;
-            const label = document.getElementById('kyc-doc-label');
-            if (label) label.innerText = `✅ Documento cargado (${file.name})`;
-            this.showToast('Documento cargado 🪪');
-        };
-        reader.readAsDataURL(file);
+        this.showToast('Comprimiendo documento... ⏳');
+        this.tempKYCDoc = await this.compressImage(file, 1200, 0.75);
+        
+        const label = document.getElementById('kyc-doc-label');
+        if (label) label.innerText = `✅ Documento listo (${file.name})`;
+        this.showToast('Documento procesado 🪪');
     },
 
-    handleKYCSelfiePreview(event) {
+    async handleKYCSelfiePreview(event) {
         const file = event.target.files[0];
         if (!file) return;
 
         this.haptic('light');
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.tempKYCSelfie = e.target.result;
-            const label = document.getElementById('kyc-selfie-label');
-            if (label) label.innerText = `✅ Selfie cargada (${file.name})`;
-            this.showToast('Selfie cargada 📸');
-        };
-        reader.readAsDataURL(file);
+        this.showToast('Comprimiendo selfie... ⏳');
+        this.tempKYCSelfie = await this.compressImage(file, 1024, 0.75);
+        
+        const label = document.getElementById('kyc-selfie-label');
+        if (label) label.innerText = `✅ Selfie lista (${file.name})`;
+        this.showToast('Selfie procesada 📸');
     },
 
     async submitKYC() {
@@ -320,7 +342,6 @@ const app = {
                 throw new Error('Error en el servidor');
             }
         } catch (err) {
-            // Guardado local de contingencia
             localStorage.setItem('alpha_kyc_status', 'pending');
             localStorage.setItem('alpha_legal_name', legalName);
             this.showToast('¡Solicitud registrada para revisión! 🛡️');
@@ -698,19 +719,17 @@ const app = {
     // ==========================================
     // 9. MURO, LIKES Y PROPINAS
     // ==========================================
-    previewImage(event) {
+    async previewImage(event) {
         const file = event.target.files[0];
         if (!file) return;
 
         this.haptic('light');
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            this.tempPostMedia = e.target.result;
-            const uploadTxt = document.getElementById('txt-upload');
-            if (uploadTxt) uploadTxt.innerText = `¡Imagen cargada! 📸 (${file.name})`;
-            this.showToast('Foto cargada correctamente 📸');
-        };
-        reader.readAsDataURL(file);
+        this.showToast('Comprimiendo imagen... ⏳');
+        this.tempPostMedia = await this.compressImage(file, 1200, 0.75);
+        
+        const uploadTxt = document.getElementById('txt-upload');
+        if (uploadTxt) uploadTxt.innerText = `¡Imagen cargada! 📸 (${file.name})`;
+        this.showToast('Foto cargada correctamente 📸');
     },
 
     publishPost() {
