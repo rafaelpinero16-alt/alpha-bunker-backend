@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# Importamos nuestros módulos independientes
-from routers import payments, users, posts, wallet
+# Importamos nuestros módulos independientes incluyendo el módulo KYC
+from routers import payments, users, posts, wallet, kyc
 from database.db import init_db
 from core.config import bot, dp
 
@@ -48,6 +48,7 @@ app.include_router(payments.router)
 app.include_router(users.router)
 app.include_router(posts.router)
 app.include_router(wallet.router)  # Módulo financiero $ALPHA y Propinas
+app.include_router(kyc.router)     # Módulo de verificación de identidad (+18)
 
 @app.get("/")
 def read_root():

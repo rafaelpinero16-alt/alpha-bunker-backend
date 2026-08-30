@@ -8,9 +8,19 @@ class User(Base):
     user_id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=True)
     bio = Column(String, nullable=True)
+    role = Column(String, default="fan")  # "fan" o "creator"
     access_tier = Column(String, default="FREE")
     access_level = Column(Integer, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # 🛡️ CAMPOS DE VERIFICACIÓN BÚNKER KYC (+18)
+    kyc_status = Column(String, default="unverified")  # "unverified", "pending", "verified", "rejected"
+    legal_name = Column(String, nullable=True)
+    is_adult = Column(Boolean, default=False)
+    document_url = Column(String, nullable=True)
+    selfie_url = Column(String, nullable=True)
+    kyc_submitted_at = Column(DateTime, nullable=True)
+    kyc_verified_at = Column(DateTime, nullable=True)
 
 class Wallet(Base):
     __tablename__ = "wallets"
