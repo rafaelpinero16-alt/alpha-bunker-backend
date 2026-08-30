@@ -5,9 +5,10 @@ const app = {
     currentCaptcha: '',
     isAdmin: false,
     userAccessLevel: 0,
-    userData: { name: 'USER', access_tier: 0 },
-    lastView: 'consent', // Memoria de pantalla actual
-    tempPostMedia: null, // Buffer de imagen para publicaciones
+    userData: { name: 'USER', access_tier: 0, role: 'fan' },
+    lastView: 'consent',
+    tempPostMedia: null,
+    registerRoleSelected: 'fan',
 
     // ==========================================
     // 1. UTILIDADES Y SISTEMA
@@ -68,7 +69,6 @@ const app = {
     },
 
     updateProfileUI() {
-        // Cargar Alias
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
         const aliasInput = document.getElementById('prof-alias');
         if (aliasInput && savedName) {
@@ -76,20 +76,17 @@ const app = {
             this.userData.name = savedName;
         }
 
-        // Actualizar nombre en el Header
         const nameFeed = document.getElementById('name-feed');
         if (nameFeed && savedName) {
             nameFeed.innerText = savedName;
         }
 
-        // Cargar Biografía
         const savedBio = localStorage.getItem('alpha_user_bio');
         const bioInput = document.getElementById('prof-bio');
         if (bioInput && savedBio) {
             bioInput.value = savedBio;
         }
 
-        // Cargar Foto de Perfil en modal y header
         const savedAvatar = localStorage.getItem('alpha_user_avatar');
         const avatarImg = document.getElementById('prof-avatar-img');
         const avatarFeed = document.getElementById('avatar-feed');
@@ -103,7 +100,6 @@ const app = {
             }
         }
 
-        // Cargar Rango
         const rankDisplay = document.getElementById('prof-rank');
         const rankFeed = document.getElementById('rank-feed');
         const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICONIC 💎'];
@@ -113,10 +109,13 @@ const app = {
         if (rankFeed) rankFeed.innerText = currentRank;
     },
 
+    // ==========================================
+    // 2. CONTADOR DE VISITAS REALES
+    // ==========================================
     updateViewsCounter() {
-        let views = parseInt(localStorage.getItem('alpha_vault_views') || '1024');
-        views += Math.floor(Math.random() * 3) + 1; // Incremento progresivo y orgánico
-        localStorage.setItem('alpha_vault_views', views.toString());
+        let views = parseInt(localStorage.getItem('alpha_real_views') || '0');
+        views += 1;
+        localStorage.setItem('alpha_real_views', views.toString());
 
         const viewsEl = document.getElementById('views-counter');
         if (viewsEl) {
@@ -140,7 +139,7 @@ const app = {
     },
 
     // ==========================================
-    // 2. GESTIÓN DE PERFIL Y AVATAR
+    // 3. GESTIÓN DE PERFIL Y AVATAR
     // ==========================================
     triggerAvatarInput() {
         this.haptic('light');
@@ -196,7 +195,7 @@ const app = {
     },
 
     // ==========================================
-    // 3. BILLETERA Y TONCONNECT
+    // 4. BILLETERA Y TONCONNECT
     // ==========================================
     async connectWallet() {
         try {
@@ -275,7 +274,168 @@ const app = {
     },
 
     // ==========================================
-    // 4. CAPTCHA Y VISTAS
+    // 5. REGISTRO, LOGIN Y ROLES
+    // ==========================================
+    setRegisterRole(role) {
+        this.haptic('light');
+        this.registerRoleSelected = role;
+        const btnFan = document.getElementById('reg-role-fan');
+        const btnCreator = document.getElementById('reg-role-creator');
+
+        if (role === 'fan') {
+            btnFan?.classList.replace('border-neutral-700', 'border-[#ff00ff]');
+            btnFan?.classList.replace('bg-black', 'bg-[#ff00ff]/20');
+            btnFan?.classList.replace('text-neutral-400', 'text-white');
+
+            btnCreator?.classList.replace('border-[#00f3ff]', 'border-neutral-700');
+            btnCreator?.classList.replace('bg-[#00f3ff]/20', 'bg-black');
+            btnCreator?.classList.replace('text-white', 'text-neutral-400');
+        } else {
+            btnCreator?.classList.replace('border-neutral-700', 'border-[#00f3ff]');
+            btnCreator?.classList.replace('bg-black', 'bg-[#00f3ff]/20');
+            btnCreator?.classList.replace('text-neutral-400', 'text-white');
+
+            btnFan?.classList.replace('border-[#ff00ff]', 'border-neutral-700');
+            btnFan?.classList.replace('bg-[#ff00ff]/20', 'bg-black');
+            btnFan?.classList.replace('text-white', 'text-neutral-400');
+        }
+    },
+
+    registerWithData() {
+        this.haptic('medium');
+        const email = document.getElementById('reg-email-input')?.value.trim();
+        const phone = document.getElementById('reg-phone-input')?.value.trim();
+        const pass = document.getElementById('reg-password-input')?.value.trim();
+        const remember = document.getElementById('reg-remember')?.checked;
+
+        if (!phone && !email) {
+            this.showToast('⚠️ Ingresa al menos un número o correo.');
+            return;
+        }
+        if (!pass || pass.length < 4) {
+            this.showToast('⚠️ La contraseña debe tener al menos 4 caracteres.');
+            return;
+        }
+
+        const isCreator = this.registerRoleSelected === 'creator';
+        this.userData.role = this.registerRoleSelected;
+        this.userData.name = phone || email.split('@')[0] || (isCreator ? "mastertom" : "VIP Fan");
+        
+        if (remember) {
+            localStorage.setItem('alpha_remember_user', JSON.stringify({
+                phone: phone,
+                email: email,
+                pass: pass,
+                role: this.registerRoleSelected
+            }));
+        }
+
+        localStorage.setItem('alpha_logged_in', 'true');
+        localStorage.setItem('alpha_user_name', this.userData.name);
+        localStorage.setItem('alpha_user_role', this.registerRoleSelected);
+
+        this.showToast(`¡Cuenta creada como ${isCreator ? 'CREADOR 👑' : 'FAN 💎'}!`);
+        this.switchView('feed');
+        this.updateProfileUI();
+        this.updateViewsCounter();
+        this.refreshUserData();
+        this.renderFeed();
+    },
+
+    loginWithPhone() {
+        this.haptic('medium');
+        const phone = document.getElementById('phone-input')?.value.trim();
+        const pass = document.getElementById('login-password')?.value.trim();
+        const remember = document.getElementById('login-remember')?.checked;
+
+        if (!phone) {
+            this.showToast('⚠️ Ingresa tu número de teléfono.');
+            return;
+        }
+
+        if (remember) {
+            localStorage.setItem('alpha_remember_user', JSON.stringify({ phone, pass }));
+        }
+
+        this.initUserId();
+        localStorage.setItem('alpha_logged_in', 'true');
+        this.switchView('feed');
+        this.updateProfileUI();
+        this.updateViewsCounter();
+        this.refreshUserData();
+        this.renderFeed();
+    },
+
+    loginWithTelegram() { 
+        this.haptic('medium'); 
+        this.initUserId();
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        this.switchView('feed'); 
+        this.updateProfileUI();
+        this.updateViewsCounter();
+        this.refreshUserData();
+        this.renderFeed();
+    },
+
+    registerWithGoogle() { 
+        this.haptic('medium'); 
+        this.initUserId();
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        this.switchView('feed'); 
+        this.updateProfileUI();
+        this.updateViewsCounter();
+        this.refreshUserData();
+        this.renderFeed();
+    },
+
+    checkSession() {
+        try {
+            this.initUserId();
+            const savedLang = localStorage.getItem('alpha_lang') || 'es';
+            this.currentLang = savedLang;
+            const langText = document.getElementById('fab-lang-text');
+            if (langText) langText.innerText = savedLang.toUpperCase();
+            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
+
+            // Cargar credenciales si se marcó "Recuérdame"
+            const savedCredentials = localStorage.getItem('alpha_remember_user');
+            if (savedCredentials) {
+                const creds = JSON.parse(savedCredentials);
+                const phoneLogin = document.getElementById('phone-input');
+                const passLogin = document.getElementById('login-password');
+                const rememberLogin = document.getElementById('login-remember');
+
+                if (phoneLogin && creds.phone) phoneLogin.value = creds.phone;
+                if (passLogin && creds.pass) passLogin.value = creds.pass;
+                if (rememberLogin) rememberLogin.checked = true;
+            }
+
+            const isLoggedIn = localStorage.getItem('alpha_logged_in');
+            const hasConsent = localStorage.getItem('alpha_consent');
+
+            if (isLoggedIn === 'true') { 
+                this.switchView('feed'); 
+                this.updateProfileUI();
+                this.updateViewsCounter();
+                this.refreshUserData();
+                this.renderFeed();
+            } else if (hasConsent === 'true') { 
+                this.switchView('login'); 
+            } else { 
+                this.switchView('consent'); 
+            }
+        } catch (e) {}
+    },
+
+    exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
+    logout() { 
+        this.haptic('medium'); 
+        localStorage.removeItem('alpha_logged_in'); 
+        this.switchView('consent'); 
+    },
+
+    // ==========================================
+    // 6. CAPTCHA Y VISTAS
     // ==========================================
     switchView(viewName) {
         const views = ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'];
@@ -337,7 +497,7 @@ const app = {
     },
 
     // ==========================================
-    // 5. MODALES VISUALES
+    // 7. MODALES VISUALES E IDIOMA
     // ==========================================
     closeModals() {
         this.haptic('light');
@@ -362,78 +522,7 @@ const app = {
     openPaymentFlow(plan, price, link, tier) { this.closeModals(); document.getElementById('modal-payment')?.classList.remove('hidden'); },
     closePaymentModal() { document.getElementById('modal-payment')?.classList.add('hidden'); },
 
-    // ==========================================
-    // 6. INTERACCIÓN Y SESIÓN
-    // ==========================================
-    checkSession() {
-        try {
-            this.initUserId();
-            const savedLang = localStorage.getItem('alpha_lang') || 'es';
-            this.currentLang = savedLang;
-            const langText = document.getElementById('fab-lang-text');
-            if (langText) langText.innerText = savedLang.toUpperCase();
-            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
-
-            const isLoggedIn = localStorage.getItem('alpha_logged_in');
-            const hasConsent = localStorage.getItem('alpha_consent');
-
-            if (isLoggedIn === 'true') { 
-                this.switchView('feed'); 
-                this.updateProfileUI();
-                this.updateViewsCounter();
-                this.refreshUserData();
-                this.renderFeed();
-            } else if (hasConsent === 'true') { 
-                this.switchView('login'); 
-            } else { 
-                this.switchView('consent'); 
-            }
-        } catch (e) {}
-    },
-
-    loginWithTelegram() { 
-        this.haptic('medium'); 
-        this.initUserId();
-        localStorage.setItem('alpha_logged_in', 'true'); 
-        this.switchView('feed'); 
-        this.updateProfileUI();
-        this.updateViewsCounter();
-        this.refreshUserData();
-        this.renderFeed();
-    },
-    loginWithPhone() { 
-        this.haptic('medium'); 
-        this.initUserId();
-        localStorage.setItem('alpha_logged_in', 'true'); 
-        this.switchView('feed'); 
-        this.updateProfileUI();
-        this.updateViewsCounter();
-        this.refreshUserData();
-        this.renderFeed();
-    },
-    registerWithData() { this.haptic('medium'); this.switchView('login'); },
-    registerWithGoogle() { 
-        this.haptic('medium'); 
-        this.initUserId();
-        localStorage.setItem('alpha_logged_in', 'true'); 
-        this.switchView('feed'); 
-        this.updateProfileUI();
-        this.updateViewsCounter();
-        this.refreshUserData();
-        this.renderFeed();
-    },
-    exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
-    logout() { 
-        this.haptic('medium'); 
-        localStorage.removeItem('alpha_logged_in'); 
-        this.switchView('consent'); 
-    },
-
-    // ==========================================
-    // 7. IDIOMA Y ADMIN
-    // ==========================================
     toggleLanguage() { this.haptic('medium'); this.switchView('lang'); },
-    
     setLanguage(lang) { 
         this.haptic('light');
         localStorage.setItem('alpha_lang', lang);
@@ -510,7 +599,6 @@ const app = {
         localPosts.unshift(newPost);
         localStorage.setItem('alpha_local_posts', JSON.stringify(localPosts));
 
-        // Limpiar inputs
         if (descInput) descInput.value = '';
         this.tempPostMedia = null;
         const uploadTxt = document.getElementById('txt-upload');
@@ -540,10 +628,8 @@ const app = {
         }
         localStorage.setItem('alpha_user_liked_posts', JSON.stringify(likedPosts));
 
-        // Actualizar el contador en localPosts si existe
-        let localPosts = [];
         try {
-            localPosts = JSON.parse(localStorage.getItem('alpha_local_posts') || '[]');
+            let localPosts = JSON.parse(localStorage.getItem('alpha_local_posts') || '[]');
             const postIdx = localPosts.findIndex(p => p.id === postId);
             if (postIdx !== -1) {
                 localPosts[postIdx].likes = (localPosts[postIdx].likes || 0) + (isLiked ? -1 : 1);
