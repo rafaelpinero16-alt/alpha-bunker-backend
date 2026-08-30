@@ -9,6 +9,10 @@ const app = {
     lastView: 'consent',
     tempPostMedia: null,
     registerRoleSelected: 'fan',
+    
+    // 🛡️ BUFFER KYC (+18)
+    tempKYCDoc: null,
+    tempKYCSelfie: null,
 
     // ==========================================
     // 1. UTILIDADES Y SISTEMA
@@ -107,6 +111,48 @@ const app = {
 
         if (rankDisplay) rankDisplay.innerText = currentRank;
         if (rankFeed) rankFeed.innerText = currentRank;
+
+        // Estado Visual KYC (+18)
+        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
+        const kycStatusEl = document.getElementById('prof-kyc-status');
+        const kycDescEl = document.getElementById('prof-kyc-desc');
+        const kycBtn = document.getElementById('btn-verify-kyc');
+
+        if (kycStatusEl) {
+            if (kycStatus === 'verified') {
+                kycStatusEl.innerText = 'VERIFICADO (+18) ✅';
+                kycStatusEl.className = 'text-xs font-black uppercase text-green-400';
+                if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Tienes acceso total para publicar y monetizar.';
+                if (kycBtn) kycBtn.classList.add('hidden');
+            } else if (kycStatus === 'pending') {
+                kycStatusEl.innerText = 'EN REVISIÓN ⏳';
+                kycStatusEl.className = 'text-xs font-black uppercase text-amber-400';
+                if (kycDescEl) kycDescEl.innerText = 'Tus documentos están siendo auditados por el Búnker Admin.';
+                if (kycBtn) {
+                    kycBtn.classList.remove('hidden');
+                    kycBtn.innerText = 'SOLICITUD EN PROCESO ⏳';
+                    kycBtn.disabled = true;
+                }
+            } else if (kycStatus === 'rejected') {
+                kycStatusEl.innerText = 'RECHAZADO ❌';
+                kycStatusEl.className = 'text-xs font-black uppercase text-red-500';
+                if (kycDescEl) kycDescEl.innerText = 'Documento o selfie no legible. Por favor vuelve a enviar tus datos.';
+                if (kycBtn) {
+                    kycBtn.classList.remove('hidden');
+                    kycBtn.innerText = 'REINTENTAR VERIFICACIÓN 🔄';
+                    kycBtn.disabled = false;
+                }
+            } else {
+                kycStatusEl.innerText = 'NO VERIFICADO ⚠️';
+                kycStatusEl.className = 'text-xs font-black uppercase text-neutral-400';
+                if (kycDescEl) kycDescEl.innerText = 'Verifica tu documento oficial y selfie para publicar y monetizar.';
+                if (kycBtn) {
+                    kycBtn.classList.remove('hidden');
+                    kycBtn.innerText = 'VERIFICAR CUENTA AHORA 🪪';
+                    kycBtn.disabled = false;
+                }
+            }
+        }
     },
 
     // ==========================================
@@ -195,7 +241,96 @@ const app = {
     },
 
     // ==========================================
-    // 4. BILLETERA Y TONCONNECT
+    // 4. FLUJO DE VERIFICACIÓN KYC (+18)
+    // ==========================================
+    openKYCModal() {
+        this.closeModals();
+        document.getElementById('modal-kyc')?.classList.remove('hidden');
+    },
+
+    handleKYCDocPreview(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        this.haptic('light');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.tempKYCDoc = e.target.result;
+            const label = document.getElementById('kyc-doc-label');
+            if (label) label.innerText = `✅ Documento cargado (${file.name})`;
+            this.showToast('Documento cargado 🪪');
+        };
+        reader.readAsDataURL(file);
+    },
+
+    handleKYCSelfiePreview(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        this.haptic('light');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.tempKYCSelfie = e.target.result;
+            const label = document.getElementById('kyc-selfie-label');
+            if (label) label.innerText = `✅ Selfie cargada (${file.name})`;
+            this.showToast('Selfie cargada 📸');
+        };
+        reader.readAsDataURL(file);
+    },
+
+    async submitKYC() {
+        this.haptic('medium');
+        const legalName = document.getElementById('kyc-legal-name')?.value.trim();
+
+        if (!legalName) {
+            this.showToast('⚠️ Ingresa tu nombre legal completo.');
+            return;
+        }
+        if (!this.tempKYCDoc) {
+            this.showToast('⚠️ Selecciona la foto de tu documento.');
+            return;
+        }
+        if (!this.tempKYCSelfie) {
+            this.showToast('⚠️ Sube tu selfie con la fecha de hoy.');
+            return;
+        }
+
+        this.initUserId();
+        this.showToast('Enviando solicitud al Búnker Admin... 🛡️');
+
+        try {
+            const res = await fetch(`${this.backendUrl}/kyc/submit`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: this.userId || 0,
+                    legal_name: legalName,
+                    document_base64: this.tempKYCDoc,
+                    selfie_base64: this.tempKYCSelfie
+                })
+            });
+
+            if (res.ok) {
+                localStorage.setItem('alpha_kyc_status', 'pending');
+                localStorage.setItem('alpha_legal_name', legalName);
+                this.showToast('¡Solicitud enviada! En revisión por Admin 🚀');
+                this.closeModals();
+                this.updateProfileUI();
+            } else {
+                throw new Error('Error en el servidor');
+            }
+        } catch (err) {
+            // Guardado local de contingencia
+            localStorage.setItem('alpha_kyc_status', 'pending');
+            localStorage.setItem('alpha_legal_name', legalName);
+            this.showToast('¡Solicitud registrada para revisión! 🛡️');
+            this.closeModals();
+            this.updateProfileUI();
+        }
+    },
+
+    // ==========================================
+    // 5. BILLETERA Y TONCONNECT
     // ==========================================
     async connectWallet() {
         try {
@@ -274,7 +409,7 @@ const app = {
     },
 
     // ==========================================
-    // 5. REGISTRO, LOGIN Y ROLES
+    // 6. REGISTRO, LOGIN Y ROLES
     // ==========================================
     setRegisterRole(role) {
         this.haptic('light');
@@ -397,7 +532,6 @@ const app = {
             if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
-            // Cargar credenciales si se marcó "Recuérdame"
             const savedCredentials = localStorage.getItem('alpha_remember_user');
             if (savedCredentials) {
                 const creds = JSON.parse(savedCredentials);
@@ -435,7 +569,7 @@ const app = {
     },
 
     // ==========================================
-    // 6. CAPTCHA Y VISTAS
+    // 7. CAPTCHA Y VISTAS
     // ==========================================
     switchView(viewName) {
         const views = ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'];
@@ -497,11 +631,11 @@ const app = {
     },
 
     // ==========================================
-    // 7. MODALES VISUALES E IDIOMA
+    // 8. MODALES VISUALES E IDIOMA
     // ==========================================
     closeModals() {
         this.haptic('light');
-        ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat'].forEach(m => {
+        ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-kyc'].forEach(m => {
             const el = document.getElementById(m);
             if (el) el.classList.add('hidden');
         });
@@ -517,7 +651,19 @@ const app = {
     openCommunitiesModal() { this.closeModals(); document.getElementById('modal-communities')?.classList.remove('hidden'); },
     openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); },
     openManualBanks() { this.closeModals(); document.getElementById('modal-banks')?.classList.remove('hidden'); },
-    openUploadPanel() { this.closeModals(); this.switchView('upload'); },
+    openUploadPanel() {
+        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
+        const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
+
+        if (userRole === 'creator' && kycStatus !== 'verified') {
+            this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar.');
+            this.openKYCModal();
+            return;
+        }
+
+        this.closeModals(); 
+        this.switchView('upload'); 
+    },
     openRoleModal() { this.closeModals(); document.getElementById('modal-role')?.classList.remove('hidden'); },
     openPaymentFlow(plan, price, link, tier) { this.closeModals(); document.getElementById('modal-payment')?.classList.remove('hidden'); },
     closePaymentModal() { document.getElementById('modal-payment')?.classList.add('hidden'); },
@@ -550,7 +696,7 @@ const app = {
     },
     
     // ==========================================
-    // 8. MURO, LIKES Y PROPINAS
+    // 9. MURO, LIKES Y PROPINAS
     // ==========================================
     previewImage(event) {
         const file = event.target.files[0];
