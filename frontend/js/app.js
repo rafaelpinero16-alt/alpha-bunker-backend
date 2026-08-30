@@ -151,11 +151,11 @@ const app = {
         const avatarFeed = document.getElementById('avatar-feed');
         if (savedAvatar) {
             if (avatarImg) {
-                avatarImg.src = avatarUrl;
+                avatarImg.src = savedAvatar;
                 avatarImg.classList.remove('hidden');
             }
             if (avatarFeed) {
-                avatarFeed.src = avatarUrl;
+                avatarFeed.src = savedAvatar;
             }
         }
 
@@ -626,11 +626,9 @@ const app = {
                 if (rememberLogin) rememberLogin.checked = true;
             }
 
-            const isLoggedIn = localStorage.getItem('alpha_logged_in');
             const hasConsent = localStorage.getItem('alpha_consent');
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
 
-            // Detección y auto-login para usuarios en Telegram Mini App
             if (tgUser && tgUser.id) {
                 localStorage.setItem('alpha_logged_in', 'true');
                 localStorage.setItem('alpha_consent', 'true');
@@ -795,7 +793,7 @@ const app = {
     },
     
     // ==========================================
-    // 9. MURO, LIKES Y PROPINAS
+    // 9. MURO, LIKES Y PROPINAS (CONEXIÓN BD POSTGRESQL)
     // ==========================================
     async previewImage(event) {
         const file = event.target.files[0];
@@ -810,7 +808,7 @@ const app = {
         this.showToast('Foto cargada correctamente 📸');
     },
 
-    publishPost() {
+    async publishPost() {
         this.haptic('medium');
         const descInput = document.getElementById('admin-text-es');
         const levelSelect = document.getElementById('admin-level');
@@ -823,35 +821,77 @@ const app = {
             return;
         }
 
-        const newPost = {
-            id: Date.now(),
-            creator_id: this.userId || 99999,
-            author_name: this.userData?.name || "mastertom",
-            content: content,
-            media_url: this.tempPostMedia,
-            tier: tierRequired,
-            likes: 0
-        };
+        this.initUserId();
+        this.showToast('Publicando en el Muro... 🚀');
 
-        let localPosts = [];
         try {
-            localPosts = JSON.parse(localStorage.getItem('alpha_local_posts') || '[]');
-        } catch (e) {
-            localPosts = [];
+            const res = await fetch(`${this.backendUrl}/posts/create`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: this.userId || 0,
+                    author: this.userData?.name || "mastertom",
+                    text_es: content,
+                    image_url: this.tempPostMedia,
+                    levelRequired: tierRequired,
+                    is_ppv: false,
+                    price_alpha: 0
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.status === "success") {
+                if (descInput) descInput.value = '';
+                this.tempPostMedia = null;
+                const uploadTxt = document.getElementById('txt-upload');
+                if (uploadTxt) uploadTxt.innerText = 'Tocar para subir archivo';
+                const fileInput = document.getElementById('admin-file');
+                if (fileInput) fileInput.value = '';
+
+                this.showToast('¡Publicación guardada en la base de datos! 🛡️');
+                this.switchView('feed');
+                await this.renderFeed();
+            } else {
+                throw new Error(data.detail || 'Error al publicar');
+            }
+        } catch (err) {
+            console.error('[PUBLISH ERROR]:', err);
+            this.showToast(`⚠️ ${err.message || 'Error de conexión'}`);
         }
-        localPosts.unshift(newPost);
-        localStorage.setItem('alpha_local_posts', JSON.stringify(localPosts));
+    },
 
-        if (descInput) descInput.value = '';
-        this.tempPostMedia = null;
-        const uploadTxt = document.getElementById('txt-upload');
-        if (uploadTxt) uploadTxt.innerText = 'Tocar para subir archivo';
-        const fileInput = document.getElementById('admin-file');
-        if (fileInput) fileInput.value = '';
+    async unlockPostContent(postId, priceAlpha) {
+        this.haptic('heavy');
+        this.initUserId();
+        
+        const confirmBuy = confirm(`¿Desbloquear esta publicación por ${priceAlpha} $ALPHA?`);
+        if (!confirmBuy) return;
 
-        this.showToast('¡Publicación subida al muro con éxito! 🚀');
-        this.switchView('feed');
-        this.renderFeed();
+        this.showToast('Desbloqueando contenido... ⚡');
+
+        try {
+            const res = await fetch(`${this.backendUrl}/posts/unlock`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: this.userId || 0,
+                    post_id: postId
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.status === "success") {
+                this.showToast('¡Contenido desbloqueado! 🔓');
+                await this.refreshUserData();
+                await this.renderFeed();
+            } else {
+                throw new Error(data.detail || 'Saldo insuficiente');
+            }
+        } catch (err) {
+            this.showToast(`⚠️ ${err.message || 'Error al desbloquear'}`);
+        }
     },
 
     toggleLike(postId) {
@@ -870,17 +910,6 @@ const app = {
             likedPosts.push(postId);
         }
         localStorage.setItem('alpha_user_liked_posts', JSON.stringify(likedPosts));
-
-        try {
-            let localPosts = JSON.parse(localStorage.getItem('alpha_local_posts') || '[]');
-            const postIdx = localPosts.findIndex(p => p.id === postId);
-            if (postIdx !== -1) {
-                localPosts[postIdx].likes = (localPosts[postIdx].likes || 0) + (isLiked ? -1 : 1);
-                if (localPosts[postIdx].likes < 0) localPosts[postIdx].likes = 0;
-                localStorage.setItem('alpha_local_posts', JSON.stringify(localPosts));
-            }
-        } catch (e) {}
-
         this.renderFeed();
     },
 
@@ -888,23 +917,15 @@ const app = {
         const feedContainer = document.getElementById('feed-container') || document.querySelector('#view-feed .feed-posts');
         if (!feedContainer) return;
 
-        try {
-            let posts = [];
-            if (typeof fetchGlobalFeed === 'function') {
-                posts = await fetchGlobalFeed(this.userId || 0);
-            } else {
-                const res = await fetch(`${this.backendUrl}/get-posts`);
-                if (res.ok) {
-                    const data = await res.json();
-                    posts = data.posts || data || [];
-                }
-            }
+        this.initUserId();
 
-            let localPosts = [];
-            try {
-                localPosts = JSON.parse(localStorage.getItem('alpha_local_posts') || '[]');
-            } catch (e) {
-                localPosts = [];
+        try {
+            const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
+            let posts = [];
+
+            if (res.ok) {
+                const data = await res.json();
+                posts = data.posts || [];
             }
 
             let likedPosts = [];
@@ -914,38 +935,46 @@ const app = {
                 likedPosts = [];
             }
 
-            const allPosts = [...localPosts, ...(Array.isArray(posts) ? posts : [])];
-
-            if (!allPosts || allPosts.length === 0) {
-                allPosts.push({
-                    id: 1,
-                    creator_id: 99999,
-                    author_name: "mastertom",
-                    content: "Bienvenido al Muro VIP de Alpha Vault. Apoya a los creadores enviando propinas en tokens $ALPHA.",
-                    media_url: null,
-                    likes: 24
-                });
+            if (!posts || posts.length === 0) {
+                feedContainer.innerHTML = `
+                    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400">
+                        <i class="fa-solid fa-layer-group text-3xl mb-2 text-amber-500"></i>
+                        <p class="text-sm font-semibold">Aún no hay publicaciones en el Búnker.</p>
+                        <p class="text-xs text-neutral-500 mt-1">Sé el primero en compartir contenido exclusivo.</p>
+                    </div>
+                `;
+                return;
             }
 
-            feedContainer.innerHTML = allPosts.map(post => {
+            feedContainer.innerHTML = posts.map(post => {
                 const isLiked = likedPosts.includes(post.id);
-                const currentLikes = post.likes || 0;
 
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
                         <div class="flex items-center justify-between mb-2">
-                            <div class="font-bold text-amber-400">@${post.author_name || 'mastertom'}</div>
-                            <span class="text-xs text-neutral-500">ID #${post.id}</span>
+                            <div class="font-bold text-amber-400">@${post.author || 'mastertom'}</div>
+                            <span class="text-xs text-neutral-500">Tier Req: Niv.${post.levelRequired}</span>
                         </div>
                         ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${post.content}</p>` : ''}
-                        ${post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-72 object-cover mb-3 border border-neutral-800" alt="Media"/>` : ''}
+                        
+                        ${post.is_locked ? `
+                            <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3 backdrop-blur-md">
+                                <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
+                                <p class="text-sm font-bold text-amber-300">CONTENIDO EXCLUSIVO BLOQUEADO</p>
+                                <p class="text-xs text-neutral-400 mb-3">Requiere Rango Superior o Desbloqueo Directo</p>
+                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-black py-2 px-4 rounded-xl text-xs shadow-lg transition active:scale-95">
+                                    🔓 DESBLOQUEAR (${post.price_alpha || 20} $ALPHA)
+                                </button>
+                            </div>
+                        ` : (post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-80 object-cover mb-3 border border-neutral-800" alt="Media"/>` : '')}
+
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
                             <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1.5 text-xs font-semibold py-1 px-2.5 rounded-lg border transition ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400 hover:text-white'}">
                                 <i class="fa-solid fa-heart ${isLiked ? 'text-red-500' : 'text-neutral-400'}"></i>
-                                <span>${currentLikes} Likes</span>
+                                <span>Like</span>
                             </button>
                             <button onclick="app.sendTipFromPost(${post.creator_id || 99999}, 10, ${post.id})" class="bg-amber-500 hover:bg-amber-600 text-black font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs shadow-md transition active:scale-95">
-                                🪙 Dar 10 $ALPHA
+                                🪙 Dar Propina
                             </button>
                         </div>
                     </div>
@@ -956,7 +985,7 @@ const app = {
         }
     },
 
-    async sendTipFromPost(creatorId, amount, postId = null) {
+    async sendTipFromPost(creatorId, defaultAmount = 10, postId = null) {
         try {
             this.haptic('medium');
             this.initUserId();
@@ -966,14 +995,48 @@ const app = {
                 return;
             }
 
-            this.showToast('Procesando propina... ⚡');
-            const result = await sendAlphaTip(this.userId, creatorId, amount, postId);
+            if (this.userId == creatorId) {
+                this.showToast('⚠️ No puedes enviarte propinas a ti mismo.');
+                return;
+            }
 
-            if (result && result.status === 'success') {
-                this.showToast(`¡Propina de ${result.amount_sent} $ALPHA enviada! 🚀`);
+            const inputAmount = prompt(
+                '🪙 ¿Cuántos tokens $ALPHA deseas enviar como propina?\n\nSugerencias: 5, 10, 25, 50, 100\nO escribe tu monto personalizado:',
+                defaultAmount.toString()
+            );
+
+            if (inputAmount === null) return;
+
+            const amount = parseInt(inputAmount.trim());
+            if (isNaN(amount) || amount <= 0) {
+                this.showToast('⚠️ Ingresa un monto numérico válido mayor a 0.');
+                return;
+            }
+
+            this.showToast(`Enviando propina de ${amount} $ALPHA... ⚡`);
+
+            const res = await fetch(`${this.backendUrl}/wallet/send-tip`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sender_id: this.userId,
+                    receiver_id: creatorId,
+                    amount: amount,
+                    post_id: postId
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.status === 'success') {
+                this.haptic('heavy');
+                this.showToast(`¡Propina de ${data.amount_sent || amount} $ALPHA enviada con éxito! 🚀`);
                 await this.refreshUserData();
+            } else {
+                throw new Error(data.detail || 'Saldo insuficiente o error al procesar');
             }
         } catch (error) {
+            console.error('[TIP ERROR]:', error);
             this.showToast(`⚠️ ${error.message || 'Error al procesar la propina.'}`);
         }
     },
