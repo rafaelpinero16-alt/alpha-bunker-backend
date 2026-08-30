@@ -30,7 +30,7 @@ const app = {
         if (toast) { 
             toast.innerText = msg; 
             toast.classList.add('show'); 
-            setTimeout(() => toast.classList.remove('show'), 3000); 
+            setTimeout(() => toast.classList.remove('show'), 3500); 
         }
     },
 
@@ -150,7 +150,7 @@ const app = {
             if (kycStatus === 'verified') {
                 kycStatusEl.innerText = 'VERIFICADO (+18) ✅';
                 kycStatusEl.className = 'text-xs font-black uppercase text-green-400';
-                if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Tienes acceso total para publicar y monetizar.';
+                if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else if (kycStatus === 'pending') {
                 kycStatusEl.innerText = 'EN REVISIÓN ⏳';
@@ -332,73 +332,101 @@ const app = {
                 })
             });
 
-            if (res.ok) {
+            const data = await res.json();
+
+            if (res.ok && data.status === "success") {
                 localStorage.setItem('alpha_kyc_status', 'pending');
                 localStorage.setItem('alpha_legal_name', legalName);
-                this.showToast('¡Solicitud enviada! En revisión por Admin 🚀');
+                this.showToast('¡Solicitud enviada al Canal Búnker! 🚀');
                 this.closeModals();
                 this.updateProfileUI();
             } else {
-                throw new Error('Error en el servidor');
+                throw new Error(data.detail || data.message || 'Error al procesar en el servidor');
             }
         } catch (err) {
-            localStorage.setItem('alpha_kyc_status', 'pending');
-            localStorage.setItem('alpha_legal_name', legalName);
-            this.showToast('¡Solicitud registrada para revisión! 🛡️');
-            this.closeModals();
-            this.updateProfileUI();
+            console.error('[KYC SUBMIT ERROR]:', err);
+            this.showToast(`⚠️ Error: ${err.message || 'No se pudo contactar al backend'}`);
         }
     },
 
     // ==========================================
-    // 5. BILLETERA Y TONCONNECT
+    // 5. BILLETERA Y TONCONNECT (ESTRUCTURA ACTIVA)
     // ==========================================
+    async initTonConnect() {
+        if (!this.tonConnectUI && window.TON_CONNECT_UI) {
+            try {
+                this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
+                    manifestUrl: window.location.origin + '/tonconnect-manifest.json' 
+                });
+
+                this.tonConnectUI.onStatusChange(async (wallet) => {
+                    const btnHdr = document.getElementById('btn-wallet-hdr');
+                    if (wallet?.account) {
+                        const shortAddress = wallet.account.address.slice(0, 4) + '...' + wallet.account.address.slice(-4);
+                        if (btnHdr) btnHdr.innerText = shortAddress;
+                        this.showToast('¡Billetera conectada! 💎');
+
+                        try {
+                            await fetch(`${this.backendUrl}/wallet/connect-ton`, {
+                                method: "POST", 
+                                headers: { "Content-Type": "application/json" }, 
+                                body: JSON.stringify({ 
+                                    user_id: this.userId || 0, 
+                                    ton_address: wallet.account.address 
+                                })
+                            });
+                        } catch (e) {}
+                        await this.refreshUserData();
+                    } else {
+                        if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET';
+                    }
+                });
+            } catch (err) {
+                console.warn('[TONCONNECT INIT ERROR]:', err);
+            }
+        }
+    },
+
     async connectWallet() {
         try {
             this.haptic('medium');
             this.initUserId();
+            await this.initTonConnect();
 
-            if (window.TON_CONNECT_UI) {
-                if (!this.tonConnectUI) {
-                    this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
-                        manifestUrl: window.location.origin + '/tonconnect-manifest.json' 
-                    });
+            if (!this.tonConnectUI) {
+                this.showToast('⚠️ Módulo TON no disponible.');
+                return;
+            }
 
-                    this.tonConnectUI.onStatusChange(async (wallet) => {
-                        if (wallet?.account) {
-                            this.showToast('¡Billetera conectada con éxito! 💎');
-                            try {
-                                await fetch(`${this.backendUrl}/wallet/connect-ton`, {
-                                    method: "POST", 
-                                    headers: { "Content-Type": "application/json" }, 
-                                    body: JSON.stringify({ 
-                                        user_id: this.userId || 0, 
-                                        ton_address: wallet.account.address 
-                                    })
-                                });
-                            } catch (apiErr) { 
-                                console.warn(apiErr); 
-                            }
-                            await this.refreshUserData();
-                        }
-                    });
+            if (this.tonConnectUI.connected) {
+                const disconnect = confirm('Tu billetera ya está conectada. ¿Deseas desconectarla?');
+                if (disconnect) {
+                    await this.tonConnectUI.disconnect();
+                    this.showToast('Billetera desconectada.');
+                    const btnHdr = document.getElementById('btn-wallet-hdr');
+                    if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET';
                 }
+            } else {
                 await this.tonConnectUI.openModal();
             }
         } catch (err) { 
-            this.showToast('⚠️ Error abriendo la billetera.'); 
+            console.error('[WALLET CONNECT ERROR]:', err);
+            this.showToast('⚠️ Error abriendo el selector de wallets.'); 
         }
     },
 
     async rechargeAlphaCoins(amountTon, alphaAmount) {
         try {
             this.haptic('heavy');
-            if (!this.tonConnectUI?.connected) { 
-                this.showToast('⚠️ Conecta tu billetera TON primero.'); 
+            await this.initTonConnect();
+
+            if (!this.tonConnectUI || !this.tonConnectUI.connected || !this.tonConnectUI.account) { 
+                this.showToast('⚠️ Primero conecta tu billetera TON desde el botón superior.');
+                await this.connectWallet();
                 return; 
             }
 
-            this.showToast('Preparando transacción TON...');
+            this.showToast('Confirmando transacción en tu billetera... ⚡');
             const nanoTonAmount = Math.floor(amountTon * 1000000000).toString();
             const transaction = { 
                 validUntil: Math.floor(Date.now() / 1000) + 360, 
@@ -409,9 +437,9 @@ const app = {
             };
 
             const result = await this.tonConnectUI.sendTransaction(transaction);
-            this.showToast('¡Pago en TON procesado! Acreditando... 💎');
+            this.showToast('¡Pago procesado! Acreditando $ALPHA... 💎');
 
-            await fetch(`${this.backendUrl}/wallet/recharge`, { 
+            const res = await fetch(`${this.backendUrl}/wallet/recharge`, { 
                 method: "POST", 
                 headers: { "Content-Type": "application/json" }, 
                 body: JSON.stringify({ 
@@ -422,9 +450,14 @@ const app = {
                 }) 
             });
 
-            await this.refreshUserData();
-            this.showToast(`¡Recarga exitosa! +${alphaAmount} $ALPHA 🚀`);
+            if (res.ok) {
+                await this.refreshUserData();
+                this.showToast(`¡Recarga exitosa! +${alphaAmount} $ALPHA 🚀`);
+            } else {
+                this.showToast('⚠️ Error al asentar saldo en backend.');
+            }
         } catch (err) { 
+            console.error('[RECHARGE ERROR]:', err);
             this.showToast('⚠️ Transacción cancelada o fallida.'); 
         }
     },
@@ -547,11 +580,12 @@ const app = {
     checkSession() {
         try {
             this.initUserId();
+            this.initTonConnect();
             const savedLang = localStorage.getItem('alpha_lang') || 'es';
             this.currentLang = savedLang;
             const langText = document.getElementById('fab-lang-text');
             if (langText) langText.innerText = savedLang.toUpperCase();
-            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
+            if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
 
             const savedCredentials = localStorage.getItem('alpha_remember_user');
             if (savedCredentials) {
