@@ -100,6 +100,33 @@ const app = {
         }
     },
 
+    // 🔄 Sincronización en tiempo real del estado KYC desde la Base de Datos
+    async syncKYCStatus() {
+        if (!this.userId) this.initUserId();
+        if (!this.userId) return;
+
+        try {
+            const res = await fetch(`${this.backendUrl}/kyc/status/${this.userId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.kyc_status) {
+                    localStorage.setItem('alpha_kyc_status', data.kyc_status);
+                    if (data.role) {
+                        this.userData.role = data.role;
+                        localStorage.setItem('alpha_user_role', data.role);
+                    }
+                    if (data.name && data.name !== 'USER') {
+                        this.userData.name = data.name;
+                        localStorage.setItem('alpha_user_name', data.name);
+                    }
+                    this.updateProfileUI();
+                }
+            }
+        } catch (err) {
+            console.warn('[KYC SYNC ERROR]:', err);
+        }
+    },
+
     updateProfileUI() {
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
         const aliasInput = document.getElementById('prof-alias');
@@ -124,11 +151,11 @@ const app = {
         const avatarFeed = document.getElementById('avatar-feed');
         if (savedAvatar) {
             if (avatarImg) {
-                avatarImg.src = savedAvatar;
+                avatarImg.src = avatarUrl;
                 avatarImg.classList.remove('hidden');
             }
             if (avatarFeed) {
-                avatarFeed.src = savedAvatar;
+                avatarFeed.src = avatarUrl;
             }
         }
 
@@ -350,7 +377,7 @@ const app = {
     },
 
     // ==========================================
-    // 5. BILLETERA Y TONCONNECT (ESTRUCTURA ACTIVA)
+    // 5. BILLETERA Y TONCONNECT
     // ==========================================
     async initTonConnect() {
         if (!this.tonConnectUI && window.TON_CONNECT_UI) {
@@ -577,7 +604,7 @@ const app = {
         this.renderFeed();
     },
 
-    checkSession() {
+    async checkSession() {
         try {
             this.initUserId();
             this.initTonConnect();
@@ -585,7 +612,7 @@ const app = {
             this.currentLang = savedLang;
             const langText = document.getElementById('fab-lang-text');
             if (langText) langText.innerText = savedLang.toUpperCase();
-            if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
+            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
             const savedCredentials = localStorage.getItem('alpha_remember_user');
             if (savedCredentials) {
@@ -601,19 +628,35 @@ const app = {
 
             const isLoggedIn = localStorage.getItem('alpha_logged_in');
             const hasConsent = localStorage.getItem('alpha_consent');
+            const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
 
-            if (isLoggedIn === 'true') { 
+            // Detección y auto-login para usuarios en Telegram Mini App
+            if (tgUser && tgUser.id) {
+                localStorage.setItem('alpha_logged_in', 'true');
+                localStorage.setItem('alpha_consent', 'true');
+                if (!localStorage.getItem('alpha_user_name')) {
+                    const tgName = tgUser.first_name + (tgUser.last_name ? ` ${tgUser.last_name}` : '');
+                    localStorage.setItem('alpha_user_name', tgName || tgUser.username || 'VIP User');
+                }
+            }
+
+            const activeLogin = localStorage.getItem('alpha_logged_in');
+
+            if (activeLogin === 'true') { 
                 this.switchView('feed'); 
                 this.updateProfileUI();
                 this.updateViewsCounter();
-                this.refreshUserData();
+                await this.syncKYCStatus();
+                await this.refreshUserData();
                 this.renderFeed();
             } else if (hasConsent === 'true') { 
                 this.switchView('login'); 
             } else { 
                 this.switchView('consent'); 
             }
-        } catch (e) {}
+        } catch (e) {
+            console.warn('[SESSION CHECK ERROR]:', e);
+        }
     },
 
     exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
@@ -699,6 +742,7 @@ const app = {
     openProfile() { 
         this.closeModals(); 
         document.getElementById('modal-profile')?.classList.remove('hidden'); 
+        this.syncKYCStatus();
         this.updateProfileUI();
         this.refreshUserData();
     },
