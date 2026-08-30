@@ -25,10 +25,29 @@ def decode_base64_img(b64_str: str) -> bytes:
         b64_str = b64_str.split(",", 1)[1]
     return base64.b64decode(b64_str)
 
-# 🚀 PROCESAR Y ENVIAR SOLICITUD KYC CON FOTOS AL CANAL
+# 🔄 1. CONSULTAR ESTADO KYC EN TIEMPO REAL DESDE LA BASE DE DATOS
+@router.get("/status/{user_id}")
+def get_kyc_status(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        return {
+            "user_id": user_id,
+            "kyc_status": "unverified",
+            "is_adult": False,
+            "role": "fan",
+            "name": "USER"
+        }
+    return {
+        "user_id": user.user_id,
+        "kyc_status": user.kyc_status or "unverified",
+        "is_adult": bool(user.is_adult),
+        "role": user.role or "fan",
+        "name": user.name or "USER"
+    }
+
+# 🚀 2. PROCESAR Y ENVIAR SOLICITUD KYC CON FOTOS AL CANAL
 @router.post("/submit")
 async def submit_kyc(data: KYCSubmitRequest, db: Session = Depends(get_db)):
-    # 1. Registrar / Actualizar usuario en la base de datos
     user = db.query(User).filter(User.user_id == data.user_id).first()
     if not user:
         user = User(
@@ -47,7 +66,6 @@ async def submit_kyc(data: KYCSubmitRequest, db: Session = Depends(get_db)):
     
     db.commit()
 
-    # 2. Enviar fotos y panel interactivo al canal de administración
     try:
         doc_bytes = decode_base64_img(data.document_base64)
         selfie_bytes = decode_base64_img(data.selfie_base64)
@@ -55,14 +73,12 @@ async def submit_kyc(data: KYCSubmitRequest, db: Session = Depends(get_db)):
         doc_file = BufferedInputFile(doc_bytes, filename="documento.jpg")
         selfie_file = BufferedInputFile(selfie_bytes, filename="selfie.jpg")
 
-        # Publicar álbum con ambas imágenes en el canal
         media_group = [
             InputMediaPhoto(media=doc_file, caption=f"🪪 *Documento:* {data.legal_name} (ID: `{data.user_id}`)"),
             InputMediaPhoto(media=selfie_file, caption=f"📸 *Selfie con fecha:* {data.legal_name}")
         ]
         await bot.send_media_group(chat_id=int(TELEGRAM_ADMIN_CHAT_ID), media=media_group)
 
-        # Publicar tarjeta de control con botones inline
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(text="✅ Aprobar (+18)", callback_data=f"kyc_approve_{data.user_id}"),
@@ -89,7 +105,7 @@ async def submit_kyc(data: KYCSubmitRequest, db: Session = Depends(get_db)):
 
     return {"status": "success", "message": "Solicitud enviada al Búnker"}
 
-# 🎯 MANEJADORES DE ACCIÓN INTERACTIVA EN EL CANAL
+# 🎯 3. MANEJADORES DE ACCIÓN INTERACTIVA EN EL CANAL
 @dp.callback_query(F.data.startswith("kyc_approve_"))
 async def process_kyc_approve(callback: types.CallbackQuery):
     user_id = int(callback.data.replace("kyc_approve_", ""))
