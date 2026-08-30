@@ -1,65 +1,51 @@
-from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from typing import Optional
+from pydantic import BaseModel, Field
+
 from database.db import get_db
 from database.models import Wallet, Transaction
 from database.wallet_logic import process_tip_transaction
 
-router = APIRouter(
-    prefix="/wallet",
-    tags=["Wallet & Alfa Coins"]
-)
+router = APIRouter(prefix="/wallet", tags=["Wallet & Alfa Coins"])
 
-class TipRequest(BaseModel):
-    sender_id: str
-    creator_id: str
-    amount: Decimal
-    gateway: str  # 'Binance', 'TON', 'Global66', etc.
-    tx_id: str
+# Esquema para envío de propinas
+class TipPayload(BaseModel):
+    sender_id: int
+    creator_id: int
+    amount: int = Field(..., gt=0, description="Monto en tokens $ALPHA")
+    post_id: Optional[int] = None
 
 @router.get("/balance/{user_id}")
-def get_user_balance(user_id: str, db: Session = Depends(get_db)):
-    wallet = db.query(Wallet).filter(Wallet.user_id == str(user_id)).first()
+def get_user_balance(user_id: int, db: Session = Depends(get_db)):
+    wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
     if not wallet:
-        return {"user_id": user_id, "balance_alfa_coins": 0.0000}
+        wallet = Wallet(user_id=user_id, alpha_balance=0, total_earned=0, total_spent=0)
+        db.add(wallet)
+        db.commit()
+        db.refresh(wallet)
     return {
-        "user_id": user_id,
-        "balance_alfa_coins": float(wallet.balance_alfa_coins)
+        "user_id": str(wallet.user_id),
+        "balance_alfa_coins": wallet.alpha_balance,
+        "total_earned": wallet.total_earned,
+        "total_spent": wallet.total_spent
     }
 
-@router.get("/history/{user_id}")
-def get_wallet_history(user_id: str, db: Session = Depends(get_db)):
-    txs = db.query(Transaction).filter(
-        or_(Transaction.sender_id == str(user_id), Transaction.receiver_id == str(user_id))
-    ).order_by(Transaction.timestamp.desc()).all()
-    
-    history = [{
-        "id": tx.id,
-        "sender_id": tx.sender_id,
-        "receiver_id": tx.receiver_id,
-        "amount": float(tx.alfa_coins),
-        "gateway": tx.gateway,
-        "status": tx.status,
-        "timestamp": str(tx.timestamp)
-    } for tx in txs]
-    
-    return {"user_id": user_id, "transactions": history}
-
 @router.post("/send-tip")
-def send_tip(data: TipRequest, db: Session = Depends(get_db)):
+def send_tip(payload: TipPayload, db: Session = Depends(get_db)):
     try:
         result = process_tip_transaction(
-            db=db,
-            sender_id=data.sender_id,
-            creator_id=data.creator_id,
-            amount=data.amount,
-            gateway=data.gateway,
-            tx_id=data.tx_id
+            sender_id=payload.sender_id,
+            receiver_id=payload.creator_id,
+            amount=payload.amount,
+            post_id=payload.post_id,
+            db=db
         )
-        return {"message": "Propina procesada con éxito y split 90/10 aplicado.", "details": result}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        return result
+    except HTTPException as http_exc:
+        raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Error interno al procesar la transacción.")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al procesar la propina: {str(e)}"
+        )
