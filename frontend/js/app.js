@@ -793,7 +793,7 @@ const app = {
     },
     
     // ==========================================
-    // 9. MURO, LIKES Y PROPINAS (CONEXIÓN BD POSTGRESQL)
+    // 9. MURO, LIKES, PROPINAS Y BORRADO DE POSTS
     // ==========================================
     async previewImage(event) {
         const file = event.target.files[0];
@@ -861,6 +861,40 @@ const app = {
         }
     },
 
+    async deletePost(postId, creatorId) {
+        this.haptic('medium');
+        this.initUserId();
+
+        const confirmDelete = confirm('¿Estás seguro de que deseas eliminar esta publicación permanentemente?');
+        if (!confirmDelete) return;
+
+        this.showToast('Eliminando publicación... 🗑️');
+
+        try {
+            const res = await fetch(`${this.backendUrl}/posts/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: this.userId || 0,
+                    post_id: postId
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.status === 'success') {
+                this.haptic('heavy');
+                this.showToast('Publicación eliminada correctamente 🗑️');
+                await this.renderFeed();
+            } else {
+                throw new Error(data.detail || 'No se pudo eliminar');
+            }
+        } catch (err) {
+            console.error('[DELETE POST ERROR]:', err);
+            this.showToast(`⚠️ ${err.message || 'Error al eliminar'}`);
+        }
+    },
+
     async unlockPostContent(postId, priceAlpha) {
         this.haptic('heavy');
         this.initUserId();
@@ -918,6 +952,7 @@ const app = {
         if (!feedContainer) return;
 
         this.initUserId();
+        const ADMIN_ID = 8269470905;
 
         try {
             const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
@@ -948,12 +983,20 @@ const app = {
 
             feedContainer.innerHTML = posts.map(post => {
                 const isLiked = likedPosts.includes(post.id);
+                const isOwnerOrAdmin = (this.userId == post.creator_id || this.userId == ADMIN_ID);
 
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
                         <div class="flex items-center justify-between mb-2">
                             <div class="font-bold text-amber-400">@${post.author || 'mastertom'}</div>
-                            <span class="text-xs text-neutral-500">Tier Req: Niv.${post.levelRequired}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-neutral-500">Tier: Niv.${post.levelRequired}</span>
+                                ${isOwnerOrAdmin ? `
+                                    <button onclick="app.deletePost(${post.id}, ${post.creator_id})" class="text-neutral-500 hover:text-red-400 p-1 transition" title="Eliminar publicación">
+                                        <i class="fa-solid fa-trash-can text-sm"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
                         </div>
                         ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${post.content}</p>` : ''}
                         
