@@ -1,84 +1,179 @@
-import os
-import time
-import shutil
-import sqlite3
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel
+from database.db import get_db
+from database.models import User, Post, UnlockedPost, Wallet, Transaction
 
 router = APIRouter(tags=["Posts Globales"])
 
-# Conexión directa a la base de datos
-def get_db_connection():
-    # Asumimos que tu base local se llama database.db (ajusta si le pusiste otro nombre en db.py)
-    conn = sqlite3.connect("database.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+class CreatePostRequest(BaseModel):
+    user_id: int
+    author: Optional[str] = "mastertom"
+    text_es: Optional[str] = ""
+    image_url: Optional[str] = None
+    levelRequired: int = 0
+    is_ppv: bool = False
+    price_alpha: int = 0
 
+class UnlockPostRequest(BaseModel):
+    user_id: int
+    post_id: int
+
+# ==========================================
+# 1. CREAR PUBLICACIÓN (Conexión BD + KYC)
+# ==========================================
+@router.post("/posts/create")
 @router.post("/create-post")
-async def create_post(
-    author: str = Form(...),
-    levelRequired: int = Form(...),
-    text_es: str = Form(...),
-    image: UploadFile = File(None)
-):
-    image_url = None
-    
-    # 1. Procesar y guardar la imagen física en el servidor de Railway
-    if image and image.filename:
-        filename = f"{int(time.time())}_{image.filename.replace(' ', '_')}"
-        filepath = os.path.join("uploads", filename)
-        
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-            
-        # Generar el enlace público para que Netlify pueda leer la foto
-        image_url = f"https://alpha-bunker-backend-production.up.railway.app/uploads/{filename}"
-
-    # 2. Inyectar la publicación en la Base de Datos
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    # Crea la tabla automáticamente si es la primera vez que se publica algo
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS posts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            author TEXT,
-            levelRequired INTEGER,
-            text_es TEXT,
-            image_url TEXT,
-            date_created DATETIME DEFAULT CURRENT_TIMESTAMP
+def create_post(data: CreatePostRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_id == data.user_id).first()
+    if not user:
+        user = User(
+            user_id=data.user_id,
+            name=data.author or "mastertom",
+            role="creator",
+            kyc_status="verified",
+            is_adult=True
         )
-    ''')
-    
-    try:
-        cursor.execute('''
-            INSERT INTO posts (author, levelRequired, text_es, image_url)
-            VALUES (?, ?, ?, ?)
-        ''', (author, levelRequired, text_es, image_url))
-        conn.commit()
-        post_id = cursor.lastrowid
-    except Exception as e:
-        conn.close()
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-        
-    conn.close()
-    
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Verificación de mayoría de edad y KYC
+    if user.kyc_status != "verified" and not user.is_adult:
+        raise HTTPException(
+            status_code=403, 
+            detail="Acceso restringido: debes completar la verificación KYC (+18) para publicar en el Muro."
+        )
+
+    new_post = Post(
+        creator_id=data.user_id,
+        author=data.author or user.name or "mastertom",
+        levelRequired=data.levelRequired,
+        text_es=data.text_es,
+        image_url=data.image_url,
+        is_ppv=data.is_ppv,
+        price_alpha=data.price_alpha,
+        date_created=datetime.utcnow()
+    )
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
+
     return {
-        "message": "Publicación subida al Muro Comunitario 🚀", 
-        "post_id": post_id, 
-        "image_url": image_url
+        "status": "success",
+        "message": "Publicación subida al Muro Comunitario 🚀",
+        "post_id": new_post.id,
+        "image_url": new_post.image_url
     }
 
+# ==========================================
+# 2. FEED CON CONTROL DE ACCESO POR RANGO / PPV
+# ==========================================
+@router.get("/posts/feed/{user_id}")
+def get_user_feed(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    user_level = user.access_level if user else 0
+
+    unlocked_records = db.query(UnlockedPost.post_id).filter(UnlockedPost.user_id == user_id).all()
+    unlocked_ids = {r[0] for r in unlocked_records}
+
+    posts = db.query(Post).order_by(Post.date_created.desc()).all()
+    feed = []
+
+    for post in posts:
+        can_view = (
+            post.id in unlocked_ids or
+            (user_level >= post.levelRequired and not post.is_ppv) or
+            (post.creator_id == user_id)
+        )
+
+        feed.append({
+            "id": post.id,
+            "creator_id": post.creator_id,
+            "author": post.author or "mastertom",
+            "content": post.text_es,
+            "media_url": post.image_url if can_view else None,
+            "levelRequired": post.levelRequired,
+            "is_ppv": post.is_ppv,
+            "price_alpha": post.price_alpha,
+            "is_locked": not can_view,
+            "date_created": post.date_created.isoformat() if post.date_created else None
+        })
+
+    return {"status": "success", "posts": feed}
+
+# ==========================================
+# 3. FEED GLOBAL LEGACY (Compatibilidad)
+# ==========================================
 @router.get("/get-posts")
-async def get_all_posts():
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        cursor.execute("SELECT * FROM posts ORDER BY id DESC")
-        rows = cursor.fetchall()
-        posts = [dict(row) for row in rows]
-    except Exception:
-        posts = [] # Si la tabla aún no existe, envía el muro vacío sin tumbar la app
-        
-    conn.close()
-    return {"posts": posts}
+def get_all_posts(db: Session = Depends(get_db)):
+    posts = db.query(Post).order_by(Post.date_created.desc()).all()
+    feed = []
+    for post in posts:
+        feed.append({
+            "id": post.id,
+            "creator_id": post.creator_id,
+            "author": post.author or "mastertom",
+            "content": post.text_es,
+            "text_es": post.text_es,
+            "media_url": post.image_url,
+            "image_url": post.image_url,
+            "levelRequired": post.levelRequired,
+            "is_ppv": post.is_ppv,
+            "price_alpha": post.price_alpha,
+            "is_locked": False,
+            "date_created": post.date_created.isoformat() if post.date_created else None
+        })
+    return {"posts": feed}
+
+# ==========================================
+# 4. DESBLOQUEO DE CONTENIDO EXCLUSIVO
+# ==========================================
+@router.post("/posts/unlock")
+def unlock_post(data: UnlockPostRequest, db: Session = Depends(get_db)):
+    post = db.query(Post).filter(Post.id == data.post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Publicación no encontrada")
+
+    already_unlocked = db.query(UnlockedPost).filter(
+        UnlockedPost.user_id == data.user_id,
+        UnlockedPost.post_id == data.post_id
+    ).first()
+    if already_unlocked:
+        return {
+            "status": "success",
+            "message": "Contenido ya desbloqueado previamente",
+            "media_url": post.image_url
+        }
+
+    wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
+    if not wallet or wallet.alpha_balance < post.price_alpha:
+        raise HTTPException(status_code=400, detail="Saldo insuficiente de tokens $ALPHA")
+
+    wallet.alpha_balance -= post.price_alpha
+    wallet.total_spent += post.price_alpha
+
+    tx = Transaction(
+        sender_id=data.user_id,
+        amount=post.price_alpha,
+        tx_type="post_unlock",
+        reference_id=data.post_id,
+        created_at=datetime.utcnow()
+    )
+    db.add(tx)
+
+    unlocked_entry = UnlockedPost(
+        user_id=data.user_id,
+        post_id=data.post_id,
+        unlocked_at=datetime.utcnow()
+    )
+    db.add(unlocked_entry)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": "Contenido desbloqueado con éxito",
+        "media_url": post.image_url
+    }
