@@ -66,24 +66,30 @@ async function fetchWalletBalance(userId) {
     try {
         const res = await fetch(`${API_BASE_URL}/wallet/balance/${userId}`);
         if (!res.ok) throw new Error("Error al consultar balance");
-        return await res.json();
+        const data = await res.json();
+        return {
+            user_id: data.user_id,
+            alpha_balance: data.balance_alfa_coins ?? 0,
+            total_earned: data.total_earned ?? 0,
+            total_spent: data.total_spent ?? 0
+        };
     } catch (err) {
         console.error("[API WALLET ERROR]:", err);
-        return { alpha_balance: 0, total_earned: 0, total_spent: 0 };
+        return { user_id: String(userId), alpha_balance: 0, total_earned: 0, total_spent: 0 };
     }
 }
 
-// 5. Enviar propina en tokens $ALPHA
-async function sendAlphaTip(senderId, receiverId, amount, postId = null) {
+// 5. Enviar propina en tokens $ALPHA (Sincronizado con backend)
+async function sendAlphaTip(senderId, creatorId, amount, postId = null) {
     try {
         const res = await fetch(`${API_BASE_URL}/wallet/send-tip`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                sender_id: senderId,
-                receiver_id: receiverId,
+                sender_id: parseInt(senderId),
+                creator_id: parseInt(creatorId),
                 amount: parseInt(amount),
-                post_id: postId
+                post_id: postId ? parseInt(postId) : null
             })
         });
         const data = await res.json();
@@ -94,35 +100,35 @@ async function sendAlphaTip(senderId, receiverId, amount, postId = null) {
     }
 }
 
-// 6. Cargar muro de publicaciones con estado de bloqueo PPV
-async function fetchGlobalFeed(userId) {
+// 6. Recarga directa / Depósito de tokens $ALPHA
+async function depositAlphaCoins(userId, amount) {
     try {
-        const res = await fetch(`${API_BASE_URL}/posts/get-posts?user_id=${userId}`);
-        if (!res.ok) throw new Error("Error al obtener posts");
-        const data = await res.json();
-        return data.posts || [];
-    } catch (err) {
-        console.error("[API FEED ERROR]:", err);
-        return [];
-    }
-}
-
-// 7. Desbloquear post PPV con $ALPHA
-async function unlockPpvPost(userId, postId) {
-    try {
-        const res = await fetch(`${API_BASE_URL}/wallet/unlock-post`, {
+        const res = await fetch(`${API_BASE_URL}/wallet/deposit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                user_id: userId,
-                post_id: postId
+                user_id: parseInt(userId),
+                amount: parseInt(amount)
             })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || "Error al desbloquear contenido");
+        if (!res.ok) throw new Error(data.detail || "Error al recargar fondos");
         return data;
     } catch (err) {
         throw err;
+    }
+}
+
+// 7. Cargar muro de publicaciones con estado de bloqueo PPV
+async function fetchGlobalFeed(userId) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/get-posts`);
+        if (!res.ok) throw new Error("Error al obtener posts");
+        const data = await res.json();
+        return data.posts || data || [];
+    } catch (err) {
+        console.error("[API FEED ERROR]:", err);
+        return [];
     }
 }
 
@@ -133,21 +139,19 @@ async function buyStarsInvoice(userId, tierName, amountStars) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                user_id: userId,
+                user_id: parseInt(userId),
                 tier_name: tierName,
-                amount_stars: amountStars
+                amount_stars: parseInt(amountStars)
             })
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || "Error al generar factura");
         
-        // Si está en Telegram, abre el checkout nativo
         if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openInvoice) {
             window.Telegram.WebApp.openInvoice(data.invoice_link, (status) => {
                 console.log("[STARS INVOICE STATUS]:", status);
             });
         } else {
-            // En APK Standalone o navegador abre el link de Telegram
             window.open(data.invoice_link, "_blank");
         }
         return data;

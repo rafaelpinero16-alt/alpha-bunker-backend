@@ -180,7 +180,7 @@
             </div>
         </header>
 
-        <main class="flex-1 feed-container p-4 mt-2 snap-y snap-mandatory scroll-smooth" id="feed-container"></main>
+        <main class="flex-1 feed-container p-4 mt-2 snap-y snap-mandatory scroll-smooth overflow-y-auto" id="feed-container"></main>
 
         <div class="glass-panel mx-2 mb-2 p-2.5 flex justify-between items-end z-20 px-4">
             <button onclick="app.openMenuModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
@@ -246,28 +246,46 @@
     <!-- MODAL: PERFIL DEL USUARIO -->
     <div id="modal-profile" class="hidden fixed inset-0 z-[65] flex items-end justify-center bg-black bg-opacity-90 backdrop-blur-sm transition-opacity duration-300">
         <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl p-6 flex flex-col relative border-b-0 overflow-y-auto">
+            
+            <!-- Selector oculto de foto de perfil -->
+            <input type="file" id="avatar-file-input" class="hidden" accept="image/*" onchange="app.handleAvatarChange(event)">
+
             <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
                 <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
             </button>
             <h2 class="text-3d-cyan text-3xl text-center mb-6 mt-2 font-black" id="prof-title">MI PERFIL</h2>
+            
+            <!-- Avatar interactivo -->
             <div class="flex flex-col items-center mb-6">
-                <img id="prof-avatar" src="" class="w-28 h-28 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] object-cover mb-3">
+                <div onclick="app.triggerAvatarInput()" class="relative w-28 h-28 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] overflow-hidden mb-3 cursor-pointer group flex items-center justify-center bg-black">
+                    <img id="prof-avatar-img" src="" class="hidden w-full h-full object-cover" alt="User Avatar">
+                    <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fa-solid fa-camera text-white text-xl mb-1"></i>
+                        <span class="text-[10px] text-white font-bold tracking-wider">CAMBIAR</span>
+                    </div>
+                </div>
                 <p class="text-sm font-black text-[#ffb703] mt-1 bg-[#ffb703]/20 px-4 py-1.5 rounded-full border border-[#ffb703]/50" id="prof-rank">ESPÍA 🕵️</p>
             </div>
+
+            <!-- Billetera $ALPHA -->
             <div class="bg-black border-2 border-[#ffb703] rounded-xl p-5 mb-5 shadow-[0_0_15px_rgba(255,183,3,0.3)]">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-xs text-[#ffb703] font-bold tracking-wider uppercase"><i class="fa-solid fa-coins mr-1.5"></i> <span id="prof-alpha-title">BILLETERA $ALPHA</span></span>
-                    <span id="prof-alpha-balance" class="font-black text-[#ffb703] text-lg">0 $ALPHA</span>
+                    <span id="prof-alpha-balance" class="wallet-balance-val font-black text-[#ffb703] text-lg">0 $ALPHA</span>
                 </div>
                 <p class="text-xs text-gray-300 mb-4 font-medium" id="prof-alpha-desc">Recarga saldo con tu billetera TON conectada para dar propinas y desbloquear contenido exclusivo.</p>
                 <button onclick="app.rechargeAlphaCoins(1, 100)" class="w-full bg-[#ffb703] text-black font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition shadow-[0_0_15px_#ffb703]">
                     <i class="fa-solid fa-bolt text-base"></i> <span id="btn-recharge-text">RECARGAR 1 TON x 100 $ALPHA</span>
                 </button>
             </div>
+
+            <!-- Alias -->
             <div class="mb-4">
                 <label class="block text-xs text-[#00f3ff] mb-2 font-bold tracking-wider uppercase" id="lbl-alias">NOMBRE DE USUARIO / ALIAS</label>
-                <input type="text" id="prof-name-input" class="cyber-input text-base">
+                <input type="text" id="prof-alias" class="cyber-input text-base" placeholder="Tu alias VIP">
             </div>
+
+            <!-- Crecimiento de Rango -->
             <div class="bg-gray-900 border border-[#00f3ff] rounded-xl p-5 mb-5 shadow-[0_0_12px_rgba(0,243,255,0.2)]">
                 <p class="text-xs text-[#00f3ff] font-bold mb-3 uppercase flex justify-between tracking-wider">
                     <span id="prof-growth-title">Crecimiento de Rango</span><span id="prof-percent" class="font-black text-sm">20%</span>
@@ -275,16 +293,21 @@
                 <div class="w-full bg-gray-700 rounded-full h-3 mb-2"><div id="prof-progress" class="bg-gradient-to-r from-[#00f3ff] to-[#ff00ff] h-3 rounded-full" style="width: 20%"></div></div>
                 <p class="text-xs text-gray-300 text-right mt-2 font-semibold" id="prof-next-rank">Siguiente: SOLDIER</p>
             </div>
+
+            <!-- Biografía -->
             <div class="mb-5">
                 <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase" id="lbl-bio">BIO / DESCRIPCIÓN VIP</label>
-                <textarea id="prof-bio" rows="3" class="cyber-input w-full text-base"></textarea>
+                <textarea id="prof-bio" rows="3" class="cyber-input w-full text-base" placeholder="Escribe tu biografía..."></textarea>
                 <button onclick="app.saveProfile()" class="mt-3 w-full border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-bold text-sm hover:bg-[#ff00ff]/20 transition uppercase tracking-wider" id="btn-save-bio">GUARDAR PERFIL</button>
             </div>
+
             <div id="prof-monetization" class="hidden bg-green-900/40 border-2 border-green-500 rounded-xl p-4 mb-5 shadow-[0_0_12px_rgba(0,255,0,0.2)]">
                 <p class="text-sm text-green-400 font-extrabold mb-1"><i class="fa-solid fa-sack-dollar mr-1"></i> <span id="prof-mon-title">Monetización Activa (70% RevShare)</span></p>
                 <p class="text-xs text-gray-200 font-medium" id="prof-mon-desc">Ganas comisiones por cada suscripción o desbloqueo en tu contenido privado.</p>
             </div>
-            <div id="prof-publish-btn" class="hidden mb-6">
+
+            <!-- Botón Publicar Contenido -->
+            <div id="prof-publish-btn" class="mb-6">
                 <button onclick="app.openUploadPanel()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-base tracking-wider levitate shadow-[0_0_15px_#00f3ff]">
                     <i class="fa-solid fa-camera mr-2"></i> <span id="btn-pub-content">PUBLICAR CONTENIDO</span>
                 </button>
