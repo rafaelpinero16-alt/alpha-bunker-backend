@@ -1,11 +1,17 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Optional
 from aiogram import types, F
 from aiogram.types import LabeledPrice
 from core.config import bot, dp
 from database.db import update_user_tier
-from models.schemas import InvoiceRequest  # <-- Aquí llamamos a tu guardia de seguridad
 
 router = APIRouter()
+
+class InvoiceRequest(BaseModel):
+    tier_name: str
+    amount_stars: int
+    user_id: int
 
 @router.post("/create-invoice")
 async def create_invoice(data: InvoiceRequest):
