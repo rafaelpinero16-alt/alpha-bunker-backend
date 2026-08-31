@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# Importamos nuestros módulos independientes
-from routers import payments, users, posts, wallet, telegram
+# Importamos nuestros módulos independientes (incluyendo videocalls)
+from routers import payments, users, posts, wallet, telegram, videocalls
 from database.db import init_db
 from core.config import bot
 
@@ -41,8 +41,9 @@ if os.path.exists("uploads"):
 app.include_router(payments.router)
 app.include_router(users.router)
 app.include_router(posts.router)
-app.include_router(wallet.router)  # Módulo financiero $ALPHA y Propinas
-app.include_router(telegram.router) # Módulo de Webhook seguro para Telegram
+app.include_router(wallet.router)    # Módulo financiero $ALPHA y Propinas
+app.include_router(telegram.router)  # Módulo de Webhook seguro para Telegram
+app.include_router(videocalls.router)# Módulo de Videollamadas Privadas Cam2Cam
 
 @app.get("/")
 def read_root():
