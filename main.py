@@ -52,8 +52,8 @@ app.include_router(posts.router)
 app.include_router(wallet.router)    # Módulo financiero $ALPHA y Propinas
 app.include_router(telegram.router)  # Módulo de Webhook seguro para Telegram
 app.include_router(videocalls.router)# Módulo de Videollamadas Privadas Cam2Cam
-app.include_router(kyc.router)       # Módulo de Verificación de Identidad (+18)[cite: 10]
-app.include_router(chat.router)      # Módulo de WebSockets para CRM y Chat Global[cite: 10]
+app.include_router(kyc.router)       # Módulo de Verificación de Identidad (+18)[cite: 21]
+app.include_router(chat.router)      # Módulo de WebSockets para CRM y Chat Global[cite: 21]
 
 @app.get("/")
 def read_root():

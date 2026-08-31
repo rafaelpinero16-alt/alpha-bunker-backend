@@ -1,15 +1,13 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
 from database.db import get_db
 from database.models import User, ChatMessage
 
-router = APIRouter(prefix="/chat", tags=["Chat En Vivo"])
+router = APIRouter(prefix="/chat", tags=["Chat En Vivo y CRM"])
 
 class ConnectionManager:
     def __init__(self):
-        # Almacena los WebSockets de los usuarios actualmente conectados
         self.active_connections: List[WebSocket] = []
 
     async def connect(self, websocket: WebSocket):
@@ -25,15 +23,15 @@ class ConnectionManager:
             try:
                 await connection.send_json(message)
             except Exception:
-                pass # Evita que un error en un cliente cuelgue el chat
+                pass
 
 manager = ConnectionManager()
+global_manager = ConnectionManager()
 
+# --- 1. SOPORTE BÚNKER (CRM PRIVADO CON ADMIN) ---
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await manager.connect(websocket)
-    
-    # 1. Validar que el usuario existe en la base de datos
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         await websocket.close(code=1008)
@@ -41,10 +39,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
 
     try:
         while True:
-            # 2. Esperar mensaje del frontend
             data = await websocket.receive_text()
-            
-            # 3. Guardar el mensaje en el historial (Base de datos)
             new_msg = ChatMessage(
                 user_id=user.user_id,
                 author_name=user.name,
@@ -57,7 +52,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             db.commit()
             db.refresh(new_msg)
 
-            # 4. Transmitir el mensaje a todos los usuarios conectados instantáneamente
             msg_payload = {
                 "id": new_msg.id,
                 "user_id": new_msg.user_id,
@@ -69,13 +63,55 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                 "created_at": new_msg.created_at.isoformat()
             }
             await manager.broadcast(msg_payload)
-
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
 @router.get("/history")
 def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
-    """Obtiene el historial para que al entrar se vean los últimos 50 mensajes."""
     messages = db.query(ChatMessage).order_by(ChatMessage.created_at.desc()).limit(limit).all()
-    # Los devolvemos al revés para que los más recientes queden abajo
+    return {"status": "success", "messages": messages[::-1]}
+
+
+# --- 2. CHAT GLOBAL & VIDEO BÚNKER (INDEPENDIENTE) ---
+@router.websocket("/global/ws/{user_id}")
+async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
+    await global_manager.connect(websocket)
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        await websocket.close(code=1008)
+        return
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Guardamos con un indicador global o reutilizamos la tabla filtrando por contexto si deseas
+            new_msg = ChatMessage(
+                user_id=user.user_id,
+                author_name=f"[Global] {user.name}",
+                author_role=user.role,
+                access_level=user.access_level,
+                content=data,
+                is_system=False
+            )
+            db.add(new_msg)
+            db.commit()
+            db.refresh(new_msg)
+
+            msg_payload = {
+                "id": new_msg.id,
+                "user_id": new_msg.user_id,
+                "author_name": new_msg.author_name,
+                "author_role": new_msg.author_role,
+                "access_level": new_msg.access_level,
+                "content": new_msg.content,
+                "is_system": new_msg.is_system,
+                "created_at": new_msg.created_at.isoformat()
+            }
+            await global_manager.broadcast(msg_payload)
+    except WebSocketDisconnect:
+        global_manager.disconnect(websocket)
+
+@router.get("/global/history")
+def get_global_chat_history(limit: int = 50, db: Session = Depends(get_db)):
+    messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
