@@ -1,19 +1,37 @@
-from fastapi import APIRouter, HTTPException
-from models.schemas import ProfileUpdate
-from database.db import update_user_profile
+from fastapi import APIRouter, HTTPException, Depends
+from pydantic import BaseModel
+from typing import Optional
+from sqlalchemy.orm import Session
+from database.db import get_db
+from database.models import User
 
-# Inicializamos el enrutador para el módulo de usuarios
-router = APIRouter()
+router = APIRouter(prefix="/users", tags=["Users"])
 
-@router.post("/update-profile")
-async def update_profile(data: ProfileUpdate):
-    try:
-        # Ejecutamos la función de la base de datos para guardar los cambios
-        update_user_profile(user_id=data.user_id, name=data.name, bio=data.bio)
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+@router.get("/{user_id}")
+async def get_user_profile(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return user
+
+@router.put("/{user_id}")
+async def update_user_profile(user_id: int, data: ProfileUpdate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.user_id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if data.name is not None:
+        user.name = data.name
+    if data.bio is not None:
+        user.bio = data.bio
+    if data.avatar_url is not None:
+        user.avatar_url = data.avatar_url
         
-        return {
-            "status": "success", 
-            "message": f"El perfil de {data.name} ha sido blindado en el Vault."
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    db.commit()
+    db.refresh(user)
+    return {"message": "Perfil actualizado con éxito", "user": user}
