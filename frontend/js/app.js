@@ -87,7 +87,7 @@ const app = {
                 const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}`);
                 if (res.ok) {
                     const data = await res.json();
-                    balance = data.balance_alfa_coins ?? 0;
+                    balance = data.balance_alfa_coins ?? data.alpha_balance ?? 0;
                 }
             }
 
@@ -100,7 +100,6 @@ const app = {
         }
     },
 
-    // 🔄 Sincronización en tiempo real del estado KYC desde la Base de Datos
     async syncKYCStatus() {
         if (!this.userId) this.initUserId();
         if (!this.userId) return;
@@ -167,7 +166,6 @@ const app = {
         if (rankDisplay) rankDisplay.innerText = currentRank;
         if (rankFeed) rankFeed.innerText = currentRank;
 
-        // Estado Visual KYC (+18)
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const kycStatusEl = document.getElementById('prof-kyc-status');
         const kycDescEl = document.getElementById('prof-kyc-desc');
@@ -210,9 +208,6 @@ const app = {
         }
     },
 
-    // ==========================================
-    // 2. CONTADOR DE VISITAS REALES
-    // ==========================================
     updateViewsCounter() {
         let views = parseInt(localStorage.getItem('alpha_real_views') || '0');
         views += 1;
@@ -236,6 +231,94 @@ const app = {
                 localStorage.setItem("alpha_user_id", localId);
             }
             this.userId = parseInt(localId);
+        }
+    },
+
+    // ==========================================
+    // 2. COMPRA DE PAQUETES $ALPHA (STARS & TON)
+    // ==========================================
+    async buyPackageStars(packageSlug) {
+        this.haptic('medium');
+        this.initUserId();
+
+        this.showToast('Generando factura de Telegram Stars... ⭐');
+
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/create-invoice`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: this.userId,
+                    package_slug: packageSlug
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.status === 'success' && data.invoice_link) {
+                if (window.Telegram?.WebApp?.openInvoice) {
+                    window.Telegram.WebApp.openInvoice(data.invoice_link, async (status) => {
+                        if (status === 'paid') {
+                            this.haptic('heavy');
+                            this.showToast('¡Pago completado! Acreditando tokens... 💎');
+                            await this.refreshUserData();
+                        } else if (status === 'cancelled') {
+                            this.showToast('Pago cancelado');
+                        } else if (status === 'failed') {
+                            this.showToast('⚠️ El pago con Stars no pudo completarse');
+                        }
+                    });
+                } else {
+                    window.open(data.invoice_link, '_blank');
+                }
+            } else {
+                throw new Error(data.detail || 'Error al generar la factura');
+            }
+        } catch (err) {
+            console.error('[BUY STARS ERROR]:', err);
+            this.showToast(`⚠️ ${err.message || 'Error con el servidor de pagos'}`);
+        }
+    },
+
+    async openCatalogPackages() {
+        this.closeModals();
+        const modal = document.getElementById('modal-catalog');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+
+        const container = document.getElementById('catalog-packages-list');
+        if (!container) return;
+
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/packages`);
+            if (res.ok) {
+                const data = await res.json();
+                const packages = data.packages || [];
+
+                container.innerHTML = packages.map(pkg => `
+                    <div class="bg-neutral-900 border border-neutral-800 hover:border-amber-500/50 rounded-2xl p-4 flex flex-col justify-between transition shadow-lg">
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-xs font-bold text-amber-400 uppercase">${pkg.badge || '💎 PACK'}</span>
+                                ${pkg.bonus_percentage > 0 ? `<span class="bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-red-500/40">+${pkg.bonus_percentage}% EXTRA</span>` : ''}
+                            </div>
+                            <h4 class="text-base font-black text-white">${pkg.name}</h4>
+                            <p class="text-2xl font-black text-amber-400 my-1">${pkg.alpha_total} <span class="text-xs text-neutral-400">$ALPHA</span></p>
+                            <p class="text-xs text-neutral-400 mb-3">${pkg.description || 'Tokens válidos para propinas y contenido'}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <button onclick="app.buyPackageStars('${pkg.slug}')" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 text-black font-black py-2 px-2 rounded-xl text-xs flex items-center justify-center gap-1 shadow-md transition active:scale-95">
+                                ⭐ ${pkg.price_stars} Stars
+                            </button>
+                            <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total})" class="bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 font-black py-2 px-2 rounded-xl text-xs flex items-center justify-center gap-1 shadow-md transition active:scale-95">
+                                💎 ${pkg.price_ton} TON
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            console.warn('[PACKAGES LOAD ERROR]:', err);
         }
     },
 
@@ -294,7 +377,7 @@ const app = {
     },
 
     // ==========================================
-    // 4. FLUJO DE VERIFICACIÓN KYC (+18)
+    // 4. VERIFICACIÓN KYC (+18)
     // ==========================================
     openKYCModal() {
         this.closeModals();
@@ -490,7 +573,7 @@ const app = {
     },
 
     // ==========================================
-    // 6. REGISTRO, LOGIN Y ROLES
+    // 6. REGISTRO, LOGIN Y SESIONES
     // ==========================================
     setRegisterRole(role) {
         this.haptic('light');
@@ -665,7 +748,7 @@ const app = {
     },
 
     // ==========================================
-    // 7. CAPTCHA Y VISTAS
+    // 7. VISTAS Y NAVEGACIÓN
     // ==========================================
     switchView(viewName) {
         const views = ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'];
@@ -726,9 +809,6 @@ const app = {
         }
     },
 
-    // ==========================================
-    // 8. MODALES VISUALES E IDIOMA
-    // ==========================================
     closeModals() {
         this.haptic('light');
         ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-kyc'].forEach(m => {
@@ -744,7 +824,7 @@ const app = {
         this.updateProfileUI();
         this.refreshUserData();
     },
-    openMenuModal() { this.closeModals(); document.getElementById('modal-catalog')?.classList.remove('hidden'); },
+    openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); document.getElementById('modal-communities')?.classList.remove('hidden'); },
     openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); },
     openManualBanks() { this.closeModals(); document.getElementById('modal-banks')?.classList.remove('hidden'); },
@@ -793,7 +873,7 @@ const app = {
     },
     
     // ==========================================
-    // 9. MURO, LIKES, PROPINAS Y BORRADO DE POSTS
+    // 8. MURO, LIKES, PROPINAS Y BORRADO DE POSTS
     // ==========================================
     async previewImage(event) {
         const file = event.target.files[0];
