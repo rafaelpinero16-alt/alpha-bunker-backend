@@ -161,7 +161,6 @@ const app = {
             }
         }
 
-        // Si es el Admin principal (ID 8269470905), forzamos automáticamente el rango máximo (Icon Legend / Tiers superiores)
         if (this.userId == 8269470905) {
             this.userData.access_tier = 4;
             this.userData.role = 'creator';
@@ -419,6 +418,8 @@ const app = {
         const container = document.getElementById('catalog-packages-list');
         if (!container) return;
 
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">Cargando planes del Búnker... ⏳</div>`;
+
         try {
             const res = await fetch(`${this.backendUrl}/payments/packages`);
             if (res.ok) {
@@ -426,29 +427,28 @@ const app = {
                 const packages = data.packages || [];
 
                 container.innerHTML = packages.map(pkg => `
-                    <div class="bg-neutral-900 border border-neutral-800 hover:border-amber-500/50 rounded-2xl p-4 flex flex-col justify-between transition shadow-lg">
-                        <div>
-                            <div class="flex items-center justify-between mb-1">
-                                <span class="text-xs font-bold text-amber-400 uppercase">${pkg.badge || '💎 PACK'}</span>
-                                ${pkg.bonus_percentage > 0 ? `<span class="bg-red-500/20 text-red-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-red-500/40">+${pkg.bonus_percentage}% EXTRA</span>` : ''}
-                            </div>
-                            <h4 class="text-base font-black text-white">${pkg.name}</h4>
-                            <p class="text-2xl font-black text-amber-400 my-1">${pkg.alpha_total} <span class="text-xs text-neutral-400">$ALPHA</span></p>
-                            <p class="text-xs text-neutral-400 mb-3">${pkg.description || 'Tokens válidos para propinas y contenido'}</p>
+                    <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-gem text-[#ffb703] mr-1"></i> ${pkg.name}</h3>
+                            <span class="text-2xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
                         </div>
-                        <div class="grid grid-cols-2 gap-2 mt-2">
-                            <button onclick="app.buyPackageStars('${pkg.slug}')" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 text-black font-black py-2 px-2 rounded-xl text-xs flex items-center justify-center gap-1 shadow-md transition active:scale-95">
+                        <p class="text-base text-gray-200 mb-4 font-medium">${pkg.description || 'Acceso exclusivo al Búnker.'}</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">
                                 ⭐ ${pkg.price_stars} Stars
                             </button>
-                            <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total})" class="bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 font-black py-2 px-2 rounded-xl text-xs flex items-center justify-center gap-1 shadow-md transition active:scale-95">
+                            <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">
                                 💎 ${pkg.price_ton} TON
                             </button>
                         </div>
                     </div>
                 `).join('');
+            } else {
+                throw new Error('Error al cargar paquetes');
             }
         } catch (err) {
             console.warn('[PACKAGES LOAD ERROR]:', err);
+            container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">⚠️ Error al conectar con el servidor de pagos.</div>`;
         }
     },
 
@@ -994,7 +994,6 @@ const app = {
     openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); document.getElementById('modal-communities')?.classList.add('hidden'); },
     
-    // ⚡ LÓGICA DE CHAT EN VIVO (WEBSOCKETS WSS SEGURO CON RECONEXIÓN AUTOMÁTICA) ⚡
     async openSupport() { 
         this.closeModals(); 
         document.getElementById('modal-chat')?.classList.remove('hidden'); 
@@ -1155,11 +1154,9 @@ const app = {
             }, 1500);
         }
     },
-    // ⚡ FIN LÓGICA DE CHAT ⚡
 
     openManualBanks() { this.closeModals(); document.getElementById('modal-banks')?.classList.remove('hidden'); },
     
-    // ⚡ TAREA 4 INTEGRADA: Bypass de restricciones KYC para el Administrador Principal ⚡
     openUploadPanel() {
         this.initUserId();
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
@@ -1181,7 +1178,6 @@ const app = {
     openPaymentFlow(plan, price, link, tier) { this.closeModals(); document.getElementById('modal-payment')?.classList.remove('hidden'); },
     closePaymentModal() { document.getElementById('modal-payment')?.classList.add('hidden'); },
 
-    // ⚡ TAREA 5 INTEGRADA: Rotación automática instantánea entre los 6 idiomas (es, en, it, pt, de, fr) ⚡
     toggleLanguage() { 
         this.haptic('medium');
         const languages = ['es', 'en', 'it', 'pt', 'de', 'fr'];

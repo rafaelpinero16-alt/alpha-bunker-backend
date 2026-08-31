@@ -127,7 +127,6 @@
         <div class="glass-panel p-6 w-full max-w-sm">
             <p id="txt-reg-desc" class="text-xs text-gray-200 text-center mb-4 font-medium">Elige tu rol e ingresa tus credenciales de acceso.</p>
             
-            <!-- SELECTOR DE ROL: FAN / CREADOR -->
             <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase text-center">TIPO DE CUENTA</label>
             <div class="grid grid-cols-2 gap-2 mb-4">
                 <button type="button" id="reg-role-fan" onclick="app.setRegisterRole('fan')" class="py-2.5 px-3 rounded-xl border-2 border-[#ff00ff] bg-[#ff00ff]/20 text-white font-black text-xs uppercase flex items-center justify-center gap-1.5 transition">
@@ -220,7 +219,6 @@
                     <h3 class="font-bold text-base text-white leading-tight" id="name-feed" onclick="app.toggleAdminSecret(); event.stopPropagation();">USER</h3>
                     <div class="flex items-center gap-2 mt-1">
                         <p class="text-[10px] font-black text-[#ffb703] tracking-wider bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/50" style="text-shadow: 0 0 5px #ffb703;"><span id="rank-feed">ESPÍA 🕵️</span></p>
-                        <!-- CONTADOR REAL DE VISUALIZACIONES -->
                         <p class="text-xs text-[#00f3ff] font-bold"><i class="fa-solid fa-eye animate-pulse mr-1"></i><span id="views-counter">0</span></p>
                     </div>
                 </div>
@@ -452,55 +450,16 @@
         </div>
     </div>
 
-    <!-- MODAL: CATÁLOGO -->
+    <!-- MODAL: CATÁLOGO DINÁMICO DE RANGOS OFICIALES -->
     <div id="modal-catalog" class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
         <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl p-6 flex flex-col relative border-b-0">
             <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 z-50 text-sm">
                 <i class="fa-solid fa-arrow-left mr-1"></i> <span class="btn-back-text">VOLVER</span>
             </button>
             <h2 class="text-3d-cyan text-3xl text-center mb-6 mt-4 font-black" id="cat-title">UPGRADE PLAN</h2>
-            <div class="overflow-y-auto pb-10 space-y-5 pr-2" id="plans-container">
-                <div class="bg-black border border-gray-400 rounded-2xl p-5 shadow-[0_0_12px_rgba(156,163,175,0.2)]">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-star text-gray-300 mr-1"></i> <span id="cat-t1-title">ESPECTADOR</span></h3><span class="text-2xl font-black text-gray-300">$15</span>
-                    </div>
-                    <p id="desc-trial" class="text-base text-gray-300 mb-4 font-medium">Desbloquea el contenido oculto Tier 1. Acceso a comunidad básica.</p>
-                    <button onclick="app.openPaymentFlow('SUBSCRIBE_VIP_BASIC', 15, 'https://t.me/+SGoetvUmHphkOWMx', 1)" class="w-full bg-gray-700 text-white py-3.5 rounded-xl font-black text-base hover:bg-gray-600 transition tracking-wide">
-                        <i class="fa-solid fa-unlock mr-2"></i> <span id="btn-trial">SELECCIONAR</span>
-                    </button>
-                </div>
-                <div class="bg-black border-2 border-[#00f3ff] rounded-2xl p-5 shadow-[0_0_12px_rgba(0,243,255,0.2)]">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-fire text-[#00f3ff] mr-1"></i> <span id="cat-t2-title">EXHIBICIONISTA</span></h3><span class="text-2xl font-black text-[#00f3ff]">$30</span>
-                    </div>
-                    <p id="desc-1mo" class="text-base text-gray-200 mb-4 font-medium">Chat Privado Búnker CRM y publicación habilitada en el Muro (Tier 2).</p>
-                    <button onclick="app.openPaymentFlow('SUBSCRIBE_VIP_ADVANCED', 30, 'https://t.me/+Qn8-z2BiHuZiZjBh', 2)" class="w-full btn-neon-cyan py-3.5 rounded-xl font-black text-base tracking-wide">
-                        <i class="fa-solid fa-unlock mr-2"></i> <span id="btn-1mo">SELECCIONAR</span>
-                    </button>
-                </div>
-                <div class="bg-black border-2 border-[#ff00ff] rounded-2xl p-5 shadow-[0_0_12px_rgba(255,0,255,0.2)]">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-crown text-[#ff00ff] mr-1"></i> <span id="cat-t3-title">SUSCRIPTOR VIP</span></h3><span class="text-2xl font-black text-[#ff00ff]">$55</span>
-                    </div>
-                    <p id="desc-3mo" class="text-base text-gray-200 mb-4 font-medium">Habilita Video Llamada Cam2Cam y acceso Elite completo (Tier 3).</p>
-                    <button onclick="app.openPaymentFlow('SUBSCRIBE_VIP_ELITE', 55, 'https://t.me/+Giv5cMFqzS0wNzIx', 3)" class="w-full btn-neon-magenta py-3.5 rounded-xl font-black text-base tracking-wide">
-                        <i class="fa-solid fa-unlock mr-2"></i> <span id="btn-3mo">SELECCIONAR</span>
-                    </button>
-                </div>
-                <div class="bg-black border-2 border-[#ffb703] rounded-2xl p-5 shadow-[0_0_18px_rgba(255,183,3,0.3)]">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-gem text-[#ffb703] mr-1"></i> <span id="cat-t4-title">VIP & CREADOR</span></h3><span class="text-2xl font-black text-[#ffb703]">$170</span>
-                    </div>
-                    <p id="desc-life" class="text-base text-gray-200 mb-4 font-medium">Promoción B2B (150 XTR) o Lifetime Access con RevShare 70%.</p>
-                    <button onclick="app.openPaymentFlow('BUY_PROMO_150XTR', 170, 'https://t.me/+NcbOjsh2cs80NGJh', 4)" class="w-full bg-[#ffb703] text-black border-2 border-[#ffb703] py-3.5 rounded-xl font-black text-base hover:scale-95 transition tracking-wide" style="box-shadow: 0 0 15px #ffb703;">
-                        <i class="fa-solid fa-infinity mr-2"></i> <span id="btn-life">SELECCIONAR B2B / PROMO</span>
-                    </button>
-                </div>
-                <div class="mt-6 border-t border-gray-700 pt-5 space-y-3">
-                    <button onclick="app.openManualBanks()" class="w-full glass-panel py-3.5 rounded-xl text-white font-black text-base flex justify-center items-center gap-2">
-                        <i class="fa-solid fa-building-columns text-[#00f3ff] text-lg"></i> <span id="btn-banks">Pagos Bancarios & Cripto / Stripe</span>
-                    </button>
-                </div>
+            <div class="overflow-y-auto pb-10 space-y-4 pr-2" id="catalog-packages-list">
+                <!-- Se renderiza dinámicamente desde app.js con los rangos oficiales -->
+                <div class="text-center text-neutral-400 mt-10 font-bold">Cargando planes del Búnker... ⏳</div>
             </div>
         </div>
     </div>
@@ -626,7 +585,6 @@
             <p id="fan-tip-creator-name" class="text-3xl font-black text-white mb-6">@Creador</p>
             
             <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-6 pr-2">
-                <!-- Los slots se cargarán dinámicamente -->
                 <div class="text-center text-neutral-500 mt-10 font-bold">Cargando menú del creador... ⏳</div>
             </div>
 
@@ -644,10 +602,9 @@
 
     <div id="toast" class="toast">¡Copiado! 📋</div>
     
-    <!-- SCRIPTS CON ANTICACHÉ (VERSIONADOS) -->
-    <script src="js/security.js?v=3"></script>
-    <script src="js/translations.js?v=3"></script>
-    <script src="js/api.js?v=3"></script>
-    <script src="js/app.js?v=3" defer></script>
+    <script src="js/security.js?v=4"></script>
+    <script src="js/translations.js?v=4"></script>
+    <script src="js/api.js?v=4"></script>
+    <script src="js/app.js?v=4" defer></script>
 </body>
 </html>
