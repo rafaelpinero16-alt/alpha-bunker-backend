@@ -1,31 +1,40 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
 from aiogram import types, F
 from aiogram.types import LabeledPrice
 from core.config import bot, dp
-from database.db import update_user_tier
+from database.db import get_db, update_user_tier
+from database.models import Package
 
-router = APIRouter()
+router = APIRouter(prefix="/payments", tags=["Payments"])
 
 class InvoiceRequest(BaseModel):
-    tier_name: str
-    amount_stars: int
     user_id: int
+    package_slug: str
+
+@router.get("/packages")
+async def get_packages(db: Session = Depends(get_db)):
+    packages = db.query(Package).all()
+    return {"packages": packages}
 
 @router.post("/create-invoice")
-async def create_invoice(data: InvoiceRequest):
+async def create_invoice(data: InvoiceRequest, db: Session = Depends(get_db)):
     try:
-        prices = [LabeledPrice(label=f"Suscripción {data.tier_name}", amount=data.amount_stars)]
+        pkg = db.query(Package).filter(Package.slug == data.package_slug).first()
+        if not pkg:
+            raise HTTPException(status_code=404, detail="Paquete no encontrado")
+            
+        prices = [LabeledPrice(label=f"Suscripción {pkg.name}", amount=pkg.price_stars)]
         
         invoice_link = await bot.create_invoice_link(
-            title=f"Acceso VIP - {data.tier_name}",
-            description="Desbloqueo de contenido exclusivo en el Vault de Alpha Tom.",
-            payload=f"tier_{data.tier_name}_{data.user_id}",
+            title=f"Búnker VIP - {pkg.name}",
+            description=pkg.description or "Acceso exclusivo en Alpha Vault.",
+            payload=f"tier_{pkg.slug}_{data.user_id}",
             currency="XTR",
             prices=prices
         )
-        return {"invoice_link": invoice_link}
+        return {"status": "success", "invoice_link": invoice_link}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -36,15 +45,11 @@ async def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery)
 @dp.message(F.successful_payment)
 async def success_payment(message: types.Message):
     payment = message.successful_payment
-    
-    # Extraemos el nombre del tier desde el payload
     payload_parts = payment.invoice_payload.split('_')
     
-    if len(payload_parts) >= 2:
-        tier_name = payload_parts[1]
+    if len(payload_parts) >= 3:
+        tier_slug = payload_parts[1]
         user_id = message.from_user.id
-        
-        # GUARDAMOS AL USUARIO Y SU DINERO EN LA BASE DE DATOS
-        update_user_tier(user_id=user_id, tier=tier_name, amount=payment.total_amount)
+        update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
     
-    await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tu rango en el Vault ha sido actualizado y asegurado.")
+    await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tu rango en el Búnker ha sido actualizado.")
