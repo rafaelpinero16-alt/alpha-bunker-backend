@@ -1158,33 +1158,58 @@ const app = {
     // ⚡ FIN LÓGICA DE CHAT ⚡
 
     openManualBanks() { this.closeModals(); document.getElementById('modal-banks')?.classList.remove('hidden'); },
+    
+    // ⚡ TAREA 4 INTEGRADA: Bypass de restricciones KYC para el Administrador Principal ⚡
     openUploadPanel() {
+        this.initUserId();
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
 
-        if (userRole === 'creator' && kycStatus !== 'verified') {
-            this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar.');
-            this.openKYCModal();
-            return;
+        if (this.userId != 8269470905) {
+            if (userRole === 'creator' && kycStatus !== 'verified') {
+                this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar.');
+                this.openKYCModal();
+                return;
+            }
         }
 
         this.closeModals(); 
         this.switchView('upload'); 
     },
+
     openRoleModal() { this.closeModals(); document.getElementById('modal-role')?.classList.remove('hidden'); },
     openPaymentFlow(plan, price, link, tier) { this.closeModals(); document.getElementById('modal-payment')?.classList.remove('hidden'); },
     closePaymentModal() { document.getElementById('modal-payment')?.classList.add('hidden'); },
 
-    toggleLanguage() { this.haptic('medium'); this.switchView('lang'); },
+    // ⚡ TAREA 5 INTEGRADA: Rotación automática instantánea entre los 6 idiomas (es, en, it, pt, de, fr) ⚡
+    toggleLanguage() { 
+        this.haptic('medium');
+        const languages = ['es', 'en', 'it', 'pt', 'de', 'fr'];
+        const currentLang = localStorage.getItem('alpha_lang') || 'es';
+        const currentIndex = languages.indexOf(currentLang);
+        const nextLang = languages[(currentIndex + 1) % languages.length];
+        
+        this.setLanguage(nextLang);
+    },
+
     setLanguage(lang) { 
         this.haptic('light');
         localStorage.setItem('alpha_lang', lang);
         this.currentLang = lang;
         const langText = document.getElementById('fab-lang-text');
         if (langText) langText.innerText = lang.toUpperCase();
-        if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
-        this.showToast(`Idioma: ${lang.toUpperCase()}`);
-        this.switchView(this.lastView || 'consent');
+        if (typeof window.applyTranslations === 'function') {
+            window.applyTranslations(lang);
+        }
+        const langNames = { 
+            es: 'Español 🇪🇸', 
+            en: 'English 🇺🇸', 
+            it: 'Italiano 🇮🇹', 
+            pt: 'Português 🇧🇷', 
+            de: 'Deutsch 🇩🇪', 
+            fr: 'Français 🇫🇷' 
+        };
+        this.showToast(`Idioma: ${langNames[lang] || lang.toUpperCase()}`);
     },
 
     toggleAdminSecret() { 
