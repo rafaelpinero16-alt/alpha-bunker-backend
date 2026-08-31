@@ -1,23 +1,24 @@
 import os
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request, Depends
+from sqlalchemy.orm import Session
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from core.config import bot
 
-# Si tienes un controlador de base de datos para la billetera, lo importaremos aquí luego.
-# Ejemplo: from database.wallet_crud import add_alpha_balance
+from core.config import bot
+from database.db import get_db
+from database.models import Wallet, Transaction, Package, User
 
 router = APIRouter(prefix="/telegram", tags=["Telegram Webhook"])
 
 TELEGRAM_SECRET_TOKEN = os.getenv("TELEGRAM_SECRET_TOKEN", "").strip()
-# URL de tu frontend en Netlify o Railway para la Mini App
 MINI_APP_URL = os.getenv("MINI_APP_URL", "https://tu-miniapp.netlify.app")
 
 @router.post("/webhook")
 async def telegram_webhook(
     request: Request,
-    x_telegram_bot_api_secret_token: str = Header(None)
+    x_telegram_bot_api_secret_token: str = Header(None),
+    db: Session = Depends(get_db)
 ):
-    # Validar el token secreto solo si está configurado en el entorno
+    # Validar el token secreto solo si está configurado
     if TELEGRAM_SECRET_TOKEN and x_telegram_bot_api_secret_token != TELEGRAM_SECRET_TOKEN:
         raise HTTPException(status_code=403, detail="Acceso denegado: Token secreto inválido.")
     
@@ -34,7 +35,7 @@ async def telegram_webhook(
         pre_checkout_id = pre_checkout_query["id"]
         
         try:
-            # Confirmamos a Telegram que estamos listos para cobrar
+            # Confirmamos a Telegram que hay inventario digital disponible para cobrar
             await bot.answer_pre_checkout_query(pre_checkout_query_id=pre_checkout_id, ok=True)
             print(f"✅ [STARS] Pre-checkout autorizado. ID: {pre_checkout_id}")
         except Exception as e:
@@ -49,24 +50,60 @@ async def telegram_webhook(
         text = message.get("text", "")
         
         # =====================================================================
-        # 2. FASE DE ACREDITACIÓN: Cobro exitoso (successful_payment)
+        # 2. FASE DE ACREDITACIÓN E INYECCIÓN A LA BASE DE DATOS
         # =====================================================================
         if "successful_payment" in message:
             payment_info = message["successful_payment"]
-            payload = payment_info.get("invoice_payload", "")
+            payload = payment_info.get("invoice_payload", "")  # Ej: "legend", "soldier"
             total_amount = payment_info.get("total_amount", 0)
             currency = payment_info.get("currency", "XTR")
             
             print(f"💰 [STARS] PAGO RECIBIDO -> ID: {sender_id} | Paquete: {payload} | Monto: {total_amount} {currency}")
             
-            # 🛠️ AQUÍ INYECTAREMOS LA LÓGICA DE TU BASE DE DATOS EN EL PRÓXIMO PASO:
-            # await add_alpha_balance(sender_id, pack_slug=payload)
+            try:
+                # Buscar el paquete en la base de datos para saber cuántos $ALPHA entregar
+                package = db.query(Package).filter(Package.slug == payload).first()
+                alpha_added = package.alpha_total if package else 0
+                
+                if alpha_added > 0:
+                    # Auto-crear usuario si por alguna razón no existe en DB
+                    user = db.query(User).filter(User.user_id == sender_id).first()
+                    if not user:
+                        user = User(user_id=sender_id, name=username)
+                        db.add(user)
+                        db.commit()
+
+                    # Buscar o crear la Billetera
+                    wallet = db.query(Wallet).filter(Wallet.user_id == sender_id).first()
+                    if not wallet:
+                        wallet = Wallet(user_id=sender_id, alpha_balance=0)
+                        db.add(wallet)
+                    
+                    # Inyectar el saldo
+                    wallet.alpha_balance += alpha_added
+                    
+                    # Guardar el recibo inmutable en Transactions
+                    new_tx = Transaction(
+                        sender_id=None,  # None = Sistema/Búnker
+                        receiver_id=sender_id,
+                        amount=alpha_added,
+                        tx_type="package_recharge"
+                    )
+                    db.add(new_tx)
+                    db.commit()
+                    print(f"💎 [DATABASE] +{alpha_added} $ALPHA inyectados a la wallet de {sender_id}.")
+                else:
+                    print(f"⚠️ [DATABASE] Paquete '{payload}' no encontrado. No se inyectó saldo.")
+
+            except Exception as e:
+                db.rollback()
+                print(f"❌ [DATABASE] Error al procesar billetera: {e}")
             
             # 3. CONFIRMACIÓN AL FAN EN TELEGRAM
             try:
                 await bot.send_message(
                     chat_id=sender_id,
-                    text=f"💎 <b>¡Recarga Táctica Confirmada!</b>\n\nTu pago ha sido procesado exitosamente. El paquete <code>{payload}</code> ha sido acreditado en tu Billetera $ALPHA del Búnker. 🚀",
+                    text=f"💎 <b>¡Recarga Táctica Confirmada!</b>\n\nTu pago ha sido procesado exitosamente. Se han acreditado <b>+{alpha_added} $ALPHA</b> en tu Billetera del Búnker. 🚀",
                     parse_mode="HTML"
                 )
             except Exception as e:
@@ -74,10 +111,9 @@ async def telegram_webhook(
                 
             return {"status": "success", "payment_processed": True}
 
-        # Mensajes normales (Logs)
-        print(f"📩 Webhook Telegram recibido -> ID: {sender_id} | User: @{username} | Texto: {text}")
-        
-        # Bloque de lógica para responder al comando /start con la Mini App
+        # =====================================================================
+        # 4. MANEJO DE COMANDOS BÁSICOS
+        # =====================================================================
         if text == "/start":
             keyboard = InlineKeyboardMarkup(
                 inline_keyboard=[
