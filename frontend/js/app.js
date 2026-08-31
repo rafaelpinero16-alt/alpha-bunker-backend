@@ -697,7 +697,7 @@ const app = {
             btnCreator?.classList.replace('text-white', 'text-neutral-400');
         } else {
             btnCreator?.classList.replace('border-neutral-700', 'border-[#00f3ff]');
-            btnCreator?.classList.replace('bg-black', 'bg-[#00f3ff]/20');
+            btnCreator?.classList.replace('bg-black', 'bg-[#ff00ff]/20');
             btnCreator?.classList.replace('text-white', 'text-neutral-400');
 
             btnFan?.classList.replace('border-[#ff00ff]', 'border-neutral-700');
@@ -789,13 +789,30 @@ const app = {
         this.renderFeed();
     },
 
-    loginWithTelegram() { 
+    async loginWithTelegram() { 
         this.haptic('medium'); 
         this.initUserId();
         localStorage.setItem('alpha_logged_in', 'true'); 
+        
+        // ⚡ Sincronización automática con la base de datos de Railway al entrar con Telegram
+        try {
+            await fetch(`${this.backendUrl}/users/sync`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    user_id: this.userId,
+                    name: localStorage.getItem('alpha_user_name') || "Agente Búnker",
+                    bio: "Operativo autenticado vía Telegram WebApp"
+                })
+            });
+        } catch (e) {
+            console.warn('[TG SYNC ERROR]:', e);
+        }
+
         this.switchView('feed'); 
         this.updateProfileUI();
         this.updateViewsCounter();
+        await this.syncKYCStatus();
         this.refreshUserData();
         this.renderFeed();
     },
@@ -848,6 +865,21 @@ const app = {
             const activeLogin = localStorage.getItem('alpha_logged_in');
 
             if (activeLogin === 'true') { 
+                // ⚡ Sincronización automática de sesión en base de datos al arrancar
+                try {
+                    await fetch(`${this.backendUrl}/users/sync`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            user_id: this.userId,
+                            name: localStorage.getItem('alpha_user_name') || "Agente Búnker",
+                            bio: "Operativo activo en Alpha Vault"
+                        })
+                    });
+                } catch (e) {
+                    console.warn('[SESSION SYNC ERROR]:', e);
+                }
+
                 this.switchView('feed'); 
                 this.updateProfileUI();
                 this.updateViewsCounter();
