@@ -992,9 +992,9 @@ const app = {
         this.refreshUserData();
     },
     openMenuModal() { this.openCatalogPackages(); },
-    openCommunitiesModal() { this.closeModals(); document.getElementById('modal-communities')?.classList.remove('hidden'); },
+    openCommunitiesModal() { this.closeModals(); document.getElementById('modal-communities')?.classList.add('hidden'); },
     
-    // ⚡ LÓGICA DE CHAT EN VIVO (WEBSOCKETS WSS SEGURO) ⚡
+    // ⚡ LÓGICA DE CHAT EN VIVO (WEBSOCKETS WSS SEGURO CON RECONEXIÓN AUTOMÁTICA) ⚡
     async openSupport() { 
         this.closeModals(); 
         document.getElementById('modal-chat')?.classList.remove('hidden'); 
@@ -1005,7 +1005,7 @@ const app = {
 
     async loadChatHistory() {
         const container = document.getElementById('chat-messages');
-        if (container) container.innerHTML = ''; // Limpiamos contenedor sin texto estático molesto
+        if (container) container.innerHTML = ''; 
 
         try {
             const res = await fetch(`${this.backendUrl}/chat/history?limit=50`);
@@ -1029,19 +1029,23 @@ const app = {
         this.initUserId();
         if (!this.userId) return;
 
-        if (this.chatSocket) this.chatSocket.close();
+        if (this.chatSocket) {
+            this.chatSocket.close();
+            this.chatSocket = null;
+        }
 
-        // Forzamos wss:// estricto para producción en Railway
         const wsProtocol = this.backendUrl.startsWith('https') ? 'wss://' : 'ws://';
         const cleanBaseUrl = this.backendUrl.replace(/^https?:\/\//, '');
         const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/ws/${this.userId}`;
+
+        const statusEl = document.getElementById('chat-routed');
+        if (statusEl) statusEl.innerText = 'CONECTANDO AL BÚNKER... ⚡';
 
         this.chatSocket = new WebSocket(wsUrl);
 
         this.chatSocket.onopen = () => {
             console.log('[WEBSOCKET] Conectado al Búnker Live Chat');
-            const statusEl = document.getElementById('chat-routed');
-            if (statusEl) statusEl.innerText = 'CONEXIÓN EN VIVO ESTABLECIDA';
+            if (statusEl) statusEl.innerText = 'CONEXIÓN EN VIVO ESTABLECIDA ✅';
         };
 
         this.chatSocket.onmessage = (event) => {
@@ -1054,10 +1058,21 @@ const app = {
             }
         };
 
-        this.chatSocket.onclose = () => {
-            console.log('[WEBSOCKET] Desconectado');
-            const statusEl = document.getElementById('chat-routed');
-            if (statusEl) statusEl.innerText = 'Desconectado - Reconectando...';
+        this.chatSocket.onerror = (err) => {
+            console.warn('[WEBSOCKET ERROR]:', err);
+            if (statusEl) statusEl.innerText = 'ERROR DE CANAL - RECONECTANDO... 🔄';
+        };
+
+        this.chatSocket.onclose = (event) => {
+            console.log('[WEBSOCKET] Desconectado', event.code);
+            if (statusEl) statusEl.innerText = 'DESCONECTADO - RECONECTANDO AUTOMÁTICAMENTE... 🔄';
+            
+            setTimeout(() => {
+                const chatModal = document.getElementById('modal-chat');
+                if (chatModal && !chatModal.classList.contains('hidden')) {
+                    this.initChatWebSocket();
+                }
+            }, 3000);
         };
     },
 
@@ -1128,8 +1143,16 @@ const app = {
             this.chatSocket.send(text);
             if (input) input.value = ''; 
         } else {
-            this.showToast('⚠️ Desconectado. Espera un momento...');
+            this.showToast('⚠️ Canal reconectando, reintentando envío...');
             this.initChatWebSocket();
+            
+            setTimeout(() => {
+                if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN && text) {
+                    this.chatSocket.send(text);
+                    if (input) input.value = '';
+                    this.showToast('¡Mensaje enviado con éxito! 🚀');
+                }
+            }, 1500);
         }
     },
     // ⚡ FIN LÓGICA DE CHAT ⚡
