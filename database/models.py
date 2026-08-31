@@ -104,3 +104,14 @@ class ChatMessage(Base):
     content = Column(Text, nullable=False)
     is_system = Column(Boolean, default=False)       # True = Notificaciones de propinas y alertas del Búnker
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class VideoCallSession(Base):
+    __tablename__ = "video_call_sessions"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    fan_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
+    creator_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
+    cost_alpha = Column(Integer, nullable=False)
+    status = Column(String(20), default="pending")  # pending, accepted, completed, rejected
+    room_url = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

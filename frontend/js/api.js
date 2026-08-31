@@ -69,7 +69,7 @@ async function fetchWalletBalance(userId) {
         const data = await res.json();
         return {
             user_id: data.user_id,
-            alpha_balance: data.balance_alfa_coins ?? 0,
+            alpha_balance: data.balance_alfa_coins ?? data.alpha_balance ?? 0,
             total_earned: data.total_earned ?? 0,
             total_spent: data.total_spent ?? 0
         };
@@ -122,10 +122,10 @@ async function depositAlphaCoins(userId, amount) {
 // 7. Cargar muro de publicaciones con estado de bloqueo PPV
 async function fetchGlobalFeed(userId) {
     try {
-        const res = await fetch(`${API_BASE_URL}/get-posts`);
+        const res = await fetch(`${API_BASE_URL}/posts/feed/${userId || 0}`);
         if (!res.ok) throw new Error("Error al obtener posts");
         const data = await res.json();
-        return data.posts || data || [];
+        return data.posts || [];
     } catch (err) {
         console.error("[API FEED ERROR]:", err);
         return [];
@@ -133,15 +133,14 @@ async function fetchGlobalFeed(userId) {
 }
 
 // 8. Crear factura oficial de Telegram Stars
-async function buyStarsInvoice(userId, tierName, amountStars) {
+async function buyStarsInvoice(userId, packageSlug) {
     try {
         const res = await fetch(`${API_BASE_URL}/payments/create-invoice`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 user_id: parseInt(userId),
-                tier_name: tierName,
-                amount_stars: parseInt(amountStars)
+                package_slug: packageSlug
             })
         });
         const data = await res.json();

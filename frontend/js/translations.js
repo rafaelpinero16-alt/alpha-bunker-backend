@@ -33,7 +33,7 @@ const t = {
         upload_hdr: "ENVIAR CONTEÚDO", lbl_level: "NÍVEL EXIGIDO 👀", opt_0: "🆓 Público", opt_1: "🎖️ Bloquear para SOLDIER", opt_2: "⚔️ Bloquear para VETERAN", opt_3: "👑 Bloquear para LEGEND", lbl_file: "FOTO OU VÍDEO 📸", txt_upload: "Toque para enviar", lbl_desc: "DESCRIÇÃO", btn_pub: "PUBLICAR",
         prof_title: "MEU PERFIL", prof_alpha_title: "CARTEIRA $ALPHA", prof_alpha_desc: "Recarregue para desbloquear conteúdo.", btn_recharge: "RECARREGAR 1 TON x 100 $ALPHA", lbl_alias: "NOME DE USUÁRIO", prof_growth: "Crescimento", prof_next: "Próximo: SOLDIER", lbl_bio: "BIO / DESCRIÇÃO", prof_mon_title: "Monetização Ativa", prof_mon_desc: "Ganhe comissões.", btn_save_bio: "SALVAR PERFIL", btn_pub_content: "PUBLICAR CONTEÚDO",
         role_title: "SELECIONE SEU PAPEL", role_desc: "Escolha", role_creator: "CRIADOR (B2B)", role_creator_desc: "Promo", role_fan: "FÃ (B2C)", role_fan_desc: "VIP",
-        cat_title: "ATUALIZAR PLANO", cat_t1_title: "ESPECTADOR", desc_trial: "Desbloquear Tier 1", cat_t2_title: "EXIBICIONISTA", desc_1: "Chat Privado CRM", cat_t3_title: "ASSINANTE VIP", desc_3: "Videochamada Cam2Cam", cat_t4_title: "VIP & CRIADOR", desc_life: "Promo B2B", btn_sel: "SELECIONAR", btn_life: "SELECIONAR B2B", btn_bank: "Bancos e Stripe", com_title: "PARCEIROS", pay_stars: "Pagar com Telegram Stars", btn_stripe: "Stripe / Checkout Externo", txt_pay_proof: "Enviar comprovante ao CRM.", bank_title: "BANCOS", copy_global: "Copiar Dados", copy_airtm: "Copiar Dados", copy_ton: "Copiar Endereço",
+        cat_title: "ATUALIZAR PLANO", cat_t1_title: "ESPECTADOR", desc_trial: "Desbloquear Tier 1", cat_t2_title: "EXIBICIONISTA", desc_1: "Chat Privado CRM", cat_t3_title: "ASSINANTE VIP", desc_3: "Videochamada Cam2Cam", cat_t4_title: "VIP & CRIADOR", desc_life: "Promo B2B", btn_sel: "SELECIONAR", btn_life: "SELELECIONAR B2B", btn_bank: "Bancos e Stripe", com_title: "PARCEIROS", pay_stars: "Pagar com Telegram Stars", btn_stripe: "Stripe / Checkout Externo", txt_pay_proof: "Enviar comprovante ao CRM.", bank_title: "BANCOS", copy_global: "Copiar Dados", copy_airtm: "Copiar Dados", copy_ton: "Copiar Endereço",
         chat_title: "SUPORTE", chat_routed: "Enviado ao Grupo Privado", btn_send_proof: "ENVIAR COMPROVANTE", chat_welcome: "Ativo! Envie sua mensagem.", chat_placeholder: "Escreva sua mensagem..."
     },
     de: { 
@@ -59,7 +59,6 @@ const t = {
 window.applyTranslations = function(lang) {
     const dict = t[lang] || t['es'];
     
-    // Mapeo EXACTO y exhaustivo de todos los IDs
     const map = {
         'txt-warn-title': 'warn_title', 'txt-warn-sub': 'warn_subtitle', 'txt-warn-p1': 'warn_p1', 'txt-warn-p2': 'warn_p2', 'btn-accept-text': 'btn_accept', 'btn-exit-text': 'btn_exit',
         'txt-login-title': 'login_title', 'txt-login-desc': 'login_desc', 'lbl-phone': 'lbl_phone', 'btn-phone-text': 'btn_phone_login', 'txt-or-direct': 'or_direct', 'btn-tg-text': 'btn_tg_login', 'txt-no-account': 'no_account', 'btn-create-acc': 'btn_create_acc',

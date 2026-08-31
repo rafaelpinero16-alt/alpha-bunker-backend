@@ -210,7 +210,6 @@ const app = {
             }
         }
 
-        // 🛡️ LÓGICA DE HERRAMIENTAS EXCLUSIVAS DE CREADOR
         const creatorTools = document.getElementById('prof-creator-tools');
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         if (creatorTools) {
@@ -1419,7 +1418,30 @@ const app = {
         }
     },
 
-    startVideoCall() { this.showToast('Conectando Video Llamada Segura... 📹'); },
+    async sendTipFromPost(creatorId, amount, postId) {
+        this.haptic('medium');
+        this.initUserId();
+        this.showToast('Enviando propina... 🪙');
+
+        try {
+            const data = await sendAlphaTip(this.userId, creatorId, amount, postId);
+            if (data && data.status === 'success') {
+                this.haptic('heavy');
+                this.showToast(`¡Propina de ${amount} $ALPHA enviada con éxito! 🚀`);
+                this.closeModals();
+                await this.refreshUserData();
+            } else {
+                throw new Error(data.detail || 'Error en la transacción');
+            }
+        } catch (err) {
+            this.showToast(`⚠️ ${err.message || 'Saldo insuficiente o error de red'}`);
+        }
+    },
+
+    startVideoCall() { 
+        this.haptic('medium');
+        this.showToast('Conectando Video Llamada Segura Cam2Cam... 📹'); 
+    },
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     selectCreatorRole() { this.showToast('Rol de Creador seleccionado'); this.closeModals(); },
     selectFanRole() { this.showToast('Rol de Fan seleccionado'); this.closeModals(); }

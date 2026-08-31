@@ -55,31 +55,29 @@
                 }, 100);
             }
 
-            const originalSimulateAndPay = app.simulateAndPay;
-            app.simulateAndPay = function(isStripe = false) {
-                originalSimulateAndPay.call(this, isStripe);
-                setTimeout(() => {
-                    AlphaSecurity.saveSecureState(app.userAccessLevel, app.userData.access_tier, app.userData.name);
-                }, 1600);
-            };
-
+            // Integración segura para la publicación de posts
             const originalPublish = app.publishPost;
-            app.publishPost = function() {
-                const textEl = document.getElementById('admin-text-es');
-                if (textEl) {
-                    textEl.value = AlphaSecurity.sanitize(textEl.value);
-                }
-                originalPublish.call(this);
-            };
+            if (originalPublish) {
+                app.publishPost = function() {
+                    const textEl = document.getElementById('admin-text-es');
+                    if (textEl) {
+                        textEl.value = AlphaSecurity.sanitize(textEl.value);
+                    }
+                    originalPublish.call(this);
+                };
+            }
 
+            // Integración segura para el chat en vivo
             const originalSendChat = app.sendChatMessage;
-            app.sendChatMessage = function() {
-                const input = document.getElementById('chat-input');
-                if (input) {
-                    input.value = AlphaSecurity.sanitize(input.value);
-                }
-                originalSendChat.call(this);
-            };
+            if (originalSendChat) {
+                app.sendChatMessage = function() {
+                    const input = document.getElementById('chat-input');
+                    if (input) {
+                        input.value = AlphaSecurity.sanitize(input.value);
+                    }
+                    originalSendChat.call(this);
+                };
+            }
         }
     });
 })();
