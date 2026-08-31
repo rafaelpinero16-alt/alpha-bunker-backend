@@ -927,7 +927,7 @@ const app = {
 
     closeModals() {
         this.haptic('light');
-        ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-kyc', 'modal-tip-menu-edit'].forEach(m => {
+        ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu'].forEach(m => {
             const el = document.getElementById(m);
             if (el) el.classList.add('hidden');
         });
@@ -1209,7 +1209,7 @@ const app = {
                                 <i class="fa-solid fa-heart ${isLiked ? 'text-red-500' : 'text-neutral-400'}"></i>
                                 <span>Like</span>
                             </button>
-                            <button onclick="app.sendTipFromPost(${post.creator_id || 99999}, 10, ${post.id})" class="bg-amber-500 hover:bg-amber-600 text-black font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs shadow-md transition active:scale-95">
+                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${post.author || 'Creador'}')" class="bg-amber-500 hover:bg-amber-600 text-black font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs shadow-md transition active:scale-95">
                                 🪙 Dar Propina
                             </button>
                         </div>
@@ -1221,34 +1221,66 @@ const app = {
         }
     },
 
-    async sendTipFromPost(creatorId, defaultAmount = 10, postId = null) {
+    async openFanTipMenu(creatorId, postId, creatorName) {
+        this.closeModals();
+        this.initUserId();
+        
+        if (!this.userId) {
+            this.showToast('⚠️ Debes iniciar sesión para dar propinas.');
+            return;
+        }
+        if (this.userId == creatorId) {
+            this.showToast('⚠️ No puedes enviarte propinas a ti mismo.');
+            return;
+        }
+
+        const modal = document.getElementById('modal-fan-tip-menu');
+        const nameEl = document.getElementById('fan-tip-creator-name');
+        const container = document.getElementById('fan-tip-slots-container');
+        const customInput = document.getElementById('custom-tip-amount');
+        const customBtn = document.getElementById('btn-send-custom-tip');
+
+        if (modal) modal.classList.remove('hidden');
+        if (nameEl) nameEl.innerText = `@${creatorName}`;
+        if (container) container.innerHTML = `<div class="text-center text-neutral-500 mt-10 font-bold">Cargando menú... ⏳</div>`;
+        if (customInput) customInput.value = '';
+
+        const slots = await this.loadTipMenu(creatorId);
+        
+        if (container) {
+            if (slots.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center mt-4">
+                        <i class="fa-solid fa-ghost text-3xl text-neutral-600 mb-2"></i>
+                        <p class="text-sm text-neutral-400 font-bold">Este creador aún no ha configurado su Tip Menu.</p>
+                        <p class="text-xs text-neutral-500 mt-1">Puedes enviarle una propina libre abajo.</p>
+                    </div>`;
+            } else {
+                container.innerHTML = slots.map(slot => `
+                    <button onclick="app.sendTipFromPost(${creatorId}, ${slot.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/10 rounded-2xl p-4 flex items-center justify-between transition active:scale-95 text-left group shadow-lg">
+                        <span class="text-sm font-bold text-white group-hover:text-[#ffb703] transition">${slot.title}</span>
+                        <span class="bg-[#ffb703] text-black text-xs font-black px-3 py-1.5 rounded-xl shadow-[0_0_10px_rgba(255,183,3,0.3)]">${slot.price_alpha} $ALPHA</span>
+                    </button>
+                `).join('');
+            }
+        }
+
+        if (customBtn) {
+            customBtn.onclick = () => {
+                const amount = parseInt(customInput.value);
+                if (isNaN(amount) || amount <= 0) {
+                    this.showToast('⚠️ Ingresa un monto válido mayor a 0.');
+                    return;
+                }
+                this.sendTipFromPost(creatorId, amount, postId);
+            };
+        }
+    },
+
+    async sendTipFromPost(creatorId, amount, postId = null) {
         try {
             this.haptic('medium');
             this.initUserId();
-
-            if (!this.userId) {
-                this.showToast('⚠️ Debes iniciar sesión para dar propinas.');
-                return;
-            }
-
-            if (this.userId == creatorId) {
-                this.showToast('⚠️ No puedes enviarte propinas a ti mismo.');
-                return;
-            }
-
-            const inputAmount = prompt(
-                '🪙 ¿Cuántos tokens $ALPHA deseas enviar como propina?\n\nSugerencias: 5, 10, 25, 50, 100\nO escribe tu monto personalizado:',
-                defaultAmount.toString()
-            );
-
-            if (inputAmount === null) return;
-
-            const amount = parseInt(inputAmount.trim());
-            if (isNaN(amount) || amount <= 0) {
-                this.showToast('⚠️ Ingresa un monto numérico válido mayor a 0.');
-                return;
-            }
-
             this.showToast(`Enviando propina de ${amount} $ALPHA... ⚡`);
 
             const res = await fetch(`${this.backendUrl}/wallet/send-tip`, {
@@ -1267,9 +1299,10 @@ const app = {
             if (res.ok && data.status === 'success') {
                 this.haptic('heavy');
                 this.showToast(`¡Propina de ${data.amount_sent || amount} $ALPHA enviada con éxito! 🚀`);
+                this.closeModals();
                 await this.refreshUserData();
             } else {
-                throw new Error(data.detail || 'Saldo insuficiente o error al procesar');
+                throw new Error(data.detail || 'Saldo insuficiente o error de servidor');
             }
         } catch (error) {
             console.error('[TIP ERROR]:', error);
