@@ -148,6 +148,7 @@ const app = {
     },
 
     updateProfileUI() {
+        this.initUserId();
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
         const aliasInput = document.getElementById('prof-alias');
         if (aliasInput && savedName) {
@@ -192,9 +193,11 @@ const app = {
         const kycDescEl = document.getElementById('prof-kyc-desc');
         const kycBtn = document.getElementById('btn-verify-kyc');
 
-        // 🔒 Validación dinámica de Roles
+        // 🛡️ BYPASS TOTAL DE KYC PARA EL ADMINISTRADOR / DUEÑO DE LA APP
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin' || localStorage.getItem('alpha_user_role') === 'admin');
+
         if (kycStatusEl) {
-            if (kycStatus === 'verified' || this.userData?.role === 'admin') {
+            if (kycStatus === 'verified' || isAdminUser) {
                 kycStatusEl.innerText = 'VERIFICADO (+18) ✅';
                 kycStatusEl.className = 'text-xs font-black uppercase text-green-400';
                 if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
@@ -224,7 +227,7 @@ const app = {
         const creatorSubBox = document.getElementById('prof-creator-subscription-box');
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         if (creatorTools) {
-            if (userRole === 'creator' || this.userData?.role === 'admin') {
+            if (userRole === 'creator' || isAdminUser) {
                 creatorTools.classList.remove('hidden');
                 if (creatorSubBox) creatorSubBox.classList.remove('hidden');
             } else {
@@ -249,7 +252,6 @@ const app = {
         if (tgUser && tgUser.id) {
             const savedId = localStorage.getItem("alpha_user_id");
             if (savedId && savedId != tgUser.id) {
-                // Formateo de sesión si la cuenta alterna es diferente
                 ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role'].forEach(k => localStorage.removeItem(k));
             }
             this.userId = tgUser.id;
@@ -416,6 +418,7 @@ const app = {
         }
     },
 
+    // 🌐 Catálogo de Paquetes con Traducción Dinámica Absoluta
     async openCatalogPackages() {
         this.closeModals();
         const modal = document.getElementById('modal-catalog');
@@ -425,7 +428,7 @@ const app = {
         const container = document.getElementById('catalog-packages-list');
         if (!container) return;
 
-        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">Cargando 5 packs tácticos del Búnker... ⏳</div>`;
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('cat_loading')}</div>`;
 
         try {
             const res = await fetch(`${this.backendUrl}/payments/packages`);
@@ -433,32 +436,38 @@ const app = {
                 const data = await res.json();
                 const packages = data.packages || [];
 
-                container.innerHTML = packages.map(pkg => `
-                    <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative">
-                        <div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-3 py-0.5 rounded-full text-[10px] font-black uppercase shadow">
-                            ${this.escapeHtml(pkg.badge || 'TÁCTICO')} ${pkg.bonus_percentage > 0 ? `(+${pkg.bonus_percentage}% Bonus)` : ''}
+                container.innerHTML = packages.map(pkg => {
+                    // Traducción dinámica por slug para los 5 packs
+                    const translatedName = this.getTrans(`pkg_${pkg.slug}_name`) || pkg.name;
+                    const translatedDesc = this.getTrans(`pkg_${pkg.slug}_desc`) || pkg.description;
+
+                    return `
+                        <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative">
+                            <div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-3 py-0.5 rounded-full text-[10px] font-black uppercase shadow">
+                                ${this.escapeHtml(pkg.badge || 'TÁCTICO')} ${pkg.bonus_percentage > 0 ? `(+${pkg.bonus_percentage}% Bonus)` : ''}
+                            </div>
+                            <div class="flex justify-between items-center mb-2 mt-1">
+                                <h3 class="text-lg font-black text-white"><i class="fa-solid fa-shield-halved text-[#00f3ff] mr-1.5"></i> ${this.escapeHtml(translatedName)}</h3>
+                                <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
+                            </div>
+                            <p class="text-xs text-gray-300 mb-4 font-medium">${this.escapeHtml(translatedDesc)}</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">
+                                    ⭐ ${pkg.price_stars} Stars
+                                </button>
+                                <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">
+                                    💎 ${pkg.price_ton} TON
+                                </button>
+                            </div>
                         </div>
-                        <div class="flex justify-between items-center mb-2 mt-1">
-                            <h3 class="text-lg font-black text-white"><i class="fa-solid fa-shield-halved text-[#00f3ff] mr-1.5"></i> ${this.escapeHtml(pkg.name)}</h3>
-                            <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
-                        </div>
-                        <p class="text-xs text-gray-300 mb-4 font-medium">${this.escapeHtml(pkg.description || 'Recarga táctica con bonificación por volumen.')}</p>
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">
-                                ⭐ ${pkg.price_stars} Stars
-                            </button>
-                            <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">
-                                💎 ${pkg.price_ton} TON
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             } else {
                 throw new Error('Error al cargar paquetes tácticos');
             }
         } catch (err) {
             console.warn('[PACKAGES LOAD ERROR]:', err);
-            container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">⚠️ Error al conectar con el servidor de pagos.</div>`;
+            container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`;
         }
     },
 
@@ -466,8 +475,9 @@ const app = {
         this.haptic('medium');
         this.initUserId();
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin' || localStorage.getItem('alpha_user_role') === 'admin');
 
-        if (kycStatus !== 'verified' && this.userData?.role !== 'admin') {
+        if (kycStatus !== 'verified' && !isAdminUser) {
             this.showToast('⚠️ Debes verificar tu identidad (KYC +18) para activar tu suscripción de creador.');
             this.openKYCModal();
             return;
@@ -1057,9 +1067,10 @@ const app = {
         this.initUserId();
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
+        const isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin' || this.userData?.role === 'admin');
 
-        // 🔒 Validación basada en el rol de la base de datos
-        if (userRole === 'creator' && kycStatus !== 'verified' && this.userData?.role !== 'admin') {
+        // 🔒 Validación basada en rol y admin bypass
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) {
             this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar.');
             this.openKYCModal();
             return;
@@ -1092,8 +1103,8 @@ const app = {
         this.haptic('light');
         this.initUserId();
         
-        // 🔒 Validación dual: Token duro + Estado servidor
-        if (this.userData?.role === 'admin' || this.userId == 8269470905) {
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
+        if (isAdminUser) {
             this.isAdmin = !this.isAdmin; 
             this.showToast(this.isAdmin ? 'Admin Mode ON 👑' : 'Admin Mode OFF');
         }
@@ -1195,10 +1206,9 @@ const app = {
 
             feedContainer.innerHTML = posts.map(post => {
                 const isLiked = likedPosts.includes(post.id);
-                // 🔒 Autoridad basada en el backend
-                const isOwnerOrAdmin = (this.userId == post.creator_id || this.userData?.role === 'admin');
+                const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
+                const isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
 
-                // 🔒 Filtrado Anti-XSS para el Muro
                 const safeAuthor = this.escapeHtml(post.author || 'mastertom');
                 const safeContent = this.escapeHtml(post.content);
                 const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
@@ -1267,7 +1277,6 @@ const app = {
         } catch (e) { this.showToast('⚠️ Saldo insuficiente'); }
     },
 
-    // 📹 Función mejorada: Texto limpio con traducción
     startVideoCall() { 
         this.haptic('medium');
         this.showToast(this.getTrans('toast_video')); 
