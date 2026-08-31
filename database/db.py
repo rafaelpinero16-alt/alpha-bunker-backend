@@ -68,3 +68,13 @@ def init_db():
         db.rollback()
     finally:
         db.close()
+
+def update_user_tier(db, telegram_id: int, new_level: int):
+    from database.models import User
+    user = db.query(User).filter(User.user_id == telegram_id).first()
+    if user:
+        if user.access_level < new_level:
+            user.access_level = new_level
+        db.commit()
+        return True
+    return False
