@@ -280,6 +280,7 @@
                             <option value="1" id="opt-1">🎖️ Bloquear para SOLDIER</option>
                             <option value="2" id="opt-2">⚔️ Bloquear para VETERAN</option>
                             <option value="3" id="opt-3">👑 Bloquear para LEGEND</option>
+                            <option value="4" id="opt-4">💎 Bloquear para ICON LEGEND</option>
                         </select>
                     </div>
                     <div class="mb-5">
@@ -344,6 +345,13 @@
                 <p class="text-xs text-gray-300 mb-4 font-medium" id="prof-alpha-desc">Recarga saldo con tu billetera TON conectada para dar propinas y desbloquear contenido exclusivo.</p>
                 <button onclick="app.rechargeAlphaCoins(1, 100)" class="w-full bg-[#ffb703] text-black font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition shadow-[0_0_15px_#ffb703]">
                     <i class="fa-solid fa-bolt text-base"></i> <span id="btn-recharge-text">RECARGAR 1 TON x 100 $ALPHA</span>
+                </button>
+            </div>
+
+            <!-- HERRAMIENTAS EXCLUSIVAS DE CREADOR (TIP MENU) -->
+            <div id="prof-creator-tools" class="hidden mb-5 space-y-3">
+                <button onclick="app.openTipMenuManagementModal()" class="w-full bg-black border-2 border-[#ff00ff] text-[#ff00ff] py-3.5 rounded-xl font-black text-sm hover:bg-[rgba(255,0,255,0.1)] shadow-[0_0_15px_rgba(255,0,255,0.4)] transition active:scale-95 tracking-wider uppercase">
+                    <i class="fa-solid fa-list-ul mr-2"></i> EDITAR MIS 10 SLOTS (TIP MENU)
                 </button>
             </div>
 

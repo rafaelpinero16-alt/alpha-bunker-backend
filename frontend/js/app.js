@@ -203,6 +203,17 @@ const app = {
                 }
             }
         }
+
+        // 🛡️ LÓGICA DE HERRAMIENTAS EXCLUSIVAS DE CREADOR
+        const creatorTools = document.getElementById('prof-creator-tools');
+        const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
+        if (creatorTools) {
+            if (userRole === 'creator') {
+                creatorTools.classList.remove('hidden');
+            } else {
+                creatorTools.classList.add('hidden');
+            }
+        }
     },
 
     updateViewsCounter() {
@@ -254,16 +265,18 @@ const app = {
         let modal = document.getElementById('modal-tip-menu-edit');
         if (!modal) {
             const modalHTML = `
-                <div id="modal-tip-menu-edit" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
-                    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto text-white shadow-2xl">
-                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-neutral-800">
-                            <h3 class="text-lg font-black text-amber-400">⚡ EDITAR TIP MENU (10 SLOTS)</h3>
-                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold px-2 py-1">✕</button>
+                <div id="modal-tip-menu-edit" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#ff00ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_20px_rgba(255,0,255,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ff00ff]/30">
+                            <h3 class="text-xl font-black text-[#ff00ff] uppercase tracking-wider"><i class="fa-solid fa-list-ul mr-2"></i> EDITAR TIP MENU</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1">
+                                <i class="fa-solid fa-times text-xl"></i>
+                            </button>
                         </div>
-                        <p class="text-xs text-neutral-400 mb-4">Configura tus 10 opciones de propina personalizadas para que tus fans las usen en tu perfil.</p>
-                        <div id="tip-menu-slots-form" class="space-y-3"></div>
-                        <div class="mt-6 flex justify-end gap-2">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-xl text-xs font-bold">Cerrar</button>
+                        <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">Configura tus 10 opciones de propina personalizadas para que tus fans las usen en tu perfil o videollamadas.</p>
+                        <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
+                        <div class="mt-4 pt-4 border-t border-[#ff00ff]/30 flex justify-end gap-2 shrink-0">
+                            <button onclick="app.closeModals()" class="bg-black border border-[#ff00ff] text-[#ff00ff] hover:bg-[#ff00ff]/10 px-5 py-3 rounded-xl text-sm font-black transition uppercase">Volver</button>
                         </div>
                     </div>
                 </div>
@@ -279,11 +292,18 @@ const app = {
         for (let i = 1; i <= 10; i++) {
             const existing = slots.find(s => s.slot_number === i) || { title: '', price_alpha: 10 };
             htmlContent += `
-                <div class="bg-neutral-950 border border-neutral-800 p-3 rounded-2xl flex items-center gap-2">
-                    <span class="text-xs font-black text-amber-400 w-6">#${i}</span>
-                    <input type="text" id="tip-title-${i}" value="${existing.title}" placeholder="Título (Ej: Video exclusivo)" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-1.5 text-xs flex-1 text-white focus:border-amber-500 outline-none" />
-                    <input type="number" id="tip-price-${i}" value="${existing.price_alpha}" placeholder="$ALPHA" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-1.5 text-xs w-20 text-white focus:border-amber-500 outline-none text-center" />
-                    <button onclick="app.saveSingleTipSlot(${i})" class="bg-amber-500 hover:bg-amber-600 text-black font-black px-3 py-1.5 rounded-xl text-xs transition active:scale-95">💾</button>
+                <div class="bg-black border border-[#ff00ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative">
+                    <div class="absolute -top-2.5 left-3 bg-[#ff00ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Slot #${i}</div>
+                    <div class="flex items-center gap-2 mt-1">
+                        <input type="text" id="tip-title-${i}" value="${existing.title}" placeholder="Ej: Video exclusivo 3min" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white focus:border-[#ff00ff] outline-none placeholder-gray-500 font-medium" />
+                        <div class="relative w-24 shrink-0">
+                            <i class="fa-solid fa-coins absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[#ffb703] text-xs"></i>
+                            <input type="number" id="tip-price-${i}" value="${existing.price_alpha}" placeholder="Precio" class="bg-neutral-900 border border-neutral-700 rounded-xl pl-7 pr-2 py-2.5 text-xs w-full text-white focus:border-[#ffb703] outline-none text-center font-black" />
+                        </div>
+                        <button onclick="app.saveSingleTipSlot(${i})" class="bg-[#00f3ff] hover:bg-cyan-400 text-black font-black w-10 h-10 rounded-xl text-sm transition active:scale-95 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(0,243,255,0.4)]">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                        </button>
+                    </div>
                 </div>
             `;
         }
