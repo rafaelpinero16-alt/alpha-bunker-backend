@@ -243,7 +243,7 @@
                     <i class="fa-solid fa-video"></i>
                 </div>
                 <div>
-                    <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
+                    <h4 class="text-xs font-black text-white uppercase" id="global-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
                     <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Independiente)</p>
                 </div>
             </div>
@@ -346,30 +346,30 @@
             <!-- ESTADO KYC / VERIFICACIÓN -->
             <div id="prof-kyc-box" class="bg-neutral-900 border border-[#ff00ff] rounded-xl p-4 mb-5 shadow-[0_0_12px_rgba(255,0,255,0.2)]">
                 <div class="flex justify-between items-center mb-1">
-                    <span class="text-xs font-bold text-[#ff00ff]"><i class="fa-solid fa-shield-halved mr-1.5"></i> ESTADO KYC (+18)</span>
+                    <span class="text-xs font-bold text-[#ff00ff]" id="txt-kyc-title"><i class="fa-solid fa-shield-halved mr-1.5"></i> ESTADO KYC (+18)</span>
                     <span id="prof-kyc-status" class="text-xs font-black uppercase text-amber-400">NO VERIFICADO</span>
                 </div>
                 <p class="text-xs text-gray-300 mb-3" id="prof-kyc-desc">Verifica tu documento oficial y selfie para publicar y monetizar.</p>
                 <button onclick="app.openKYCModal()" id="btn-verify-kyc" class="w-full btn-neon-magenta py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider">
-                    <i class="fa-solid fa-id-card mr-1.5"></i> VERIFICAR CUENTA AHORA
+                    <i class="fa-solid fa-id-card mr-1.5"></i> <span id="btn-verify-kyc">VERIFICAR CUENTA AHORA</span>
                 </button>
             </div>
 
             <!-- 👑 SUSCRIPCIÓN DE CREADORES B2B -->
             <div id="prof-creator-subscription-box" class="hidden bg-neutral-900 border-2 border-[#ff00ff] rounded-xl p-4 mb-5 shadow-[0_0_15px_rgba(255,0,255,0.2)]">
                 <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-black text-[#ff00ff] uppercase"><i class="fa-solid fa-crown mr-1.5"></i> MEMBRESÍA CREADOR B2B</span>
-                    <span class="text-[10px] font-black uppercase bg-[#ff00ff]/20 text-[#ff00ff] px-2 py-0.5 rounded-full border border-[#ff00ff]/40">1º MES GRATIS 🎁</span>
+                    <span class="text-xs font-black text-[#ff00ff] uppercase" id="txt-b2b-title"><i class="fa-solid fa-crown mr-1.5"></i> MEMBRESÍA CREADOR B2B</span>
+                    <span class="text-[10px] font-black uppercase bg-[#ff00ff]/20 text-[#ff00ff] px-2 py-0.5 rounded-full border border-[#ff00ff]/40" id="txt-b2b-free">1º MES GRATIS 🎁</span>
                 </div>
-                <p class="text-xs text-gray-300 mb-3 font-medium">Desbloquea la edición de tu Tip Menu y monetización activa.</p>
+                <p class="text-xs text-gray-300 mb-3 font-medium" id="txt-b2b-desc">Desbloquea la edición de tu Tip Menu y monetización activa.</p>
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="app.subscribeCreatorTier('soldier_creator')" class="bg-black border border-[#00f3ff] hover:bg-[#00f3ff]/10 text-white p-3 rounded-xl text-left transition">
-                        <div class="text-xs font-black text-[#00f3ff]">SOLDIER CREATOR</div>
-                        <div class="text-[10px] text-gray-300 font-bold">$4.99 USD / mes</div>
+                        <div class="text-xs font-black text-[#00f3ff]" id="txt-soldier-title">SOLDIER CREATOR</div>
+                        <div class="text-[10px] text-gray-300 font-bold" id="txt-soldier-price">$4.99 USD / mes</div>
                     </button>
                     <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-black border border-[#ffb703] hover:bg-[#ffb703]/10 text-white p-3 rounded-xl text-left transition">
-                        <div class="text-xs font-black text-[#ffb703]">ICON CREATOR</div>
-                        <div class="text-[10px] text-gray-300 font-bold">$7.99 USD / mes</div>
+                        <div class="text-xs font-black text-[#ffb703]" id="txt-icon-title">ICON CREATOR</div>
+                        <div class="text-[10px] text-gray-300 font-bold" id="txt-icon-price">$7.99 USD / mes</div>
                     </button>
                 </div>
             </div>
@@ -389,7 +389,7 @@
             <!-- HERRAMIENTAS EXCLUSIVAS DE CREADOR (TIP MENU) -->
             <div id="prof-creator-tools" class="hidden mb-5 space-y-3">
                 <button onclick="app.openTipMenuManagementModal()" class="w-full bg-black border-2 border-[#ff00ff] text-[#ff00ff] py-3.5 rounded-xl font-black text-sm hover:bg-[rgba(255,0,255,0.1)] shadow-[0_0_15px_rgba(255,0,255,0.4)] transition active:scale-95 tracking-wider uppercase">
-                    <i class="fa-solid fa-list-ul mr-2"></i> EDITAR MIS 10 SLOTS (TIP MENU)
+                    <i class="fa-solid fa-list-ul mr-2"></i> <span id="txt-edit-tips">EDITAR MIS 10 SLOTS (TIP MENU)</span>
                 </button>
             </div>
 
