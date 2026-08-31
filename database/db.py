@@ -4,45 +4,45 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DB_NAME = "database.db"
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///./{DB_NAME}")
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///./{DB_NAME}")[cite: 2]
 
 # Conexión directa SQLite para compatibilidad
 def get_connection():
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
-    return conn
+    return conn[cite: 2]
 
-# Compatibilidad para conexiones en Railway (postgres:// -> postgresql://)
+# Compatibilidad para cadenas de conexión en Railway (postgres:// -> postgresql://)
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}[cite: 2]
 
 engine = create_engine(
     DATABASE_URL,
     connect_args=connect_args,
     pool_pre_ping=True,
     pool_recycle=300 if not DATABASE_URL.startswith("sqlite") else -1
-)
+)[cite: 2]
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)[cite: 2]
+Base = declarative_base()[cite: 2]
 
 def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        db.close()[cite: 2]
 
 def init_db():
-    import database.models
+    import database.models[cite: 2]
     from database.models import Package
 
     # 1. Crear tablas si no existen
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine)[cite: 2]
 
-    # 2. Migración a BIGINT con transacciones aisladas
+    # 2. Migración a BIGINT con transacciones individuales
     if "postgresql" in DATABASE_URL:
         migrations = [
             "ALTER TABLE users ALTER COLUMN user_id TYPE BIGINT;",
