@@ -5,7 +5,7 @@ from aiogram import types, F
 from aiogram.types import LabeledPrice
 from core.config import bot, dp
 from database.db import get_db
-# 🛡️ Importación corregida: ahora apuntamos al archivo de lógica
+# 🛡️ Importación de la lógica de actualización
 from routers.logic import update_user_tier
 from database.models import Package
 
@@ -17,7 +17,6 @@ class InvoiceRequest(BaseModel):
 
 @router.get("/packages")
 async def get_packages(db: Session = Depends(get_db)):
-    # Matriz oficial de paquetes del Búnker con rangos y equivalencias exactas
     official_packages = [
         {
             "slug": "soldier",
@@ -76,7 +75,6 @@ async def get_packages(db: Session = Depends(get_db)):
 @router.post("/create-invoice")
 async def create_invoice(data: InvoiceRequest, db: Session = Depends(get_db)):
     try:
-        # Respaldo oficial con los precios exactos en Telegram Stars
         official_packages = {
             "soldier": {"name": "Soldier 🎖️", "price_stars": 750, "description": "Contenido básico y acceso a la comunidad general."},
             "veteran": {"name": "Veteran ⚔️", "price_stars": 1500, "description": "Contenido avanzado y accesos exclusivos."},
@@ -123,19 +121,6 @@ async def success_payment(message: types.Message):
         tier_slug = payload_parts[1]
         user_id = message.from_user.id
         
-        # ⚡ Ejecutamos la lógica de actualización en la base de datos
         update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
     
     await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tu rango en el Búnker ha sido actualizado.")
-```[cite: 7]
-
----
-
-### Siguiente paso en tu entorno:
-1. Actualiza este archivo en tu backend (por ejemplo, en `routers/payments.py` o donde lo tengas alojado).
-2. Sube los cambios a Git con tu terminal:
-
-```powershell
-git add .
-git commit -m "fix: actualizar catalogo de paquetes con matriz oficial de rangos y precios en stars"
-git push origin main
