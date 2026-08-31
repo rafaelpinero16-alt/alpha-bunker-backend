@@ -14,6 +14,9 @@ const app = {
     tempKYCDoc: null,
     tempKYCSelfie: null,
 
+    // ⚡ WEBSOCKET PARA CHAT EN VIVO
+    chatSocket: null,
+
     haptic(style) {
         try { 
             if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -114,6 +117,9 @@ const app = {
                     if (data.name && data.name !== 'USER') {
                         this.userData.name = data.name;
                         localStorage.setItem('alpha_user_name', data.name);
+                    }
+                    if (data.access_level !== undefined) {
+                        this.userData.access_tier = data.access_level;
                     }
                     this.updateProfileUI();
                 }
@@ -927,6 +933,10 @@ const app = {
 
     closeModals() {
         this.haptic('light');
+        if (this.chatSocket) {
+            this.chatSocket.close();
+            this.chatSocket = null;
+        }
         ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu'].forEach(m => {
             const el = document.getElementById(m);
             if (el) el.classList.add('hidden');
@@ -942,7 +952,139 @@ const app = {
     },
     openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); document.getElementById('modal-communities')?.classList.remove('hidden'); },
-    openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); },
+    
+    // ⚡ LÓGICA DE CHAT EN VIVO (WEBSOCKETS) ⚡
+    async openSupport() { 
+        this.closeModals(); 
+        document.getElementById('modal-chat')?.classList.remove('hidden'); 
+        
+        await this.loadChatHistory();
+        this.initChatWebSocket();
+    },
+
+    async loadChatHistory() {
+        const container = document.getElementById('chat-messages');
+        if (container) container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-bold">Cargando historial del Búnker... ⏳</div>';
+
+        try {
+            const res = await fetch(`${this.backendUrl}/chat/history?limit=50`);
+            if (res.ok) {
+                const data = await res.json();
+                if (container) container.innerHTML = '';
+                data.messages.forEach(msg => this.appendChatMessage(msg));
+                this.scrollToChatBottom();
+            }
+        } catch (err) {
+            console.warn('[CHAT HISTORY ERROR]:', err);
+            if (container) container.innerHTML = '<div class="text-center text-red-500 mt-4 text-xs font-bold">Error al cargar historial.</div>';
+        }
+    },
+
+    initChatWebSocket() {
+        this.initUserId();
+        if (!this.userId) return;
+
+        if (this.chatSocket) this.chatSocket.close();
+
+        const wsUrl = this.backendUrl.replace(/^http/, 'ws') + `/chat/ws/${this.userId}`;
+        this.chatSocket = new WebSocket(wsUrl);
+
+        this.chatSocket.onopen = () => {
+            console.log('[WEBSOCKET] Conectado al Búnker Live Chat');
+            const statusEl = document.getElementById('chat-routed');
+            if (statusEl) statusEl.innerText = 'CONEXIÓN EN VIVO ESTABLECIDA';
+        };
+
+        this.chatSocket.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                this.appendChatMessage(msg);
+                this.scrollToChatBottom();
+            } catch (e) {
+                console.error('[WEBSOCKET MSG ERROR]:', e);
+            }
+        };
+
+        this.chatSocket.onclose = () => {
+            console.log('[WEBSOCKET] Desconectado');
+            const statusEl = document.getElementById('chat-routed');
+            if (statusEl) statusEl.innerText = 'Desconectado - Reconectando...';
+        };
+    },
+
+    appendChatMessage(msg) {
+        const container = document.getElementById('chat-messages');
+        if (!container) return;
+
+        const isMe = msg.user_id == this.userId;
+        const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
+        const rankName = ranks[msg.access_level] || ranks[0];
+
+        let html = '';
+
+        if (msg.is_system) {
+            html = `
+                <div class="flex flex-col items-center animate-fade-in my-2">
+                    <div class="bg-gradient-to-r from-amber-500/20 to-yellow-600/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full shadow-[0_0_10px_rgba(255,183,3,0.2)] font-bold text-center max-w-[90%]">
+                        <i class="fa-solid fa-bolt mr-1 text-amber-500"></i> ${msg.content}
+                    </div>
+                </div>
+            `;
+        } else if (isMe) {
+            html = `
+                <div class="flex flex-col items-end animate-fade-in my-2">
+                    <span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span>
+                    <div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl rounded-tr-sm border border-[#00f3ff]/50 max-w-[85%] shadow-[0_0_10px_rgba(0,243,255,0.1)] font-medium">
+                        ${msg.content}
+                    </div>
+                </div>
+            `;
+        } else {
+            let nameColor = 'text-[#00f3ff]';
+            let bgStyle = 'bg-neutral-800 border-neutral-700';
+            
+            if (msg.author_role === 'creator' || msg.access_level >= 4) {
+                nameColor = 'text-[#ff00ff]';
+                bgStyle = 'bg-neutral-900 border-[#ff00ff]/30 shadow-[0_0_10px_rgba(255,0,255,0.1)]';
+            }
+
+            html = `
+                <div class="flex flex-col items-start animate-fade-in my-2">
+                    <span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="${nameColor} font-black">@${msg.author_name}</span> • ${rankName}</span>
+                    <div class="${bgStyle} text-white text-sm p-3 rounded-2xl rounded-tl-sm border max-w-[85%] font-medium">
+                        ${msg.content}
+                    </div>
+                </div>
+            `;
+        }
+
+        container.insertAdjacentHTML('beforeend', html);
+    },
+
+    scrollToChatBottom() {
+        const container = document.getElementById('chat-messages');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    },
+
+    sendChatMessage() { 
+        this.haptic('light');
+        const input = document.getElementById('chat-input'); 
+        const text = input ? input.value.trim() : '';
+
+        if (!text) return;
+
+        if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
+            this.chatSocket.send(text);
+            if (input) input.value = ''; 
+        } else {
+            this.showToast('⚠️ Desconectado. Espera un momento...');
+            this.initChatWebSocket();
+        }
+    },
+    // ⚡ FIN LÓGICA DE CHAT ⚡
+
     openManualBanks() { this.closeModals(); document.getElementById('modal-banks')?.classList.remove('hidden'); },
     openUploadPanel() {
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
@@ -1277,47 +1419,7 @@ const app = {
         }
     },
 
-    async sendTipFromPost(creatorId, amount, postId = null) {
-        try {
-            this.haptic('medium');
-            this.initUserId();
-            this.showToast(`Enviando propina de ${amount} $ALPHA... ⚡`);
-
-            const res = await fetch(`${this.backendUrl}/wallet/send-tip`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sender_id: this.userId,
-                    receiver_id: creatorId,
-                    amount: amount,
-                    post_id: postId
-                })
-            });
-
-            const data = await res.json();
-
-            if (res.ok && data.status === 'success') {
-                this.haptic('heavy');
-                this.showToast(`¡Propina de ${data.amount_sent || amount} $ALPHA enviada con éxito! 🚀`);
-                this.closeModals();
-                await this.refreshUserData();
-            } else {
-                throw new Error(data.detail || 'Saldo insuficiente o error de servidor');
-            }
-        } catch (error) {
-            console.error('[TIP ERROR]:', error);
-            this.showToast(`⚠️ ${error.message || 'Error al procesar la propina.'}`);
-        }
-    },
-
     startVideoCall() { this.showToast('Conectando Video Llamada Segura... 📹'); },
-    sendChatMessage() { 
-        const i = document.getElementById('chat-input'); 
-        if (i?.value) { 
-            this.showToast('Mensaje enviado'); 
-            i.value = ''; 
-        } 
-    },
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     selectCreatorRole() { this.showToast('Rol de Creador seleccionado'); this.closeModals(); },
     selectFanRole() { this.showToast('Rol de Fan seleccionado'); this.closeModals(); }
