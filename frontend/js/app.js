@@ -284,9 +284,7 @@ const app = {
                             </button>
                         </div>
                         <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">Configura tus 10 opciones de propina personalizadas para que tus fans las usen en tu perfil o videollamadas.</p>
-                        <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6">
-                            <div class="text-center text-neutral-500 mt-10 font-bold" id="tip-menu-loading">Cargando los 10 slots... ⏳</div>
-                        </div>
+                        <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
                         <div class="mt-4 pt-4 border-t border-[#ff00ff]/30 flex justify-end gap-2 shrink-0">
                             <button onclick="app.closeModals()" class="bg-black border border-[#ff00ff] text-[#ff00ff] hover:bg-[#ff00ff]/10 px-5 py-3 rounded-xl text-sm font-black transition uppercase">Volver</button>
                         </div>
@@ -300,7 +298,7 @@ const app = {
         modal.classList.remove('hidden');
         const container = document.getElementById('tip-menu-slots-form');
         if (container) {
-            container.innerHTML = `<div class="text-center text-neutral-500 mt-10 font-bold" id="tip-menu-loading">Cargando los 10 slots... ⏳</div>`;
+            container.innerHTML = '';
         }
 
         const slots = await this.loadTipMenu(this.userId);
@@ -1007,19 +1005,23 @@ const app = {
 
     async loadChatHistory() {
         const container = document.getElementById('chat-messages');
-        if (container) container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-bold">Cargando historial del Búnker... ⏳</div>';
+        if (container) container.innerHTML = ''; // Limpiamos contenedor sin texto estático molesto
 
         try {
             const res = await fetch(`${this.backendUrl}/chat/history?limit=50`);
             if (res.ok) {
                 const data = await res.json();
                 if (container) container.innerHTML = '';
-                data.messages.forEach(msg => this.appendChatMessage(msg));
-                this.scrollToChatBottom();
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => this.appendChatMessage(msg));
+                    this.scrollToChatBottom();
+                } else {
+                    container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-semibold">Búnker seguro iniciado. Escribe el primer mensaje. 🛡️</div>';
+                }
             }
         } catch (err) {
             console.warn('[CHAT HISTORY ERROR]:', err);
-            if (container) container.innerHTML = '<div class="text-center text-red-500 mt-4 text-xs font-bold">Error al cargar historial.</div>';
+            if (container) container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-semibold">Canal cifrado activo.</div>';
         }
     },
 
