@@ -6,7 +6,7 @@ from aiogram.types import LabeledPrice
 from core.config import bot, dp
 from database.db import get_db
 # 🛡️ Importación corregida: ahora apuntamos al archivo de lógica
-from database.logic import update_user_tier
+from routers.logic import update_user_tier
 from database.models import Package
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
