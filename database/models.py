@@ -11,12 +11,29 @@ class User(Base):
     name = Column(String(100), default="USER")
     bio = Column(String(255), nullable=True)
     avatar_url = Column(Text, nullable=True)
-    role = Column(String(20), default="fan")             
-    access_level = Column(Integer, default=0)            
-    kyc_status = Column(String(20), default="unverified") 
+    role = Column(String(20), default="fan")             # fan, creator, admin
+    access_level = Column(Integer, default=0)            # 0: Espía, 1: Soldier, 2: Veteran, 3: Legend, 4: Icon Legend
+    kyc_status = Column(String(20), default="unverified") # unverified, pending, verified, rejected
     legal_name = Column(String(150), nullable=True)
     is_adult = Column(Boolean, default=False)
+    
+    # 🛡️ Controles de Membresía y Monetización para Creadores
+    is_creator = Column(Boolean, default=False)
+    creator_subscription_active = Column(Boolean, default=False) # Valida la cuota mensual de $10
+    subscription_expires_at = Column(DateTime, nullable=True)
+    can_receive_tips = Column(Boolean, default=True)             # Se bloquea si no paga la membresía
+    
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class TipMenuSlot(Base):
+    __tablename__ = "tip_menu_slots"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    creator_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
+    slot_number = Column(Integer, nullable=False)  # Del 1 al 10 (Los 10 espacios editables del Tip Menu)
+    title = Column(String(100), nullable=False)    # Ej: "Videollamada privada 5 min"
+    price_alpha = Column(Integer, nullable=False)  # Costo en tokens $ALPHA
+    is_active = Column(Boolean, default=True)
 
 class Wallet(Base):
     __tablename__ = "wallets"
@@ -35,7 +52,7 @@ class Transaction(Base):
     sender_id = Column(BigInteger, nullable=True)
     receiver_id = Column(BigInteger, nullable=True)
     amount = Column(Integer, nullable=False)
-    tx_type = Column(String(50), nullable=False)        
+    tx_type = Column(String(50), nullable=False)        # tip, subscription, package_recharge, creator_membership
     reference_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

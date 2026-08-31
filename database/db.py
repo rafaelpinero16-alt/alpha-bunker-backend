@@ -36,66 +36,45 @@ def get_db():
 def init_db():
     from database.models import Package
     Base.metadata.create_all(bind=engine)
-    if "postgresql" in DATABASE_URL:
-        migrations = [
-            "ALTER TABLE users ALTER COLUMN user_id TYPE BIGINT;",
-            "ALTER TABLE wallets ALTER COLUMN user_id TYPE BIGINT;",
-            "ALTER TABLE transactions ALTER COLUMN sender_id TYPE BIGINT;",
-            "ALTER TABLE transactions ALTER COLUMN receiver_id TYPE BIGINT;",
-            "ALTER TABLE posts ALTER COLUMN creator_id TYPE BIGINT;",
-            "ALTER TABLE unlocked_posts ALTER COLUMN user_id TYPE BIGINT;"
-        ]
-        for query in migrations:
-            try:
-                with engine.begin() as conn:
-                    conn.execute(text(query))
-            except Exception:
-                pass
     
     db = SessionLocal()
     try:
-        if db.query(Package).count() == 0:
-            db.add_all([
-                Package(slug="starter", name="Starter Spy", description="Acceso inicial al Búnker", alpha_base=50, bonus_percentage=0, alpha_total=50, price_stars=250, price_ton=1, badge="🕵️ Recluta"),
-                Package(slug="agent", name="Agent Pack", description="Bonificación +20%", alpha_base=100, bonus_percentage=20, alpha_total=120, price_stars=500, price_ton=2, badge="🎖️ Agent"),
-                Package(slug="combat", name="Combat Pack", description="Bonificación +30%", alpha_base=250, bonus_percentage=30, alpha_total=325, price_stars=1150, price_ton=5, badge="⚔️ Veteran"),
-                Package(slug="boss", name="Bunker Boss", description="Bonificación +45%", alpha_base=600, bonus_percentage=45, alpha_total=870, price_stars=2600, price_ton=10, badge="👑 Boss"),
-                Package(slug="whale", name="Whale VIP", description="Bonificación máxima +65%", alpha_base=1500, bonus_percentage=65, alpha_total=2475, price_stars=6000, price_ton=24, badge="💎 Whale")
-            ])
-            db.commit()
-            print("[DB SEED]: Paquetes registrados exitosamente.")
-    except Exception:
-        db.rollback()
-    finally:
-        db.close()
-
-def update_user_tier(user_id: int, tier: str, amount: int):
-    from database.models import User, Wallet, Transaction
-    db = SessionLocal()
-    try:
-        user = db.query(User).filter(User.user_id == user_id).first()
-        if not user:
-            user = User(user_id=user_id, name="User", access_level=1)
-            db.add(user)
-            db.commit()
-        
-        tier_levels = {"starter": 1, "agent": 2, "combat": 3, "boss": 4, "whale": 5}
-        level = tier_levels.get(tier.lower(), 1)
-        if user.access_level < level:
-            user.access_level = level
-        
-        wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
-        if not wallet:
-            wallet = Wallet(user_id=user_id, alpha_balance=0)
-            db.add(wallet)
-        
-        tx = Transaction(receiver_id=user_id, amount=amount, tx_type=f"purchase_{tier}")
-        db.add(tx)
+        # Sincronizamos y actualizamos los paquetes oficiales con la nueva nomenclatura y precios ajustados
+        db.query(Package).delete()
+        db.add_all([
+            Package(
+                slug="soldier", 
+                name="Soldier (Tier 1)", 
+                description="Acceso inicial, contenido básico y chat general", 
+                alpha_base=150, bonus_percentage=0, alpha_total=150, 
+                price_stars=750, price_ton=1, badge="🎖️ Soldier"
+            ),
+            Package(
+                slug="veteran", 
+                name="Veteran (Tier 2)", 
+                description="Chat privado CRM, permisos en muro y bono +10%", 
+                alpha_base=300, bonus_percentage=10, alpha_total=330, 
+                price_stars=1500, price_ton=2, badge="⚔️ Veteran"
+            ),
+            Package(
+                slug="legend", 
+                name="Legend (Tier 3)", 
+                description="Acceso Elite completo, videollamadas Cam2Cam y bono +18%", 
+                alpha_base=550, bonus_percentage=18, alpha_total=650, 
+                price_stars=2750, price_ton=5, badge="👑 Legend"
+            ),
+            Package(
+                slug="icon_legend", 
+                name="Icon Legend (Tier 4)", 
+                description="Publica fotos, videos, mensajes y activa cámara en videollamada grupal", 
+                alpha_base=1200, bonus_percentage=25, alpha_total=1500, 
+                price_stars=6000, price_ton=12, badge="💎 Icon Legend"
+            )
+        ])
         db.commit()
-        return True
+        print("[DB SEED]: Paquetes oficiales con rangos y precios coherentes registrados exitosamente.")
     except Exception as e:
         db.rollback()
-        print(f"Error updating user tier: {e}")
-        return False
+        print(f"[DB SEED ERROR]: {e}")
     finally:
         db.close()

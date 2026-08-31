@@ -157,7 +157,7 @@ const app = {
 
         const rankDisplay = document.getElementById('prof-rank');
         const rankFeed = document.getElementById('rank-feed');
-        const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICONIC 💎'];
+        const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
         const currentRank = ranks[this.userData?.access_tier || 0] || ranks[0];
 
         if (rankDisplay) rankDisplay.innerText = currentRank;
@@ -228,6 +228,106 @@ const app = {
                 localStorage.setItem("alpha_user_id", localId);
             }
             this.userId = parseInt(localId);
+        }
+    },
+
+    async loadTipMenu(creatorId) {
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/creators/${creatorId || this.userId}/tip-menu`);
+            if (res.ok) {
+                const data = await res.json();
+                return data.slots || [];
+            }
+        } catch (err) {
+            console.warn('[TIP MENU LOAD ERROR]:', err);
+        }
+        return [];
+    },
+
+    async openTipMenuManagementModal() {
+        this.closeModals();
+        this.initUserId();
+        this.showToast('Cargando los 10 espacios del Tip Menu... 📋');
+        const slots = await this.loadTipMenu(this.userId);
+        
+        let modal = document.getElementById('modal-tip-menu-edit');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-tip-menu-edit" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+                    <div class="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto text-white shadow-2xl">
+                        <div class="flex items-center justify-between mb-4 pb-2 border-b border-neutral-800">
+                            <h3 class="text-lg font-black text-amber-400">⚡ EDITAR TIP MENU (10 SLOTS)</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold px-2 py-1">✕</button>
+                        </div>
+                        <p class="text-xs text-neutral-400 mb-4">Configura tus 10 opciones de propina personalizadas para que tus fans las usen en tu perfil.</p>
+                        <div id="tip-menu-slots-form" class="space-y-3"></div>
+                        <div class="mt-6 flex justify-end gap-2">
+                            <button onclick="app.closeModals()" class="bg-neutral-800 hover:bg-neutral-700 px-4 py-2 rounded-xl text-xs font-bold">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-tip-menu-edit');
+        }
+
+        modal.classList.remove('hidden');
+        const container = document.getElementById('tip-menu-slots-form');
+        
+        let htmlContent = '';
+        for (let i = 1; i <= 10; i++) {
+            const existing = slots.find(s => s.slot_number === i) || { title: '', price_alpha: 10 };
+            htmlContent += `
+                <div class="bg-neutral-950 border border-neutral-800 p-3 rounded-2xl flex items-center gap-2">
+                    <span class="text-xs font-black text-amber-400 w-6">#${i}</span>
+                    <input type="text" id="tip-title-${i}" value="${existing.title}" placeholder="Título (Ej: Video exclusivo)" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-1.5 text-xs flex-1 text-white focus:border-amber-500 outline-none" />
+                    <input type="number" id="tip-price-${i}" value="${existing.price_alpha}" placeholder="$ALPHA" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-1.5 text-xs w-20 text-white focus:border-amber-500 outline-none text-center" />
+                    <button onclick="app.saveSingleTipSlot(${i})" class="bg-amber-500 hover:bg-amber-600 text-black font-black px-3 py-1.5 rounded-xl text-xs transition active:scale-95">💾</button>
+                </div>
+            `;
+        }
+        container.innerHTML = htmlContent;
+    },
+
+    async saveSingleTipSlot(slotNumber) {
+        this.haptic('medium');
+        const titleInput = document.getElementById(`tip-title-${slotNumber}`);
+        const priceInput = document.getElementById(`tip-price-${slotNumber}`);
+        
+        const title = titleInput ? titleInput.value.trim() : '';
+        const priceAlpha = parseInt(priceInput ? priceInput.value : '0');
+
+        if (!title || isNaN(priceAlpha) || priceAlpha <= 0) {
+            this.showToast('⚠️ Ingresa un título válido y un precio en $ALPHA mayor a 0.');
+            return;
+        }
+
+        this.initUserId();
+        this.showToast(`Guardando slot #${slotNumber}... ⏳`);
+
+        try {
+            const res = await fetch(`${this.backendUrl}/creators/tip-menu/update`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: this.userId,
+                    slot_number: slotNumber,
+                    title: title,
+                    price_alpha: priceAlpha
+                })
+            });
+
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                this.haptic('heavy');
+                this.showToast(`¡Slot #${slotNumber} guardado con éxito! 🛡️`);
+            } else {
+                throw new Error(data.detail || 'Error al guardar');
+            }
+        } catch (err) {
+            console.error('[TIP SLOT SAVE ERROR]:', err);
+            this.showToast(`⚠️ ${err.message || 'Error de conexión con el servidor'}`);
         }
     },
 
@@ -807,7 +907,7 @@ const app = {
 
     closeModals() {
         this.haptic('light');
-        ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-kyc'].forEach(m => {
+        ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-kyc', 'modal-tip-menu-edit'].forEach(m => {
             const el = document.getElementById(m);
             if (el) el.classList.add('hidden');
         });
