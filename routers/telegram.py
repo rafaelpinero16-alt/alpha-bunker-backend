@@ -6,7 +6,7 @@ from core.config import bot
 router = APIRouter(prefix="/telegram", tags=["Telegram Webhook"])
 
 TELEGRAM_SECRET_TOKEN = os.getenv("TELEGRAM_SECRET_TOKEN", "tu_token_secreto_por_defecto")
-# URL temporal o de tu frontend en Netlify para la Mini App
+# URL de tu frontend en Netlify para la Mini App
 MINI_APP_URL = os.getenv("MINI_APP_URL", "https://tu-miniapp.netlify.app")
 
 @router.post("/webhook")
@@ -41,7 +41,7 @@ async def telegram_webhook(
             )
             await bot.send_message(
                 chat_id=sender_id,
-                text=f"¡Bienvenido al Búnker, Rafa! 🐺 Haz clic en el botón de abajo para entrar a la plataforma:",
+                text=f"¡Bienvenido al Búnker! 🐺 Haz clic en el botón de abajo para entrar a la plataforma:",
                 reply_markup=keyboard
             )
 
