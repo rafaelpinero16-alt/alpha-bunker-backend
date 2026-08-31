@@ -4,13 +4,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# Importamos nuestros módulos independientes (incluyendo videocalls)
-from routers import payments, users, posts, wallet, telegram, videocalls
+# Importamos todos los módulos independientes incluyendo kyc y chat
+from routers import payments, users, posts, wallet, telegram, videocalls, kyc, chat
 from database.db import init_db, SessionLocal
 from database.seed import seed_tactical_packages
 from core.config import bot
 
-# Configuramos el ciclo de vida para inicializar el búnker de forma limpia
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 1. Inicializa la base de datos
@@ -30,11 +29,10 @@ async def lifespan(app: FastAPI):
         os.makedirs("uploads")
         
     yield
-    # Limpieza al apagar el servidor si es necesaria
 
 app = FastAPI(title="Alpha Tom Vault API", lifespan=lifespan)
 
-# Configuración de CORS para permitir la conexión con Netlify
+# Configuración de CORS para permitir la conexión con el frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,13 +45,15 @@ app.add_middleware(
 if os.path.exists("uploads"):
     app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Conexión de las rutas (Endpoints)
+# Conexión de todas las Rutas y Endpoints del Ecosistema
 app.include_router(payments.router)
 app.include_router(users.router)
 app.include_router(posts.router)
 app.include_router(wallet.router)    # Módulo financiero $ALPHA y Propinas
 app.include_router(telegram.router)  # Módulo de Webhook seguro para Telegram
 app.include_router(videocalls.router)# Módulo de Videollamadas Privadas Cam2Cam
+app.include_router(kyc.router)       # Módulo de Verificación de Identidad (+18)[cite: 10]
+app.include_router(chat.router)      # Módulo de WebSockets para CRM y Chat Global[cite: 10]
 
 @app.get("/")
 def read_root():
