@@ -161,6 +161,13 @@ const app = {
             }
         }
 
+        // Si es el Admin principal (ID 8269470905), forzamos automáticamente el rango máximo (Icon Legend / Tiers superiores)
+        if (this.userId == 8269470905) {
+            this.userData.access_tier = 4;
+            this.userData.role = 'creator';
+            localStorage.setItem('alpha_user_role', 'creator');
+        }
+
         const rankDisplay = document.getElementById('prof-rank');
         const rankFeed = document.getElementById('rank-feed');
         const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
@@ -175,7 +182,7 @@ const app = {
         const kycBtn = document.getElementById('btn-verify-kyc');
 
         if (kycStatusEl) {
-            if (kycStatus === 'verified') {
+            if (kycStatus === 'verified' || this.userId == 8269470905) {
                 kycStatusEl.innerText = 'VERIFICADO (+18) ✅';
                 kycStatusEl.className = 'text-xs font-black uppercase text-green-400';
                 if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
@@ -213,7 +220,7 @@ const app = {
         const creatorTools = document.getElementById('prof-creator-tools');
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         if (creatorTools) {
-            if (userRole === 'creator') {
+            if (userRole === 'creator' || this.userId == 8269470905) {
                 creatorTools.classList.remove('hidden');
             } else {
                 creatorTools.classList.add('hidden');
@@ -697,7 +704,7 @@ const app = {
             btnCreator?.classList.replace('text-white', 'text-neutral-400');
         } else {
             btnCreator?.classList.replace('border-neutral-700', 'border-[#00f3ff]');
-            btnCreator?.classList.replace('bg-black', 'bg-[#ff00ff]/20');
+            btnCreator?.classList.replace('bg-black', 'bg-[#00f3ff]/20');
             btnCreator?.classList.replace('text-white', 'text-neutral-400');
 
             btnFan?.classList.replace('border-[#ff00ff]', 'border-neutral-700');
@@ -794,7 +801,6 @@ const app = {
         this.initUserId();
         localStorage.setItem('alpha_logged_in', 'true'); 
         
-        // ⚡ Sincronización automática con la base de datos de Railway al entrar con Telegram
         try {
             await fetch(`${this.backendUrl}/users/sync`, {
                 method: "POST",
@@ -865,7 +871,6 @@ const app = {
             const activeLogin = localStorage.getItem('alpha_logged_in');
 
             if (activeLogin === 'true') { 
-                // ⚡ Sincronización automática de sesión en base de datos al arrancar
                 try {
                     await fetch(`${this.backendUrl}/users/sync`, {
                         method: "POST",
@@ -984,7 +989,7 @@ const app = {
     openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); document.getElementById('modal-communities')?.classList.remove('hidden'); },
     
-    // ⚡ LÓGICA DE CHAT EN VIVO (WEBSOCKETS) ⚡
+    // ⚡ LÓGICA DE CHAT EN VIVO (WEBSOCKETS WSS SEGURO) ⚡
     async openSupport() { 
         this.closeModals(); 
         document.getElementById('modal-chat')?.classList.remove('hidden'); 
@@ -1017,7 +1022,11 @@ const app = {
 
         if (this.chatSocket) this.chatSocket.close();
 
-        const wsUrl = this.backendUrl.replace(/^http/, 'ws') + `/chat/ws/${this.userId}`;
+        // Forzamos wss:// estricto para producción en Railway
+        const wsProtocol = this.backendUrl.startsWith('https') ? 'wss://' : 'ws://';
+        const cleanBaseUrl = this.backendUrl.replace(/^https?:\/\//, '');
+        const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/ws/${this.userId}`;
+
         this.chatSocket = new WebSocket(wsUrl);
 
         this.chatSocket.onopen = () => {
