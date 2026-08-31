@@ -16,7 +16,7 @@
 <body>
     <div class="tron-grid"></div>
     <div class="grid-fade"></div>
-    <div class="watermark-footer">
+    <div class="watermark-footer" id="watermark-signature">
         RAFAEL SANCHEZ / "ARQUITECTO DE BOTS Y MINI APPS" * TELEGRAM: <a href="#" onclick="app.openLink('https://t.me/therealonetom'); return false;">@THEREALONETOM</a>
     </div>
 
@@ -236,7 +236,7 @@
             </div>
         </header>
 
-        <!-- 🚀 GRAN BOTÓN / BANNER DEL MURO PARA CHAT GLOBAL Y VIDEOLLAMADA (ESTILO TELEGRAM) -->
+        <!-- 🚀 CHAT GLOBAL & VIDEO BÚNKER (CANAL INDEPENDIENTE) -->
         <div class="mx-2 mt-2 bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border-2 border-[#00f3ff] rounded-2xl p-3.5 shadow-[0_0_15px_rgba(0,243,255,0.2)] flex items-center justify-between shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-[#00f3ff]/20 border border-[#00f3ff] flex items-center justify-center text-[#00f3ff] text-xl animate-pulse shrink-0">
@@ -244,11 +244,11 @@
                 </div>
                 <div>
                     <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
-                    <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Estilo Telegram)</p>
+                    <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Independiente)</p>
                 </div>
             </div>
             <div class="flex gap-1.5 shrink-0">
-                <button onclick="app.openSupport()" class="bg-[#00f3ff] hover:bg-cyan-400 text-black font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(0,243,255,0.4)] transition flex items-center gap-1">
+                <button onclick="app.openGlobalChat()" class="bg-[#00f3ff] hover:bg-cyan-400 text-black font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(0,243,255,0.4)] transition flex items-center gap-1">
                     <i class="fa-solid fa-comments"></i> <span id="btn-wall-chat">CHAT</span>
                 </button>
                 <button onclick="app.startVideoCall()" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition flex items-center gap-1">
@@ -365,7 +365,7 @@
                 <div class="grid grid-cols-2 gap-2">
                     <button onclick="app.subscribeCreatorTier('soldier_creator')" class="bg-black border border-[#00f3ff] hover:bg-[#00f3ff]/10 text-white p-3 rounded-xl text-left transition">
                         <div class="text-xs font-black text-[#00f3ff]">SOLDIER CREATOR</div>
-                        <div class="text-[10px] text-gray-300 font-bold">$5.00 USD / mes</div>
+                        <div class="text-[10px] text-gray-300 font-bold">$4.99 USD / mes</div>
                     </button>
                     <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-black border border-[#ffb703] hover:bg-[#ffb703]/10 text-white p-3 rounded-xl text-left transition">
                         <div class="text-xs font-black text-[#ffb703]">ICON CREATOR</div>
@@ -493,7 +493,6 @@
             </button>
             <h2 class="text-3d-cyan text-3xl text-center mb-6 mt-4 font-black" id="cat-title">UPGRADE PLAN</h2>
             <div class="overflow-y-auto pb-10 space-y-4 pr-2" id="catalog-packages-list">
-                <!-- Se renderiza dinámicamente desde app.js con los rangos oficiales -->
                 <div class="text-center text-neutral-400 mt-10 font-bold">Cargando planes del Búnker... ⏳</div>
             </div>
         </div>
@@ -573,14 +572,14 @@
         </div>
     </div>
 
-    <!-- MODAL: IN-APP CHAT (CRM) -->
+    <!-- MODAL 1: SOPORTE BÚNKER (CRM PRIVADO CON ADMIN - ACCESIBLE PARA TODOS) -->
     <div id="modal-chat" class="hidden fixed inset-0 z-[80] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
         <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(0,243,255,0.2)]">
             <div class="bg-black bg-opacity-60 p-4 flex items-center justify-between border-b border-[#00f3ff] shadow-[0_0_15px_rgba(0,243,255,0.1)]">
                 <div class="flex items-center gap-3">
                     <div>
-                        <h3 id="chat-title" class="font-bold text-white text-base">SOPORTE BÚNKER (CRM)</h3>
-                        <p class="text-xs text-[#00ff00] uppercase tracking-widest font-extrabold"><i class="fa-solid fa-circle text-[6px] animate-pulse align-middle"></i> <span id="chat-routed">Enrutado al Grupo Privado</span></p>
+                        <h3 id="chat-title" class="font-bold text-white text-base">SOPORTE BÚNKER (CRM PRIVADO)</h3>
+                        <p class="text-xs text-[#00ff00] uppercase tracking-widest font-extrabold"><i class="fa-solid fa-circle text-[6px] animate-pulse align-middle"></i> <span id="chat-routed">Canal Directo con Admin</span></p>
                     </div>
                 </div>
                 <div>
@@ -589,21 +588,52 @@
                     </button>
                 </div>
             </div>
-            <div class="px-4 pt-4">
-                <button onclick="app.openLink('https://t.me/m/kdQVqcdDNmMx')" class="w-full bg-[#00f3ff] text-black font-extrabold py-3 rounded-xl text-sm mb-1 shadow-[0_0_15px_#00f3ff] hover:scale-[1.02] transition">
-                    <i class="fa-brands fa-telegram mr-2 text-lg"></i> <span id="btn-send-proof">ENVIAR COMPROBANTE AL BÚNKER</span>
-                </button>
-            </div>
             <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-black/50">
                 <div class="flex flex-col items-start animate-fade-in">
                     <div class="bg-gray-800 text-white text-base p-4 rounded-2xl rounded-tl-sm border border-[#00f3ff] max-w-[85%] shadow-[0_0_10px_rgba(0,243,255,0.2)]">
-                        <span id="chat-welcome">¡Sistema Búnker CRM Activo! Envía tu consulta.</span>
+                        <span id="chat-welcome">¡Soporte Búnker CRM Activo! Canal directo con el administrador.</span>
                     </div>
                 </div>
             </div>
             <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-3 pb-6">
-                <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-6 border-[#ff00ff] focus:border-[#ff00ff]" placeholder="Escribe tu mensaje..." onkeypress="app.handleChatKeyPress(event)">
+                <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-6 border-[#ff00ff] focus:border-[#ff00ff]" placeholder="Escribe tu consulta..." onkeypress="app.handleChatKeyPress(event)">
                 <button onclick="app.sendChatMessage()" class="w-14 h-14 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_0_15px_rgba(0,243,255,0.5)] text-xl">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: CHAT GLOBAL & VIDEO BÚNKER (COMUNIDAD INDEPENDIENTE CON BOTÓN ADMIN) -->
+    <div id="modal-global-chat" class="hidden fixed inset-0 z-[82] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
+        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(255,0,255,0.2)]">
+            <div class="bg-black bg-opacity-60 p-4 flex items-center justify-between border-b border-[#ff00ff] shadow-[0_0_15px_rgba(255,0,255,0.1)]">
+                <div class="flex items-center gap-3">
+                    <!-- Botón pequeño con logotipo del Búnker / Alfa para llamar al Admin -->
+                    <button onclick="app.openSupport()" class="w-9 h-9 rounded-xl bg-[#ff00ff]/20 border border-[#ff00ff] flex items-center justify-center text-[#ff00ff] hover:scale-110 transition shadow-[0_0_10px_#ff00ff]" title="Llamar a Soporte Admin">
+                        <i class="fa-solid fa-shield-halved text-sm"></i>
+                    </button>
+                    <div>
+                        <h3 id="global-chat-title" class="font-bold text-white text-sm uppercase">CHAT GLOBAL & VIDEO BÚNKER</h3>
+                        <p class="text-[10px] text-cyan-400 uppercase tracking-widest font-extrabold"><i class="fa-solid fa-circle text-[5px] animate-pulse align-middle"></i> Comunidad Activa</p>
+                    </div>
+                </div>
+                <div>
+                    <button onclick="app.closeModals()" class="bg-red-600 rounded-full inline-flex items-center justify-center px-4 py-2 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-sm">
+                        <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text">VOLVER</span>
+                    </button>
+                </div>
+            </div>
+            <div id="global-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-black/50">
+                <div class="flex flex-col items-start animate-fade-in">
+                    <div class="bg-gray-800 text-white text-base p-4 rounded-2xl rounded-tl-sm border border-[#ff00ff] max-w-[85%] shadow-[0_0_10px_rgba(255,0,255,0.2)]">
+                        <span>¡Bienvenido al Chat Global Independiente del Búnker!</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-3 pb-6">
+                <input type="text" id="global-chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-6 border-[#00f3ff] focus:border-[#00f3ff]" placeholder="Escribe en el chat global..." onkeypress="app.handleGlobalChatKeyPress(event)">
+                <button onclick="app.sendGlobalChatMessage()" class="w-14 h-14 shrink-0 rounded-full bg-gradient-to-tr from-[#ff00ff] to-[#00f3ff] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_0_15px_rgba(255,0,255,0.5)] text-xl">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
             </div>
@@ -635,11 +665,14 @@
         </div>
     </div>
 
+    <!-- CANVAS PARA FUEGOS ARTIFICIALES (ÉXITO DE PAGO / SUSCRIPCIÓN) -->
+    <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
+
     <div id="toast" class="toast">¡Copiado! 📋</div>
     
-    <script src="js/security.js?v=4"></script>
-    <script src="js/translations.js?v=4"></script>
-    <script src="js/api.js?v=4"></script>
-    <script src="js/app.js?v=4" defer></script>
+    <script src="js/security.js?v=5"></script>
+    <script src="js/translations.js?v=5"></script>
+    <script src="js/api.js?v=5"></script>
+    <script src="js/app.js?v=5" defer></script>
 </body>
 </html>
