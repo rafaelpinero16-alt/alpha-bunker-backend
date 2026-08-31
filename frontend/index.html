@@ -533,11 +533,11 @@
             <h3 class="text-3xl font-extrabold text-[#ffb703] mb-2 mt-2" id="pay-title">Plan Name</h3>
             <p class="text-4xl font-black text-white mb-6" id="pay-price">$0</p>
             <div class="space-y-4">
-                <button onclick="app.simulateAndPay()" class="w-full flex items-center justify-center gap-3 bg-blue-600 border-2 border-blue-400 py-4 rounded-xl font-black text-lg text-white levitate">
-                    <i class="fa-solid fa-star text-yellow-300 text-xl"></i> <span id="pay-btn-stars">Pagar con Telegram Stars (150 XTR)</span>
+                <button onclick="app.buyPackageStars('starter')" class="w-full flex items-center justify-center gap-3 bg-blue-600 border-2 border-blue-400 py-4 rounded-xl font-black text-lg text-white levitate">
+                    <i class="fa-solid fa-star text-yellow-300 text-xl"></i> <span id="pay-btn-stars">Pagar con Telegram Stars (XTR)</span>
                 </button>
-                <button onclick="app.simulateAndPay(true)" class="w-full flex items-center justify-center gap-3 bg-purple-700 border-2 border-purple-400 py-4 rounded-xl font-black text-lg text-white">
-                    <i class="fa-solid fa-credit-card text-white text-xl"></i> <span id="btn-stripe">Stripe / Checkout Externo</span>
+                <button onclick="app.openLink('https://t.me/therealonetom')" class="w-full flex items-center justify-center gap-3 bg-purple-700 border-2 border-purple-400 py-4 rounded-xl font-black text-lg text-white">
+                    <i class="fa-brands fa-telegram text-white text-xl"></i> <span>Soporte / CRM Directo</span>
                 </button>
             </div>
             <p class="text-sm text-gray-300 mt-6 font-medium" id="txt-pay-proof">Envía el comprobante al bot/Búnker (CRM) tras realizar pagos externos.</p>
@@ -610,9 +610,10 @@
 
     <div id="toast" class="toast">¡Copiado! 📋</div>
     
-    <script src="js/security.js"></script>
-    <script src="js/translations.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/app.js" defer></script>
+    <!-- SCRIPTS CON ANTICACHÉ (VERSIONADOS) -->
+    <script src="js/security.js?v=3"></script>
+    <script src="js/translations.js?v=3"></script>
+    <script src="js/api.js?v=3"></script>
+    <script src="js/app.js?v=3" defer></script>
 </body>
 </html>
