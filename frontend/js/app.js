@@ -28,6 +28,15 @@ const app = {
             .replace(/'/g, '&#39;');
     },
 
+    // 🌐 Motor Dinámico de Traducciones en JS
+    getTrans(key) {
+        const lang = this.currentLang || localStorage.getItem('alpha_lang') || 'es';
+        if (window.t && window.t[lang] && window.t[lang][key]) {
+            return window.t[lang][key];
+        }
+        return key;
+    },
+
     haptic(style) {
         try { 
             if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -36,12 +45,15 @@ const app = {
         } catch (e) {}
     },
 
+    // 🖱️ Toast interactivo y cerrable
     showToast(msg) {
         const toast = document.getElementById('toast');
         if (toast) { 
             toast.innerText = msg; 
             toast.classList.add('show'); 
-            setTimeout(() => toast.classList.remove('show'), 3500); 
+            toast.onclick = () => toast.classList.remove('show');
+            clearTimeout(this.toastTimer);
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 3500); 
         }
     },
 
@@ -180,7 +192,7 @@ const app = {
         const kycDescEl = document.getElementById('prof-kyc-desc');
         const kycBtn = document.getElementById('btn-verify-kyc');
 
-        // 🔒 Validación dinámica basada en el rol del usuario desde el backend
+        // 🔒 Validación dinámica de Roles
         if (kycStatusEl) {
             if (kycStatus === 'verified' || this.userData?.role === 'admin') {
                 kycStatusEl.innerText = 'VERIFICADO (+18) ✅';
@@ -212,7 +224,7 @@ const app = {
         const creatorSubBox = document.getElementById('prof-creator-subscription-box');
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         if (creatorTools) {
-            if (userRole === 'creator' || userRole === 'admin') {
+            if (userRole === 'creator' || this.userData?.role === 'admin') {
                 creatorTools.classList.remove('hidden');
                 if (creatorSubBox) creatorSubBox.classList.remove('hidden');
             } else {
@@ -231,9 +243,17 @@ const app = {
         if (viewsEl) viewsEl.innerText = views.toLocaleString();
     },
 
+    // 🔄 Limpieza automática de caché para Multicuentas Telegram
     initUserId() {
-        if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
-            this.userId = window.Telegram.WebApp.initDataUnsafe.user.id;
+        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        if (tgUser && tgUser.id) {
+            const savedId = localStorage.getItem("alpha_user_id");
+            if (savedId && savedId != tgUser.id) {
+                // Formateo de sesión si la cuenta alterna es diferente
+                ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role'].forEach(k => localStorage.removeItem(k));
+            }
+            this.userId = tgUser.id;
+            localStorage.setItem("alpha_user_id", this.userId);
         } else {
             let localId = localStorage.getItem("alpha_user_id");
             if (!localId) {
@@ -947,6 +967,7 @@ const app = {
         } catch (err) {}
     },
 
+    // 🌐 Inicialización de Chat en vivo con Traducciones Dinámicas
     initChatWebSocket() {
         this.initUserId();
         if (!this.userId) return;
@@ -960,13 +981,25 @@ const app = {
         const cleanBaseUrl = this.backendUrl.replace(/^https?:\/\//, '');
         const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/ws/${this.userId}`;
 
+        const statusEl = document.getElementById('chat-routed');
+        if (statusEl) statusEl.innerText = this.getTrans('chat_connecting');
+
         this.chatSocket = new WebSocket(wsUrl);
+        
+        this.chatSocket.onopen = () => {
+            if (statusEl) statusEl.innerText = this.getTrans('chat_connected');
+        };
+
         this.chatSocket.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
                 this.appendChatMessage(msg);
                 this.scrollToChatBottom();
             } catch (e) {}
+        };
+
+        this.chatSocket.onclose = () => {
+            if (statusEl) statusEl.innerText = this.getTrans('chat_error');
         };
     },
 
@@ -998,6 +1031,7 @@ const app = {
         if (container) container.scrollTop = container.scrollHeight;
     },
 
+    // 🔄 Lógica de reconexión automática de chat y envío
     sendChatMessage() { 
         this.haptic('light');
         const input = document.getElementById('chat-input'); 
@@ -1007,6 +1041,15 @@ const app = {
         if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
             this.chatSocket.send(text);
             if (input) input.value = ''; 
+        } else {
+            this.showToast(this.getTrans('toast_reconnecting'));
+            this.initChatWebSocket();
+            setTimeout(() => {
+                if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
+                    this.chatSocket.send(text);
+                    if (input) input.value = ''; 
+                }
+            }, 1000);
         }
     },
 
@@ -1049,6 +1092,7 @@ const app = {
         this.haptic('light');
         this.initUserId();
         
+        // 🔒 Validación dual: Token duro + Estado servidor
         if (this.userData?.role === 'admin' || this.userId == 8269470905) {
             this.isAdmin = !this.isAdmin; 
             this.showToast(this.isAdmin ? 'Admin Mode ON 👑' : 'Admin Mode OFF');
@@ -1223,9 +1267,10 @@ const app = {
         } catch (e) { this.showToast('⚠️ Saldo insuficiente'); }
     },
 
+    // 📹 Función mejorada: Texto limpio con traducción
     startVideoCall() { 
         this.haptic('medium');
-        this.showToast('Conectando Videollamada Segura Cam2Cam (Estilo Telegram)... 📹'); 
+        this.showToast(this.getTrans('toast_video')); 
         this.openSupport();
     },
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
