@@ -92,3 +92,15 @@ class Package(Base):
     badge = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
+    author_name = Column(String(100), nullable=False)
+    author_role = Column(String(20), default="fan")  # fan, creator, admin
+    access_level = Column(Integer, default=0)        # 0: Espía, 1: Soldier, etc. (Para renderizar su rango al instante)
+    content = Column(Text, nullable=False)
+    is_system = Column(Boolean, default=False)       # True = Notificaciones de propinas y alertas del Búnker
+    created_at = Column(DateTime, default=datetime.utcnow)
