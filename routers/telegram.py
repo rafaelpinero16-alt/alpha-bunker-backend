@@ -5,8 +5,8 @@ from core.config import bot
 
 router = APIRouter(prefix="/telegram", tags=["Telegram Webhook"])
 
-TELEGRAM_SECRET_TOKEN = os.getenv("TELEGRAM_SECRET_TOKEN", "tu_token_secreto_por_defecto")
-# URL de tu frontend en Netlify para la Mini App
+TELEGRAM_SECRET_TOKEN = os.getenv("TELEGRAM_SECRET_TOKEN", "").strip()
+# URL de tu frontend en Netlify o Railway para la Mini App
 MINI_APP_URL = os.getenv("MINI_APP_URL", "https://tu-miniapp.netlify.app")
 
 @router.post("/webhook")
@@ -14,10 +14,15 @@ async def telegram_webhook(
     request: Request,
     x_telegram_bot_api_secret_token: str = Header(None)
 ):
-    if x_telegram_bot_api_secret_token != TELEGRAM_SECRET_TOKEN:
+    # Validar el token secreto solo si está configurado en el entorno
+    if TELEGRAM_SECRET_TOKEN and x_telegram_bot_api_secret_token != TELEGRAM_SECRET_TOKEN:
         raise HTTPException(status_code=403, detail="Acceso denegado: Token secreto inválido.")
     
-    body = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        return {"status": "error", "detail": "Invalid JSON"}
+
     message = body.get("message")
     
     if message:
