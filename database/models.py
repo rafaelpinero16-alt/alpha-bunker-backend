@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Text, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Text, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database.db import Base
@@ -17,11 +17,11 @@ class User(Base):
     legal_name = Column(String(150), nullable=True)
     is_adult = Column(Boolean, default=False)
     
-    # 🛡️ Controles de Membresía y Monetización para Creadores
+    # 🛡️ Controles de Membresía y Creadores (Suscripciones B2B)
     is_creator = Column(Boolean, default=False)
-    creator_subscription_active = Column(Boolean, default=False) # Valida la cuota mensual de $10
-    subscription_expires_at = Column(DateTime, nullable=True)
-    can_receive_tips = Column(Boolean, default=True)             # Se bloquea si no paga la membresía
+    creator_tier = Column(String(30), default="none")            # none, soldier_creator, icon_creator
+    subscription_expires_at = Column(DateTime, nullable=True)     # Controla el mes gratis y los cobros recurrentes
+    can_receive_tips = Column(Boolean, default=True)             # Se bloquea si vence la membresía B2B
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -81,14 +81,14 @@ class Package(Base):
     __tablename__ = "packages"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    slug = Column(String(50), unique=True, index=True, nullable=False)
+    slug = Column(String(50), unique=True, index=True, nullable=False) # spy, soldier, veteran, legend, icon-legend
     name = Column(String(100), nullable=False)
     description = Column(String(255), nullable=True)
     alpha_base = Column(Integer, nullable=False)
     bonus_percentage = Column(Integer, default=0)
     alpha_total = Column(Integer, nullable=False)
     price_stars = Column(Integer, nullable=False)
-    price_ton = Column(Integer, nullable=False)
+    price_ton = Column(Float, nullable=False)                     # Cambiado a Float para soportar decimales de TON (ej. 3.2 TON)
     badge = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)

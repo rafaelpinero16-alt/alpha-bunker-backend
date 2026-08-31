@@ -236,6 +236,27 @@
             </div>
         </header>
 
+        <!-- 🚀 GRAN BOTÓN / BANNER DEL MURO PARA CHAT GLOBAL Y VIDEOLLAMADA (ESTILO TELEGRAM) -->
+        <div class="mx-2 mt-2 bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border-2 border-[#00f3ff] rounded-2xl p-3.5 shadow-[0_0_15px_rgba(0,243,255,0.2)] flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-[#00f3ff]/20 border border-[#00f3ff] flex items-center justify-center text-[#00f3ff] text-xl animate-pulse shrink-0">
+                    <i class="fa-solid fa-video"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
+                    <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Estilo Telegram)</p>
+                </div>
+            </div>
+            <div class="flex gap-1.5 shrink-0">
+                <button onclick="app.openSupport()" class="bg-[#00f3ff] hover:bg-cyan-400 text-black font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(0,243,255,0.4)] transition flex items-center gap-1">
+                    <i class="fa-solid fa-comments"></i> <span id="btn-wall-chat">CHAT</span>
+                </button>
+                <button onclick="app.startVideoCall()" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition flex items-center gap-1">
+                    <i class="fa-solid fa-video"></i> <span id="btn-wall-video">VIDEO</span>
+                </button>
+            </div>
+        </div>
+
         <main class="flex-1 feed-container p-4 mt-2 snap-y snap-mandatory scroll-smooth overflow-y-auto" id="feed-container"></main>
 
         <div class="glass-panel mx-2 mb-2 p-2.5 flex justify-between items-end z-20 px-4">
@@ -334,15 +355,34 @@
                 </button>
             </div>
 
-            <!-- Billetera $ALPHA -->
+            <!-- 👑 SUSCRIPCIÓN DE CREADORES B2B -->
+            <div id="prof-creator-subscription-box" class="hidden bg-neutral-900 border-2 border-[#ff00ff] rounded-xl p-4 mb-5 shadow-[0_0_15px_rgba(255,0,255,0.2)]">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-black text-[#ff00ff] uppercase"><i class="fa-solid fa-crown mr-1.5"></i> MEMBRESÍA CREADOR B2B</span>
+                    <span class="text-[10px] font-black uppercase bg-[#ff00ff]/20 text-[#ff00ff] px-2 py-0.5 rounded-full border border-[#ff00ff]/40">1º MES GRATIS 🎁</span>
+                </div>
+                <p class="text-xs text-gray-300 mb-3 font-medium">Desbloquea la edición de tu Tip Menu y monetización activa.</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="app.subscribeCreatorTier('soldier_creator')" class="bg-black border border-[#00f3ff] hover:bg-[#00f3ff]/10 text-white p-3 rounded-xl text-left transition">
+                        <div class="text-xs font-black text-[#00f3ff]">SOLDIER CREATOR</div>
+                        <div class="text-[10px] text-gray-300 font-bold">$5.00 USD / mes</div>
+                    </button>
+                    <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-black border border-[#ffb703] hover:bg-[#ffb703]/10 text-white p-3 rounded-xl text-left transition">
+                        <div class="text-xs font-black text-[#ffb703]">ICON CREATOR</div>
+                        <div class="text-[10px] text-gray-300 font-bold">$7.99 USD / mes</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Billetera $ALPHA (Con catálogo de los 5 packs tácticos) -->
             <div class="bg-black border-2 border-[#ffb703] rounded-xl p-5 mb-5 shadow-[0_0_15px_rgba(255,183,3,0.3)]">
                 <div class="flex justify-between items-center mb-3">
                     <span class="text-xs text-[#ffb703] font-bold tracking-wider uppercase"><i class="fa-solid fa-coins mr-1.5"></i> <span id="prof-alpha-title">BILLETERA $ALPHA</span></span>
                     <span id="prof-alpha-balance" class="wallet-balance-val font-black text-[#ffb703] text-lg">0 $ALPHA</span>
                 </div>
                 <p class="text-xs text-gray-300 mb-4 font-medium" id="prof-alpha-desc">Recarga saldo con tu billetera TON conectada para dar propinas y desbloquear contenido exclusivo.</p>
-                <button onclick="app.rechargeAlphaCoins(1, 100)" class="w-full bg-[#ffb703] text-black font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition shadow-[0_0_15px_#ffb703]">
-                    <i class="fa-solid fa-bolt text-base"></i> <span id="btn-recharge-text">RECARGAR 1 TON x 100 $ALPHA</span>
+                <button onclick="app.openCatalogPackages()" class="w-full bg-[#ffb703] text-black font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition shadow-[0_0_15px_#ffb703]">
+                    <i class="fa-solid fa-bolt text-base"></i> <span id="btn-recharge-text">VER 5 PACKS TÁCTICOS ($ALPHA)</span>
                 </button>
             </div>
 
@@ -370,11 +410,6 @@
                 <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase" id="lbl-bio">BIO / DESCRIPCIÓN VIP</label>
                 <textarea id="prof-bio" rows="3" class="cyber-input w-full text-base" placeholder="Escribe tu biografía..."></textarea>
                 <button onclick="app.saveProfile()" class="mt-3 w-full border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-bold text-sm hover:bg-[#ff00ff]/20 transition uppercase tracking-wider" id="btn-save-bio">GUARDAR PERFIL</button>
-            </div>
-
-            <div id="prof-monetization" class="hidden bg-green-900/40 border-2 border-green-500 rounded-xl p-4 mb-5 shadow-[0_0_12px_rgba(0,255,0,0.2)]">
-                <p class="text-sm text-green-400 font-extrabold mb-1"><i class="fa-solid fa-sack-dollar mr-1"></i> <span id="prof-mon-title">Monetización Activa (70% RevShare)</span></p>
-                <p class="text-xs text-gray-200 font-medium" id="prof-mon-desc">Ganas comisiones por cada suscripción o desbloqueo en tu contenido privado.</p>
             </div>
 
             <div id="prof-publish-btn" class="mb-6">

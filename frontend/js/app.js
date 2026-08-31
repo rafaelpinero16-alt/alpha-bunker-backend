@@ -80,15 +80,10 @@ const app = {
 
         try {
             let balance = 0;
-            if (typeof fetchWalletBalance === 'function') {
-                const wallet = await fetchWalletBalance(this.userId);
-                balance = wallet.alpha_balance;
-            } else {
-                const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    balance = data.balance_alfa_coins ?? data.alpha_balance ?? 0;
-                }
+            const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}`);
+            if (res.ok) {
+                const data = await res.json();
+                balance = data.balance_alfa_coins ?? data.alpha_balance ?? 0;
             }
 
             const balanceDisplays = document.querySelectorAll('#prof-alpha-balance, #wallet-balance, .wallet-balance-val');
@@ -195,15 +190,6 @@ const app = {
                     kycBtn.innerText = 'SOLICITUD EN PROCESO ⏳';
                     kycBtn.disabled = true;
                 }
-            } else if (kycStatus === 'rejected') {
-                kycStatusEl.innerText = 'RECHAZADO ❌';
-                kycStatusEl.className = 'text-xs font-black uppercase text-red-500';
-                if (kycDescEl) kycDescEl.innerText = 'Documento o selfie no legible. Por favor vuelve a enviar tus datos.';
-                if (kycBtn) {
-                    kycBtn.classList.remove('hidden');
-                    kycBtn.innerText = 'REINTENTAR VERIFICACIÓN 🔄';
-                    kycBtn.disabled = false;
-                }
             } else {
                 kycStatusEl.innerText = 'NO VERIFICADO ⚠️';
                 kycStatusEl.className = 'text-xs font-black uppercase text-neutral-400';
@@ -217,12 +203,15 @@ const app = {
         }
 
         const creatorTools = document.getElementById('prof-creator-tools');
+        const creatorSubBox = document.getElementById('prof-creator-subscription-box');
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         if (creatorTools) {
             if (userRole === 'creator' || this.userId == 8269470905) {
                 creatorTools.classList.remove('hidden');
+                if (creatorSubBox) creatorSubBox.classList.remove('hidden');
             } else {
                 creatorTools.classList.add('hidden');
+                if (creatorSubBox) creatorSubBox.classList.add('hidden');
             }
         }
     },
@@ -233,16 +222,12 @@ const app = {
         localStorage.setItem('alpha_real_views', views.toString());
 
         const viewsEl = document.getElementById('views-counter');
-        if (viewsEl) {
-            viewsEl.innerText = views.toLocaleString();
-        }
+        if (viewsEl) viewsEl.innerText = views.toLocaleString();
     },
 
     initUserId() {
         if (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) {
             this.userId = window.Telegram.WebApp.initDataUnsafe.user.id;
-        } else if (typeof getSessionUser === 'function') {
-            this.userId = getSessionUser().user_id;
         } else {
             let localId = localStorage.getItem("alpha_user_id");
             if (!localId) {
@@ -296,9 +281,7 @@ const app = {
 
         modal.classList.remove('hidden');
         const container = document.getElementById('tip-menu-slots-form');
-        if (container) {
-            container.innerHTML = '';
-        }
+        if (container) container.innerHTML = '';
 
         const slots = await this.loadTipMenu(this.userId);
         
@@ -321,9 +304,7 @@ const app = {
                 </div>
             `;
         }
-        if (container) {
-            container.innerHTML = htmlContent;
-        }
+        if (container) container.innerHTML = htmlContent;
     },
 
     async saveSingleTipSlot(slotNumber) {
@@ -418,7 +399,7 @@ const app = {
         const container = document.getElementById('catalog-packages-list');
         if (!container) return;
 
-        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">Cargando planes del Búnker... ⏳</div>`;
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">Cargando 5 packs tácticos del Búnker... ⏳</div>`;
 
         try {
             const res = await fetch(`${this.backendUrl}/payments/packages`);
@@ -427,12 +408,15 @@ const app = {
                 const packages = data.packages || [];
 
                 container.innerHTML = packages.map(pkg => `
-                    <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5">
-                        <div class="flex justify-between items-center mb-2">
-                            <h3 class="text-xl font-bold text-white"><i class="fa-solid fa-gem text-[#ffb703] mr-1"></i> ${pkg.name}</h3>
-                            <span class="text-2xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
+                    <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative">
+                        <div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-3 py-0.5 rounded-full text-[10px] font-black uppercase shadow">
+                            ${pkg.badge || 'TÁCTICO'} ${pkg.bonus_percentage > 0 ? `(+${pkg.bonus_percentage}% Bonus)` : ''}
                         </div>
-                        <p class="text-base text-gray-200 mb-4 font-medium">${pkg.description || 'Acceso exclusivo al Búnker.'}</p>
+                        <div class="flex justify-between items-center mb-2 mt-1">
+                            <h3 class="text-lg font-black text-white"><i class="fa-solid fa-shield-halved text-[#00f3ff] mr-1.5"></i> ${pkg.name}</h3>
+                            <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
+                        </div>
+                        <p class="text-xs text-gray-300 mb-4 font-medium">${pkg.description || 'Recarga táctica con bonificación por volumen.'}</p>
                         <div class="grid grid-cols-2 gap-2">
                             <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">
                                 ⭐ ${pkg.price_stars} Stars
@@ -444,11 +428,49 @@ const app = {
                     </div>
                 `).join('');
             } else {
-                throw new Error('Error al cargar paquetes');
+                throw new Error('Error al cargar paquetes tácticos');
             }
         } catch (err) {
             console.warn('[PACKAGES LOAD ERROR]:', err);
             container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">⚠️ Error al conectar con el servidor de pagos.</div>`;
+        }
+    },
+
+    async subscribeCreatorTier(tierSlug) {
+        this.haptic('medium');
+        this.initUserId();
+        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
+
+        if (kycStatus !== 'verified' && this.userId != 8269470905) {
+            this.showToast('⚠️ Debes verificar tu identidad (KYC +18) para activar tu suscripción de creador.');
+            this.openKYCModal();
+            return;
+        }
+
+        const planName = tierSlug === 'soldier_creator' ? 'Soldier Creator ($5/mes - 1º Mes Gratis)' : 'Icon Creator ($7.99/mes - 1º Mes Gratis)';
+        const confirmSub = confirm(`¿Activar tu membresía B2B: ${planName}?\nDisfrutarás tu primer mes totalmente gratis.`);
+        if (!confirmSub) return;
+
+        this.showToast('Activando suscripción de creador... ⚡');
+        try {
+            const res = await fetch(`${this.backendUrl}/creators/subscribe`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: this.userId,
+                    tier: tierSlug
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                this.haptic('heavy');
+                this.showToast('¡Membresía B2B activada con éxito! 1er mes gratis 🎁');
+                this.updateProfileUI();
+            } else {
+                throw new Error(data.detail || 'No se pudo activar la suscripción');
+            }
+        } catch (err) {
+            this.showToast(`⚠️ ${err.message || 'Error de conexión'}`);
         }
     },
 
@@ -473,9 +495,7 @@ const app = {
             avatarImg.src = avatarUrl;
             avatarImg.classList.remove('hidden');
         }
-        if (avatarFeed) {
-            avatarFeed.src = avatarUrl;
-        }
+        if (avatarFeed) avatarFeed.src = avatarUrl;
         this.showToast('¡Foto de perfil actualizada! 📸');
     },
 
@@ -495,10 +515,6 @@ const app = {
             localStorage.setItem('alpha_user_bio', newBio);
         }
 
-        if (this.userId && typeof syncUserSession === 'function') {
-            syncUserSession();
-        }
-
         this.showToast('¡Perfil guardado correctamente! 🛡️');
         this.updateProfileUI();
     },
@@ -515,10 +531,8 @@ const app = {
         this.haptic('light');
         this.showToast('Comprimiendo documento... ⏳');
         this.tempKYCDoc = await this.compressImage(file, 1200, 0.75);
-        
         const label = document.getElementById('kyc-doc-label');
         if (label) label.innerText = `✅ Documento listo (${file.name})`;
-        this.showToast('Documento procesado 🪪');
     },
 
     async handleKYCSelfiePreview(event) {
@@ -528,31 +542,21 @@ const app = {
         this.haptic('light');
         this.showToast('Comprimiendo selfie... ⏳');
         this.tempKYCSelfie = await this.compressImage(file, 1024, 0.75);
-        
         const label = document.getElementById('kyc-selfie-label');
         if (label) label.innerText = `✅ Selfie lista (${file.name})`;
-        this.showToast('Selfie procesada 📸');
     },
 
     async submitKYC() {
         this.haptic('medium');
         const legalName = document.getElementById('kyc-legal-name')?.value.trim();
 
-        if (!legalName) {
-            this.showToast('⚠️ Ingresa tu nombre legal completo.');
-            return;
-        }
-        if (!this.tempKYCDoc) {
-            this.showToast('⚠️ Selecciona la foto de tu documento.');
-            return;
-        }
-        if (!this.tempKYCSelfie) {
-            this.showToast('⚠️ Sube tu selfie con la fecha de hoy.');
+        if (!legalName || !this.tempKYCDoc || !this.tempKYCSelfie) {
+            this.showToast('⚠️ Completa tu nombre legal, documento y selfie con fecha.');
             return;
         }
 
         this.initUserId();
-        this.showToast('Enviando solicitud al Búnker Admin... 🛡️');
+        this.showToast('Enviando solicitud de KYC al Búnker Admin... 🛡️');
 
         try {
             const res = await fetch(`${this.backendUrl}/kyc/submit`, {
@@ -567,19 +571,16 @@ const app = {
             });
 
             const data = await res.json();
-
             if (res.ok && data.status === "success") {
                 localStorage.setItem('alpha_kyc_status', 'pending');
-                localStorage.setItem('alpha_legal_name', legalName);
-                this.showToast('¡Solicitud enviada al Canal Búnker! 🚀');
+                this.showToast('¡Solicitud enviada con éxito! 🚀');
                 this.closeModals();
                 this.updateProfileUI();
             } else {
-                throw new Error(data.detail || data.message || 'Error al procesar en el servidor');
+                throw new Error(data.detail || 'Error al procesar KYC');
             }
         } catch (err) {
-            console.error('[KYC SUBMIT ERROR]:', err);
-            this.showToast(`⚠️ Error: ${err.message || 'No se pudo contactar al backend'}`);
+            this.showToast(`⚠️ Error: ${err.message || 'No se pudo conectar al backend'}`);
         }
     },
 
@@ -595,7 +596,7 @@ const app = {
                     if (wallet?.account) {
                         const shortAddress = wallet.account.address.slice(0, 4) + '...' + wallet.account.address.slice(-4);
                         if (btnHdr) btnHdr.innerText = shortAddress;
-                        this.showToast('¡Billetera conectada! 💎');
+                        this.showToast('¡Billetera TON conectada! 💎');
 
                         try {
                             await fetch(`${this.backendUrl}/wallet/connect-ton`, {
@@ -641,7 +642,6 @@ const app = {
                 await this.tonConnectUI.openModal();
             }
         } catch (err) { 
-            console.error('[WALLET CONNECT ERROR]:', err);
             this.showToast('⚠️ Error abriendo el selector de wallets.'); 
         }
     },
@@ -657,7 +657,7 @@ const app = {
                 return; 
             }
 
-            this.showToast('Confirmando transacción en tu billetera... ⚡');
+            this.showToast('Confirmando transacción en tu billetera TON... ⚡');
             const nanoTonAmount = Math.floor(amountTon * 1000000000).toString();
             const transaction = { 
                 validUntil: Math.floor(Date.now() / 1000) + 360, 
@@ -688,7 +688,6 @@ const app = {
                 this.showToast('⚠️ Error al asentar saldo en backend.');
             }
         } catch (err) { 
-            console.error('[RECHARGE ERROR]:', err);
             this.showToast('⚠️ Transacción cancelada o fallida.'); 
         }
     },
@@ -723,14 +722,9 @@ const app = {
         const email = document.getElementById('reg-email-input')?.value.trim();
         const phone = document.getElementById('reg-phone-input')?.value.trim();
         const pass = document.getElementById('reg-password-input')?.value.trim();
-        const remember = document.getElementById('reg-remember')?.checked;
 
         if (!phone && !email) {
             this.showToast('⚠️ Ingresa al menos un número o correo.');
-            return;
-        }
-        if (!pass || pass.length < 4) {
-            this.showToast('⚠️ La contraseña debe tener al menos 4 caracteres.');
             return;
         }
 
@@ -738,15 +732,6 @@ const app = {
         this.userData.role = this.registerRoleSelected;
         this.userData.name = phone || email.split('@')[0] || (isCreator ? "mastertom" : "VIP Fan");
         
-        if (remember) {
-            localStorage.setItem('alpha_remember_user', JSON.stringify({
-                phone: phone,
-                email: email,
-                pass: pass,
-                role: this.registerRoleSelected
-            }));
-        }
-
         localStorage.setItem('alpha_logged_in', 'true');
         localStorage.setItem('alpha_user_name', this.userData.name);
         localStorage.setItem('alpha_user_role', this.registerRoleSelected);
@@ -762,34 +747,12 @@ const app = {
     async loginWithPhone() {
         this.haptic('medium');
         const phone = document.getElementById('phone-input')?.value.trim();
-        const pass = document.getElementById('login-password')?.value.trim();
-        const remember = document.getElementById('login-remember')?.checked;
-
         if (!phone) {
             this.showToast('⚠️ Ingresa tu número de teléfono.');
             return;
         }
 
         this.initUserId();
-        
-        try {
-            await fetch(`${this.backendUrl}/users/sync`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    user_id: this.userId,
-                    name: `Tel: ${phone}`,
-                    bio: "Operativo autenticado por teléfono"
-                })
-            });
-        } catch (e) {
-            console.warn('[PHONE SYNC ERROR]:', e);
-        }
-
-        if (remember) {
-            localStorage.setItem('alpha_remember_user', JSON.stringify({ phone, pass }));
-        }
-
         localStorage.setItem('alpha_logged_in', 'true');
         localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
         
@@ -816,9 +779,7 @@ const app = {
                     bio: "Operativo autenticado vía Telegram WebApp"
                 })
             });
-        } catch (e) {
-            console.warn('[TG SYNC ERROR]:', e);
-        }
+        } catch (e) {}
 
         this.switchView('feed'); 
         this.updateProfileUI();
@@ -849,18 +810,7 @@ const app = {
             if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
-            const savedCredentials = localStorage.getItem('alpha_remember_user');
-            if (savedCredentials) {
-                const creds = JSON.parse(savedCredentials);
-                const phoneLogin = document.getElementById('phone-input');
-                const passLogin = document.getElementById('login-password');
-                const rememberLogin = document.getElementById('login-remember');
-
-                if (phoneLogin && creds.phone) phoneLogin.value = creds.phone;
-                if (passLogin && creds.pass) passLogin.value = creds.pass;
-                if (rememberLogin) rememberLogin.checked = true;
-            }
-
+            const activeLogin = localStorage.getItem('alpha_logged_in');
             const hasConsent = localStorage.getItem('alpha_consent');
             const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
 
@@ -868,28 +818,11 @@ const app = {
                 localStorage.setItem('alpha_logged_in', 'true');
                 localStorage.setItem('alpha_consent', 'true');
                 if (!localStorage.getItem('alpha_user_name')) {
-                    const tgName = tgUser.first_name + (tgUser.last_name ? ` ${tgUser.last_name}` : '');
-                    localStorage.setItem('alpha_user_name', tgName || tgUser.username || 'VIP User');
+                    localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User');
                 }
             }
 
-            const activeLogin = localStorage.getItem('alpha_logged_in');
-
-            if (activeLogin === 'true') { 
-                try {
-                    await fetch(`${this.backendUrl}/users/sync`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            user_id: this.userId,
-                            name: localStorage.getItem('alpha_user_name') || "Agente Búnker",
-                            bio: "Operativo activo en Alpha Vault"
-                        })
-                    });
-                } catch (e) {
-                    console.warn('[SESSION SYNC ERROR]:', e);
-                }
-
+            if (activeLogin === 'true' || (tgUser && tgUser.id)) { 
                 this.switchView('feed'); 
                 this.updateProfileUI();
                 this.updateViewsCounter();
@@ -901,9 +834,7 @@ const app = {
             } else { 
                 this.switchView('consent'); 
             }
-        } catch (e) {
-            console.warn('[SESSION CHECK ERROR]:', e);
-        }
+        } catch (e) {}
     },
 
     exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
@@ -914,8 +845,7 @@ const app = {
     },
 
     switchView(viewName) {
-        const views = ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'];
-        views.forEach(v => {
+        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'].forEach(v => {
             const el = document.getElementById(`view-${v}`);
             if (el) el.classList.add('hidden');
         });
@@ -924,9 +854,7 @@ const app = {
         if (targetView) {
             targetView.classList.remove('hidden');
             window.scrollTo(0, 0); 
-            if (viewName !== 'lang') {
-                this.lastView = viewName; 
-            }
+            if (viewName !== 'lang') this.lastView = viewName; 
         }
     },
 
@@ -939,7 +867,7 @@ const app = {
 
     acceptConsent() {
         this.haptic('medium');
-        try { localStorage.setItem('alpha_consent', 'true'); } catch (e) {}
+        localStorage.setItem('alpha_consent', 'true');
         this.switchView('captcha');
         this.generateCaptcha();
     },
@@ -952,18 +880,14 @@ const app = {
         this.currentCaptcha = code;
         const display = document.getElementById('captcha-display');
         if (display) display.innerText = code;
-        const input = document.getElementById('captcha-input');
-        if (input) input.value = '';
     },
 
     verifyCaptcha() {
         this.haptic('medium');
         const input = document.getElementById('captcha-input');
-        const display = document.getElementById('captcha-display');
-        const actualCaptcha = (this.currentCaptcha || (display ? display.innerText : '')).trim();
         const userValue = input ? input.value.trim().toUpperCase() : '';
 
-        if (userValue === actualCaptcha && userValue !== '') {
+        if (userValue === this.currentCaptcha && userValue !== '') {
             this.showToast('¡Verificación exitosa! 🛡️');
             this.switchView('login');
         } else {
@@ -979,8 +903,7 @@ const app = {
             this.chatSocket = null;
         }
         ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu'].forEach(m => {
-            const el = document.getElementById(m);
-            if (el) el.classList.add('hidden');
+            document.getElementById(m)?.classList.add('hidden');
         });
     },
 
@@ -992,12 +915,11 @@ const app = {
         this.refreshUserData();
     },
     openMenuModal() { this.openCatalogPackages(); },
-    openCommunitiesModal() { this.closeModals(); document.getElementById('modal-communities')?.classList.add('hidden'); },
+    openCommunitiesModal() { this.closeModals(); },
     
     async openSupport() { 
         this.closeModals(); 
         document.getElementById('modal-chat')?.classList.remove('hidden'); 
-        
         await this.loadChatHistory();
         this.initChatWebSocket();
     },
@@ -1005,12 +927,10 @@ const app = {
     async loadChatHistory() {
         const container = document.getElementById('chat-messages');
         if (container) container.innerHTML = ''; 
-
         try {
             const res = await fetch(`${this.backendUrl}/chat/history?limit=50`);
             if (res.ok) {
                 const data = await res.json();
-                if (container) container.innerHTML = '';
                 if (data.messages && data.messages.length > 0) {
                     data.messages.forEach(msg => this.appendChatMessage(msg));
                     this.scrollToChatBottom();
@@ -1018,10 +938,7 @@ const app = {
                     container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-semibold">Búnker seguro iniciado. Escribe el primer mensaje. 🛡️</div>';
                 }
             }
-        } catch (err) {
-            console.warn('[CHAT HISTORY ERROR]:', err);
-            if (container) container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-semibold">Canal cifrado activo.</div>';
-        }
+        } catch (err) {}
     },
 
     initChatWebSocket() {
@@ -1037,41 +954,13 @@ const app = {
         const cleanBaseUrl = this.backendUrl.replace(/^https?:\/\//, '');
         const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/ws/${this.userId}`;
 
-        const statusEl = document.getElementById('chat-routed');
-        if (statusEl) statusEl.innerText = 'CONECTANDO AL BÚNKER... ⚡';
-
         this.chatSocket = new WebSocket(wsUrl);
-
-        this.chatSocket.onopen = () => {
-            console.log('[WEBSOCKET] Conectado al Búnker Live Chat');
-            if (statusEl) statusEl.innerText = 'CONEXIÓN EN VIVO ESTABLECIDA ✅';
-        };
-
         this.chatSocket.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
                 this.appendChatMessage(msg);
                 this.scrollToChatBottom();
-            } catch (e) {
-                console.error('[WEBSOCKET MSG ERROR]:', e);
-            }
-        };
-
-        this.chatSocket.onerror = (err) => {
-            console.warn('[WEBSOCKET ERROR]:', err);
-            if (statusEl) statusEl.innerText = 'ERROR DE CANAL - RECONECTANDO... 🔄';
-        };
-
-        this.chatSocket.onclose = (event) => {
-            console.log('[WEBSOCKET] Desconectado', event.code);
-            if (statusEl) statusEl.innerText = 'DESCONECTADO - RECONECTANDO AUTOMÁTICAMENTE... 🔄';
-            
-            setTimeout(() => {
-                const chatModal = document.getElementById('modal-chat');
-                if (chatModal && !chatModal.classList.contains('hidden')) {
-                    this.initChatWebSocket();
-                }
-            }, 3000);
+            } catch (e) {}
         };
     },
 
@@ -1084,107 +973,54 @@ const app = {
         const rankName = ranks[msg.access_level] || ranks[0];
 
         let html = '';
-
         if (msg.is_system) {
-            html = `
-                <div class="flex flex-col items-center animate-fade-in my-2">
-                    <div class="bg-gradient-to-r from-amber-500/20 to-yellow-600/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full shadow-[0_0_10px_rgba(255,183,3,0.2)] font-bold text-center max-w-[90%]">
-                        <i class="fa-solid fa-bolt mr-1 text-amber-500"></i> ${msg.content}
-                    </div>
-                </div>
-            `;
+            html = `<div class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full font-bold text-center"><i class="fa-solid fa-bolt mr-1"></i> ${msg.content}</div></div>`;
         } else if (isMe) {
-            html = `
-                <div class="flex flex-col items-end animate-fade-in my-2">
-                    <span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span>
-                    <div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl rounded-tr-sm border border-[#00f3ff]/50 max-w-[85%] shadow-[0_0_10px_rgba(0,243,255,0.1)] font-medium">
-                        ${msg.content}
-                    </div>
-                </div>
-            `;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${msg.content}</div></div>`;
         } else {
-            let nameColor = 'text-[#00f3ff]';
-            let bgStyle = 'bg-neutral-800 border-neutral-700';
-            
-            if (msg.author_role === 'creator' || msg.access_level >= 4) {
-                nameColor = 'text-[#ff00ff]';
-                bgStyle = 'bg-neutral-900 border-[#ff00ff]/30 shadow-[0_0_10px_rgba(255,0,255,0.1)]';
-            }
-
-            html = `
-                <div class="flex flex-col items-start animate-fade-in my-2">
-                    <span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="${nameColor} font-black">@${msg.author_name}</span> • ${rankName}</span>
-                    <div class="${bgStyle} text-white text-sm p-3 rounded-2xl rounded-tl-sm border max-w-[85%] font-medium">
-                        ${msg.content}
-                    </div>
-                </div>
-            `;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black">@${msg.author_name}</span> • ${rankName}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${msg.content}</div></div>`;
         }
-
         container.insertAdjacentHTML('beforeend', html);
     },
 
     scrollToChatBottom() {
         const container = document.getElementById('chat-messages');
-        if (container) {
-            container.scrollTop = container.scrollHeight;
-        }
+        if (container) container.scrollTop = container.scrollHeight;
     },
 
     sendChatMessage() { 
         this.haptic('light');
         const input = document.getElementById('chat-input'); 
         const text = input ? input.value.trim() : '';
-
         if (!text) return;
 
         if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
             this.chatSocket.send(text);
             if (input) input.value = ''; 
-        } else {
-            this.showToast('⚠️ Canal reconectando, reintentando envío...');
-            this.initChatWebSocket();
-            
-            setTimeout(() => {
-                if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN && text) {
-                    this.chatSocket.send(text);
-                    if (input) input.value = '';
-                    this.showToast('¡Mensaje enviado con éxito! 🚀');
-                }
-            }, 1500);
         }
     },
 
-    openManualBanks() { this.closeModals(); document.getElementById('modal-banks')?.classList.remove('hidden'); },
-    
     openUploadPanel() {
         this.initUserId();
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
 
-        if (this.userId != 8269470905) {
-            if (userRole === 'creator' && kycStatus !== 'verified') {
-                this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar.');
-                this.openKYCModal();
-                return;
-            }
+        if (this.userId != 8269470905 && userRole === 'creator' && kycStatus !== 'verified') {
+            this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar.');
+            this.openKYCModal();
+            return;
         }
-
         this.closeModals(); 
         this.switchView('upload'); 
     },
 
     openRoleModal() { this.closeModals(); document.getElementById('modal-role')?.classList.remove('hidden'); },
-    openPaymentFlow(plan, price, link, tier) { this.closeModals(); document.getElementById('modal-payment')?.classList.remove('hidden'); },
-    closePaymentModal() { document.getElementById('modal-payment')?.classList.add('hidden'); },
-
+    
     toggleLanguage() { 
         this.haptic('medium');
         const languages = ['es', 'en', 'it', 'pt', 'de', 'fr'];
         const currentLang = localStorage.getItem('alpha_lang') || 'es';
-        const currentIndex = languages.indexOf(currentLang);
-        const nextLang = languages[(currentIndex + 1) % languages.length];
-        
+        const nextLang = languages[(languages.indexOf(currentLang) + 1) % languages.length];
         this.setLanguage(nextLang);
     },
 
@@ -1194,64 +1030,37 @@ const app = {
         this.currentLang = lang;
         const langText = document.getElementById('fab-lang-text');
         if (langText) langText.innerText = lang.toUpperCase();
-        if (typeof window.applyTranslations === 'function') {
-            window.applyTranslations(lang);
-        }
-        const langNames = { 
-            es: 'Español 🇪🇸', 
-            en: 'English 🇺🇸', 
-            it: 'Italiano 🇮🇹', 
-            pt: 'Português 🇧🇷', 
-            de: 'Deutsch 🇩🇪', 
-            fr: 'Français 🇫🇷' 
-        };
-        this.showToast(`Idioma: ${langNames[lang] || lang.toUpperCase()}`);
+        if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
+        this.showToast(`Idioma: ${lang.toUpperCase()}`);
     },
 
     toggleAdminSecret() { 
         this.haptic('light');
         this.initUserId();
-        const MI_TELEGRAM_ID = 8269470905; 
-
-        if (this.userId == MI_TELEGRAM_ID) {
+        if (this.userId == 8269470905) {
             this.isAdmin = !this.isAdmin; 
             this.showToast(this.isAdmin ? 'Admin Mode ON 👑' : 'Admin Mode OFF');
-            this.haptic('medium');
-        } else {
-            this.showToast(`Acceso denegado 🚫 (Tu ID es: ${this.userId})`);
-            this.haptic('heavy');
         }
     },
     
     async previewImage(event) {
         const file = event.target.files[0];
         if (!file) return;
-
-        this.haptic('light');
-        this.showToast('Comprimiendo imagen... ⏳');
         this.tempPostMedia = await this.compressImage(file, 1200, 0.75);
-        
-        const uploadTxt = document.getElementById('txt-upload');
-        if (uploadTxt) uploadTxt.innerText = `¡Imagen cargada! 📸 (${file.name})`;
-        this.showToast('Foto cargada correctamente 📸');
+        document.getElementById('txt-upload').innerText = `¡Imagen cargada! 📸 (${file.name})`;
     },
 
     async publishPost() {
         this.haptic('medium');
-        const descInput = document.getElementById('admin-text-es');
-        const levelSelect = document.getElementById('admin-level');
-
-        const content = descInput ? descInput.value.trim() : '';
-        const tierRequired = levelSelect ? parseInt(levelSelect.value) : 0;
+        const content = document.getElementById('admin-text-es')?.value.trim() || '';
+        const tierRequired = parseInt(document.getElementById('admin-level')?.value || '0');
 
         if (!content && !this.tempPostMedia) {
-            this.showToast('⚠️ Ingresa una descripción o selecciona una imagen.');
+            this.showToast('⚠️ Ingresa una descripción o imagen.');
             return;
         }
 
         this.initUserId();
-        this.showToast('Publicando en el Muro... 🚀');
-
         try {
             const res = await fetch(`${this.backendUrl}/posts/create`, {
                 method: "POST",
@@ -1266,275 +1075,140 @@ const app = {
                     price_alpha: 0
                 })
             });
-
             const data = await res.json();
-
             if (res.ok && data.status === "success") {
-                if (descInput) descInput.value = '';
-                this.tempPostMedia = null;
-                const uploadTxt = document.getElementById('txt-upload');
-                if (uploadTxt) uploadTxt.innerText = 'Tocar para subir archivo';
-                const fileInput = document.getElementById('admin-file');
-                if (fileInput) fileInput.value = '';
-
-                this.showToast('¡Publicación guardada en la base de datos! 🛡️');
+                this.showToast('¡Publicación guardada! 🛡️');
                 this.switchView('feed');
                 await this.renderFeed();
-            } else {
-                throw new Error(data.detail || 'Error al publicar');
             }
         } catch (err) {
-            console.error('[PUBLISH ERROR]:', err);
-            this.showToast(`⚠️ ${err.message || 'Error de conexión'}`);
+            this.showToast('⚠️ Error al publicar');
         }
     },
 
-    async deletePost(postId, creatorId) {
-        this.haptic('medium');
-        this.initUserId();
-
-        const confirmDelete = confirm('¿Estás seguro de que deseas eliminar esta publicación permanentemente?');
-        if (!confirmDelete) return;
-
-        this.showToast('Eliminando publicación... 🗑️');
-
+    async deletePost(postId) {
+        if (!confirm('¿Eliminar publicación?')) return;
         try {
-            const res = await fetch(`${this.backendUrl}/posts/delete`, {
+            await fetch(`${this.backendUrl}/posts/delete`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: this.userId || 0,
-                    post_id: postId
-                })
+                body: JSON.stringify({ user_id: this.userId || 0, post_id: postId })
             });
-
-            const data = await res.json();
-
-            if (res.ok && data.status === 'success') {
-                this.haptic('heavy');
-                this.showToast('Publicación eliminada correctamente 🗑️');
-                await this.renderFeed();
-            } else {
-                throw new Error(data.detail || 'No se pudo eliminar');
-            }
-        } catch (err) {
-            console.error('[DELETE POST ERROR]:', err);
-            this.showToast(`⚠️ ${err.message || 'Error al eliminar'}`);
-        }
+            this.renderFeed();
+        } catch (e) {}
     },
 
     async unlockPostContent(postId, priceAlpha) {
-        this.haptic('heavy');
-        this.initUserId();
-        
-        const confirmBuy = confirm(`¿Desbloquear esta publicación por ${priceAlpha} $ALPHA?`);
-        if (!confirmBuy) return;
-
-        this.showToast('Desbloqueando contenido... ⚡');
-
         try {
             const res = await fetch(`${this.backendUrl}/posts/unlock`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    user_id: this.userId || 0,
-                    post_id: postId
-                })
+                body: JSON.stringify({ user_id: this.userId || 0, post_id: postId })
             });
-
-            const data = await res.json();
-
-            if (res.ok && data.status === "success") {
+            if (res.ok) {
                 this.showToast('¡Contenido desbloqueado! 🔓');
                 await this.refreshUserData();
                 await this.renderFeed();
-            } else {
-                throw new Error(data.detail || 'Saldo insuficiente');
             }
-        } catch (err) {
-            this.showToast(`⚠️ ${err.message || 'Error al desbloquear'}`);
-        }
+        } catch (e) {}
     },
 
     toggleLike(postId) {
-        this.haptic('light');
-        let likedPosts = [];
-        try {
-            likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
-        } catch (e) {
-            likedPosts = [];
-        }
-
-        const isLiked = likedPosts.includes(postId);
-        if (isLiked) {
-            likedPosts = likedPosts.filter(id => id !== postId);
-        } else {
-            likedPosts.push(postId);
-        }
-        localStorage.setItem('alpha_user_liked_posts', JSON.stringify(likedPosts));
+        let liked = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
+        if (liked.includes(postId)) liked = liked.filter(id => id !== postId);
+        else liked.push(postId);
+        localStorage.setItem('alpha_user_liked_posts', JSON.stringify(liked));
         this.renderFeed();
     },
 
     async renderFeed() {
-        const feedContainer = document.getElementById('feed-container') || document.querySelector('#view-feed .feed-posts');
+        const feedContainer = document.getElementById('feed-container');
         if (!feedContainer) return;
 
         this.initUserId();
-        const ADMIN_ID = 8269470905;
-
         try {
             const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
-            let posts = [];
+            const data = res.ok ? await res.json() : {};
+            const posts = data.posts || [];
+            const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
 
-            if (res.ok) {
-                const data = await res.json();
-                posts = data.posts || [];
-            }
-
-            let likedPosts = [];
-            try {
-                likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
-            } catch (e) {
-                likedPosts = [];
-            }
-
-            if (!posts || posts.length === 0) {
-                feedContainer.innerHTML = `
-                    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400">
-                        <i class="fa-solid fa-layer-group text-3xl mb-2 text-amber-500"></i>
-                        <p class="text-sm font-semibold">Aún no hay publicaciones en el Búnker.</p>
-                        <p class="text-xs text-neutral-500 mt-1">Sé el primero en compartir contenido exclusivo.</p>
-                    </div>
-                `;
+            if (posts.length === 0) {
+                feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">Aún no hay publicaciones en el Búnker.</div>`;
                 return;
             }
 
             feedContainer.innerHTML = posts.map(post => {
                 const isLiked = likedPosts.includes(post.id);
-                const isOwnerOrAdmin = (this.userId == post.creator_id || this.userId == ADMIN_ID);
+                const isOwner = (this.userId == post.creator_id || this.userId == 8269470905);
 
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
                         <div class="flex items-center justify-between mb-2">
-                            <div class="font-bold text-amber-400">@${post.author || 'mastertom'}</div>
+                            <div class="flex items-center gap-2 cursor-pointer" onclick="app.openProfile()">
+                                <div class="w-9 h-9 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center">
+                                    <i class="fa-solid fa-user text-xs text-[#00f3ff]"></i>
+                                </div>
+                                <span class="font-bold text-amber-400 text-sm">@${post.author || 'mastertom'}</span>
+                            </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-neutral-500">Tier: Niv.${post.levelRequired}</span>
-                                ${isOwnerOrAdmin ? `
-                                    <button onclick="app.deletePost(${post.id}, ${post.creator_id})" class="text-neutral-500 hover:text-red-400 p-1 transition" title="Eliminar publicación">
-                                        <i class="fa-solid fa-trash-can text-sm"></i>
-                                    </button>
-                                ` : ''}
+                                ${isOwner ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
                         ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${post.content}</p>` : ''}
-                        
                         ${post.is_locked ? `
-                            <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3 backdrop-blur-md">
+                            <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
                                 <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
                                 <p class="text-sm font-bold text-amber-300">CONTENIDO EXCLUSIVO BLOQUEADO</p>
-                                <p class="text-xs text-neutral-400 mb-3">Requiere Rango Superior o Desbloqueo Directo</p>
-                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-black font-black py-2 px-4 rounded-xl text-xs shadow-lg transition active:scale-95">
+                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">
                                     🔓 DESBLOQUEAR (${post.price_alpha || 20} $ALPHA)
                                 </button>
                             </div>
-                        ` : (post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-80 object-cover mb-3 border border-neutral-800" alt="Media"/>` : '')}
-
+                        ` : (post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
-                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1.5 text-xs font-semibold py-1 px-2.5 rounded-lg border transition ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400 hover:text-white'}">
-                                <i class="fa-solid fa-heart ${isLiked ? 'text-red-500' : 'text-neutral-400'}"></i>
-                                <span>Like</span>
+                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
+                                <i class="fa-solid fa-heart"></i> Like
                             </button>
-                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${post.author || 'Creador'}')" class="bg-amber-500 hover:bg-amber-600 text-black font-bold py-1.5 px-3 rounded-lg flex items-center gap-1 text-xs shadow-md transition active:scale-95">
+                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${post.author || 'Creador'}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
                                 🪙 Dar Propina
                             </button>
                         </div>
                     </div>
                 `;
             }).join('');
-        } catch (err) {
-            console.warn('[FEED RENDER ERROR]:', err);
-        }
+        } catch (e) {}
     },
 
     async openFanTipMenu(creatorId, postId, creatorName) {
         this.closeModals();
         this.initUserId();
-        
-        if (!this.userId) {
-            this.showToast('⚠️ Debes iniciar sesión para dar propinas.');
-            return;
-        }
-        if (this.userId == creatorId) {
-            this.showToast('⚠️ No puedes enviarte propinas a ti mismo.');
-            return;
-        }
-
         const modal = document.getElementById('modal-fan-tip-menu');
-        const nameEl = document.getElementById('fan-tip-creator-name');
+        document.getElementById('fan-tip-creator-name').innerText = `@${creatorName}`;
+        modal?.classList.remove('hidden');
+
         const container = document.getElementById('fan-tip-slots-container');
-        const customInput = document.getElementById('custom-tip-amount');
-        const customBtn = document.getElementById('btn-send-custom-tip');
-
-        if (modal) modal.classList.remove('hidden');
-        if (nameEl) nameEl.innerText = `@${creatorName}`;
-        if (container) container.innerHTML = `<div class="text-center text-neutral-500 mt-10 font-bold">Cargando menú... ⏳</div>`;
-        if (customInput) customInput.value = '';
-
         const slots = await this.loadTipMenu(creatorId);
-        
-        if (container) {
-            if (slots.length === 0) {
-                container.innerHTML = `
-                    <div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center mt-4">
-                        <i class="fa-solid fa-ghost text-3xl text-neutral-600 mb-2"></i>
-                        <p class="text-sm text-neutral-400 font-bold">Este creador aún no ha configurado su Tip Menu.</p>
-                        <p class="text-xs text-neutral-500 mt-1">Puedes enviarle una propina libre abajo.</p>
-                    </div>`;
-            } else {
-                container.innerHTML = slots.map(slot => `
-                    <button onclick="app.sendTipFromPost(${creatorId}, ${slot.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/10 rounded-2xl p-4 flex items-center justify-between transition active:scale-95 text-left group shadow-lg">
-                        <span class="text-sm font-bold text-white group-hover:text-[#ffb703] transition">${slot.title}</span>
-                        <span class="bg-[#ffb703] text-black text-xs font-black px-3 py-1.5 rounded-xl shadow-[0_0_10px_rgba(255,183,3,0.3)]">${slot.price_alpha} $ALPHA</span>
-                    </button>
-                `).join('');
-            }
-        }
-
-        if (customBtn) {
-            customBtn.onclick = () => {
-                const amount = parseInt(customInput.value);
-                if (isNaN(amount) || amount <= 0) {
-                    this.showToast('⚠️ Ingresa un monto válido mayor a 0.');
-                    return;
-                }
-                this.sendTipFromPost(creatorId, amount, postId);
-            };
-        }
+        container.innerHTML = slots.length === 0 ? '<div class="text-center text-neutral-500 mt-10 font-bold">Sin tip menu configurado.</div>' : slots.map(s => `
+            <button onclick="app.sendTipFromPost(${creatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 rounded-2xl p-4 flex justify-between items-center text-white">
+                <span class="font-bold text-sm">${s.title}</span>
+                <span class="bg-[#ffb703] text-black text-xs font-black px-3 py-1.5 rounded-xl">${s.price_alpha} $ALPHA</span>
+            </button>
+        `).join('');
     },
 
     async sendTipFromPost(creatorId, amount, postId) {
-        this.haptic('medium');
-        this.initUserId();
-        this.showToast('Enviando propina... 🪙');
-
         try {
-            const data = await sendAlphaTip(this.userId, creatorId, amount, postId);
-            if (data && data.status === 'success') {
-                this.haptic('heavy');
-                this.showToast(`¡Propina de ${amount} $ALPHA enviada con éxito! 🚀`);
-                this.closeModals();
-                await this.refreshUserData();
-            } else {
-                throw new Error(data.detail || 'Error en la transacción');
-            }
-        } catch (err) {
-            this.showToast(`⚠️ ${err.message || 'Saldo insuficiente o error de red'}`);
-        }
+            await sendAlphaTip(this.userId, creatorId, amount, postId);
+            this.showToast(`¡Propina de ${amount} $ALPHA enviada! 🚀`);
+            this.closeModals();
+            await this.refreshUserData();
+        } catch (e) { this.showToast('⚠️ Saldo insuficiente'); }
     },
 
     startVideoCall() { 
         this.haptic('medium');
-        this.showToast('Conectando Video Llamada Segura Cam2Cam... 📹'); 
+        this.showToast('Conectando Videollamada Segura Cam2Cam (Estilo Telegram)... 📹'); 
+        this.openSupport();
     },
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     selectCreatorRole() { this.showToast('Rol de Creador seleccionado'); this.closeModals(); },
@@ -1544,5 +1218,395 @@ const app = {
 window.app = app;
 document.addEventListener("DOMContentLoaded", () => {
     app.checkSession(); 
-    if (typeof app.generateCaptcha === 'function') app.generateCaptcha();
+    app.generateCaptcha();
 });
+```[cite: 4]
+
+---
+
+### 2. Archivo `index.html` Actualizado
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ALPHA TOM - Hybrid Ecosystem & Vault</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;700;900&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#050505">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="tron-grid"></div>
+    <div class="grid-fade"></div>
+    <div class="watermark-footer">
+        RAFAEL SANCHEZ / "ARQUITECTO DE BOTS Y MINI APPS" * TELEGRAM: <a href="#" onclick="app.openLink('https://t.me/therealonetom'); return false;">@THEREALONETOM</a>
+    </div>
+
+    <!-- BOTÓN DE IDIOMA GLOBAL -->
+    <button onclick="app.toggleLanguage()" class="fab-lang levitate z-[100]">
+        <i class="fa-solid fa-language text-xl text-[#00f3ff] mb-0.5"></i>
+        <span class="text-[11px] font-black text-[#00f3ff]" id="fab-lang-text">ES</span>
+    </button>
+
+    <!-- VIEW -1: AGE CONSENT -->
+    <div id="view-consent" class="min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500">
+        <i class="fa-solid fa-triangle-exclamation text-8xl text-[#ff3333] mb-6 drop-shadow-[0_0_20px_#ff3333] levitate"></i>
+        <h1 id="txt-warn-title" class="text-3d-red text-4xl text-center mb-3 font-black">ADVERTENCIA</h1>
+        <h2 id="txt-warn-sub" class="text-2xl text-[#ff00ff] font-extrabold tracking-[0.2em] mb-8 text-center" style="text-shadow: 0 0 10px #ff00ff;">+18 ADULT CONTENT</h2>
+        <div class="glass-panel p-6 mb-8 max-w-sm text-center border-[#ff3333]">
+            <p id="txt-warn-p1" class="text-base text-gray-200 mb-4 font-semibold">Este espacio contiene material explícito y sexual.</p>
+            <p id="txt-warn-p2" class="text-base text-gray-300 font-medium">Al ingresar, confirmas bajo tu responsabilidad que eres mayor de edad (18+) y consientes visualizar este contenido (Safe Harbor Compliance).</p>
+        </div>
+        <div class="w-full max-w-sm space-y-4">
+            <button onclick="app.acceptConsent()" class="w-full btn-neon-magenta py-4 rounded-xl text-2xl font-black uppercase tracking-wider levitate">
+                <i class="fa-solid fa-check-circle mr-2"></i> <span id="btn-accept-text">ACEPTO / I ACCEPT</span>
+            </button>
+            <button onclick="app.exitApp()" class="w-full bg-transparent border-2 border-gray-600 text-gray-300 py-3.5 rounded-xl font-bold uppercase transition hover:text-white text-lg">
+                <i class="fa-solid fa-times mr-2"></i> <span id="btn-exit-text">SALIR / EXIT</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW -0.5: CAPTCHA -->
+    <div id="view-captcha" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
+        <i class="fa-solid fa-shield-halved text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
+        <h1 id="txt-cap-title" class="text-3d-cyan text-3xl text-center mb-3 font-black">VERIFICACIÓN HUMANA</h1>
+        <div class="glass-panel p-6 w-full max-w-sm text-center border-[#00f3ff]">
+            <div id="captcha-display" class="bg-black border-2 border-dashed border-[#00f3ff] py-4 rounded-xl text-3xl font-black text-[#00f3ff] tracking-[0.4em] mb-4 select-none">A7X9K</div>
+            <div class="mb-5">
+                <input type="text" id="captcha-input" placeholder="Ingresa el código..." class="cyber-input text-center uppercase tracking-widest text-lg" maxlength="5">
+            </div>
+            <button onclick="app.verifyCaptcha()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-lg uppercase tracking-wider levitate">
+                <i class="fa-solid fa-check mr-2"></i> <span id="btn-verify-text">VERIFICAR ACCESO</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 0: LOGIN -->
+    <div id="view-login" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
+        <button onclick="app.switchView('consent')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center text-sm font-bold z-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+        </button>
+        <i class="fa-brands fa-telegram text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
+        <h1 id="txt-login-title" class="text-3d-cyan text-4xl text-center mb-6 font-black">ACCESO AL VAULT</h1>
+        <div class="glass-panel p-6 w-full max-w-sm">
+            <div class="mb-4">
+                <label id="lbl-phone" class="block text-xs text-[#00f3ff] mb-1 font-bold tracking-wider uppercase">NÚMERO DE TELÉFONO</label>
+                <div class="relative">
+                    <i class="fa-solid fa-phone absolute left-4 top-1/2 transform -translate-y-1/2 text-[#00f3ff]"></i>
+                    <input type="tel" id="phone-input" placeholder="+1 234 567 8900" class="cyber-input pl-11 text-base">
+                </div>
+            </div>
+            <button onclick="app.loginWithPhone()" id="btn-phone-text" class="w-full bg-transparent border-2 border-[#00f3ff] text-[#00f3ff] py-3.5 rounded-xl font-black text-base uppercase mb-3">ACCEDER AL VAULT</button>
+            <button onclick="app.loginWithTelegram()" class="w-full flex items-center justify-center gap-3 bg-[#2481cc] text-white py-3.5 rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(36,129,204,0.5)] levitate">
+                <i class="fa-brands fa-telegram text-xl"></i> <span id="btn-tg-text">LOGIN CON TELEGRAM</span>
+            </button>
+            <div class="mt-5 text-center">
+                <button onclick="app.switchView('register')" id="btn-create-acc" class="text-sm font-bold text-[#ff00ff] underline">CREAR CUENTA NUEVA</button>
+            </div>
+        </div>
+    </div> 
+
+    <!-- VIEW 0.5: REGISTRATION -->
+    <div id="view-register" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
+        <button onclick="app.switchView('login')" class="absolute top-6 left-6 text-[#ff00ff] border border-[#ff00ff] rounded-full px-4 py-2 flex items-center text-sm font-bold z-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+        </button>
+        <h1 id="txt-reg-title" class="text-3d-magenta text-3xl text-center mb-4 font-black">NUEVA CUENTA</h1>
+        <div class="glass-panel p-6 w-full max-w-sm">
+            <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase text-center">TIPO DE CUENTA</label>
+            <div class="grid grid-cols-2 gap-2 mb-4">
+                <button type="button" id="reg-role-fan" onclick="app.setRegisterRole('fan')" class="py-2.5 px-3 rounded-xl border-2 border-[#ff00ff] bg-[#ff00ff]/20 text-white font-black text-xs uppercase flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-eye"></i> <span>SOY FAN</span>
+                </button>
+                <button type="button" id="reg-role-creator" onclick="app.setRegisterRole('creator')" class="py-2.5 px-3 rounded-xl border-2 border-neutral-700 bg-black text-neutral-400 font-bold text-xs uppercase flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span>SOY CREADOR</span>
+                </button>
+            </div>
+            <div class="mb-3">
+                <label class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">NÚMERO DE TELÉFONO</label>
+                <input type="tel" id="reg-phone-input" placeholder="+1 234 567 8900" class="cyber-input border-[#ff00ff] pl-4 text-sm w-full">
+            </div>
+            <button onclick="app.registerWithData()" id="btn-reg-text" class="w-full bg-transparent border-2 border-[#ff00ff] text-[#ff00ff] py-3.5 rounded-xl font-black text-sm uppercase mb-3">REGISTRARSE</button>
+        </div>
+    </div>
+
+    <!-- VIEW 2: FEED -->
+    <div id="view-feed" class="hidden h-screen flex flex-col relative z-10">
+        <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="app.openProfile()">
+                <div class="w-12 h-12 rounded-full border-2 border-[#00f3ff] overflow-hidden shadow-[0_0_10px_#00f3ff] flex items-center justify-center bg-black">
+                    <img id="avatar-feed" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover">
+                </div>
+                <div class="flex flex-col justify-center">
+                    <h3 class="font-bold text-base text-white leading-tight" id="name-feed" onclick="app.toggleAdminSecret(); event.stopPropagation();">USER</h3>
+                    <div class="flex items-center gap-2 mt-1">
+                        <p class="text-[10px] font-black text-[#ffb703] tracking-wider bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/50"><span id="rank-feed">ESPÍA 🕵️</span></p>
+                        <p class="text-xs text-[#00f3ff] font-bold"><i class="fa-solid fa-eye animate-pulse mr-1"></i><span id="views-counter">0</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 items-center">
+                <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center text-[10px] font-bold shadow-[0_0_8px_#00f3ff]">
+                    <i class="fa-solid fa-wallet mr-1.5 text-xs"></i> <span id="btn-wallet-hdr">CONECTAR WALLET</span>
+                </button>
+                <button onclick="app.logout()" class="text-[#ff00ff] border border-[#ff00ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
+                    <i class="fa-solid fa-right-from-bracket mr-1.5 text-xs"></i> <span id="btn-logout">CERRAR SESIÓN</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 🚀 GRAN BOTÓN / BANNER DEL MURO PARA CHAT GLOBAL Y VIDEOLLAMADA (ESTILO TELEGRAM) -->
+        <div class="mx-2 mt-2 bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border-2 border-[#00f3ff] rounded-2xl p-3.5 shadow-[0_0_15px_rgba(0,243,255,0.2)] flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-xl bg-[#00f3ff]/20 border border-[#00f3ff] flex items-center justify-center text-[#00f3ff] text-xl animate-pulse shrink-0">
+                    <i class="fa-solid fa-video"></i>
+                </div>
+                <div>
+                    <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
+                    <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Estilo Telegram)</p>
+                </div>
+            </div>
+            <div class="flex gap-1.5 shrink-0">
+                <button onclick="app.openSupport()" class="bg-[#00f3ff] hover:bg-cyan-400 text-black font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(0,243,255,0.4)] transition flex items-center gap-1">
+                    <i class="fa-solid fa-comments"></i> <span id="btn-wall-chat">CHAT</span>
+                </button>
+                <button onclick="app.startVideoCall()" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition flex items-center gap-1">
+                    <i class="fa-solid fa-video"></i> <span id="btn-wall-video">VIDEO</span>
+                </button>
+            </div>
+        </div>
+
+        <main class="flex-1 feed-container p-4 mt-2 snap-y snap-mandatory scroll-smooth overflow-y-auto" id="feed-container"></main>
+
+        <div class="glass-panel mx-2 mb-2 p-2.5 flex justify-between items-end z-20 px-4">
+            <button onclick="app.openMenuModal()" class="flex flex-col items-center text-[#ff00ff] w-14 pb-1">
+                <i class="fa-solid fa-layer-group text-2xl mb-1"></i><span class="text-[9px] font-black" id="nav-catalog">CATÁLOGO</span>
+            </button>
+            <button onclick="app.goHome()" class="flex flex-col items-center text-[#00f3ff] relative -mt-7 w-16">
+                <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
+                    <i class="fa-solid fa-house text-2xl"></i>
+                </div>
+                <span class="text-[10px] font-black text-[#00f3ff]" id="nav-home">HOME</span>
+            </button>
+            <button onclick="app.openProfile()" class="flex flex-col items-center text-[#ffb703] w-14 pb-1">
+                <i class="fa-solid fa-user-astronaut text-2xl mb-1"></i><span class="text-[9px] font-black" id="nav-profile">MI PERFIL</span>
+            </button>
+            <button onclick="app.openSupport()" class="flex flex-col items-center text-[#ff00ff] w-14 pb-1">
+                <i class="fa-solid fa-envelope text-2xl mb-1"></i><span class="text-[9px] font-black" id="nav-support">MENSAJES</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 3: UPLOAD PANEL -->
+    <div id="view-upload" class="hidden min-h-screen flex flex-col relative z-10 bg-[var(--bg-deep)]">
+        <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
+            <h3 class="font-extrabold text-xl text-[#00f3ff]"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i> SUBIR CONTENIDO</h3>
+            <button onclick="app.switchView('feed')" class="bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
+        </header>
+        <main class="flex-1 p-5 overflow-y-auto pb-20">
+            <div class="glass-panel p-6">
+                <form onsubmit="event.preventDefault(); app.publishPost();">
+                    <div class="mb-5">
+                        <label class="block text-xs text-[#ffb703] mb-2 font-bold">NIVEL REQUERIDO 👀</label>
+                        <select id="admin-level" class="cyber-input w-full bg-black border-[#ffb703] text-white text-base">
+                            <option value="0">🆓 Público (Todos)</option>
+                            <option value="1">🎖️ SOLDIER</option>
+                            <option value="2">⚔️ VETERAN</option>
+                            <option value="3">👑 LEGEND</option>
+                            <option value="4">💎 ICON LEGEND</option>
+                        </select>
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-xs text-[#ff00ff] mb-2 font-bold">FOTO O VIDEO 📸</label>
+                        <input type="file" accept="image/*" id="admin-file" class="hidden" onchange="app.previewImage(event)">
+                        <label for="admin-file" class="w-full flex flex-col items-center justify-center border-2 border-dashed border-[#ff00ff] rounded-xl p-8 cursor-pointer">
+                            <i class="fa-solid fa-cloud-arrow-up text-4xl text-[#ff00ff] mb-2"></i><span class="text-sm text-gray-200 font-bold" id="txt-upload">Tocar para subir archivo</span>
+                        </label>
+                    </div>
+                    <div class="mb-5">
+                        <label class="block text-xs text-gray-300 mb-2 font-bold uppercase">DESCRIPCIÓN</label>
+                        <textarea id="admin-text-es" rows="4" class="cyber-input w-full text-base"></textarea>
+                    </div>
+                    <button type="submit" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-lg">PUBLICAR AL MURO</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: PERFIL DEL USUARIO -->
+    <div id="modal-profile" class="hidden fixed inset-0 z-[65] flex items-end justify-center bg-black bg-opacity-90 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md h-[90vh] rounded-t-3xl p-6 flex flex-col relative overflow-y-auto">
+            <input type="file" id="avatar-file-input" class="hidden" accept="image/*" onchange="app.handleAvatarChange(event)">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
+            <h2 class="text-3d-cyan text-3xl text-center mb-6 font-black">MI PERFIL</h2>
+            
+            <div class="flex flex-col items-center mb-6">
+                <div onclick="app.triggerAvatarInput()" class="relative w-28 h-28 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] overflow-hidden mb-3 cursor-pointer group flex items-center justify-center bg-black">
+                    <img id="prof-avatar-img" src="" class="hidden w-full h-full object-cover" alt="User Avatar">
+                    <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                        <i class="fa-solid fa-camera text-white text-xl mb-1"></i>
+                        <span class="text-[10px] text-white font-bold">CAMBIAR</span>
+                    </div>
+                </div>
+                <p class="text-sm font-black text-[#ffb703] mt-1 bg-[#ffb703]/20 px-4 py-1.5 rounded-full border border-[#ffb703]/50" id="prof-rank">ESPÍA 🕵️</p>
+            </div>
+
+            <!-- ESTADO KYC (+18) -->
+            <div class="bg-neutral-900 border border-[#ff00ff] rounded-xl p-4 mb-5 shadow-md">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs font-bold text-[#ff00ff]"><i class="fa-solid fa-shield-halved mr-1.5"></i> ESTADO KYC (+18)</span>
+                    <span id="prof-kyc-status" class="text-xs font-black uppercase text-amber-400">NO VERIFICADO</span>
+                </div>
+                <p class="text-xs text-gray-300 mb-3" id="prof-kyc-desc">Verifica tu documento oficial y selfie para publicar y monetizar.</p>
+                <button onclick="app.openKYCModal()" id="btn-verify-kyc" class="w-full btn-neon-magenta py-2.5 rounded-xl font-bold text-xs uppercase">
+                    VERIFICAR CUENTA AHORA 🪪
+                </button>
+            </div>
+
+            <!-- SUSCRIPCIÓN DE CREADORES B2B -->
+            <div id="prof-creator-subscription-box" class="hidden bg-neutral-900 border-2 border-[#ff00ff] rounded-xl p-4 mb-5 shadow-[0_0_15px_rgba(255,0,255,0.2)]">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-black text-[#ff00ff] uppercase"><i class="fa-solid fa-crown mr-1.5"></i> MEMBRESÍA CREADOR B2B</span>
+                    <span class="text-[10px] font-black uppercase bg-[#ff00ff]/20 text-[#ff00ff] px-2 py-0.5 rounded-full border border-[#ff00ff]/40">1º MES GRATIS 🎁</span>
+                </div>
+                <p class="text-xs text-gray-300 mb-3 font-medium">Desbloquea la edición de tu Tip Menu y monetización activa.</p>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="app.subscribeCreatorTier('soldier_creator')" class="bg-black border border-[#00f3ff] hover:bg-[#00f3ff]/10 text-white p-3 rounded-xl text-left transition">
+                        <div class="text-xs font-black text-[#00f3ff]">SOLDIER CREATOR</div>
+                        <div class="text-[10px] text-gray-300 font-bold">$5.00 USD / mes</div>
+                    </button>
+                    <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-black border border-[#ffb703] hover:bg-[#ffb703]/10 text-white p-3 rounded-xl text-left transition">
+                        <div class="text-xs font-black text-[#ffb703]">ICON CREATOR</div>
+                        <div class="text-[10px] text-gray-300 font-bold">$7.99 USD / mes</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Billetera $ALPHA con los 5 Packs Tácticos -->
+            <div class="bg-black border-2 border-[#ffb703] rounded-xl p-5 mb-5 shadow-[0_0_15px_rgba(255,183,3,0.3)]">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs text-[#ffb703] font-bold uppercase"><i class="fa-solid fa-coins mr-1.5"></i> BILLETERA $ALPHA</span>
+                    <span id="prof-alpha-balance" class="font-black text-[#ffb703] text-lg">0 $ALPHA</span>
+                </div>
+                <p class="text-xs text-gray-300 mb-4 font-medium">Recarga saldo con bonificación por volumen para dar propinas y desbloquear contenido.</p>
+                <button onclick="app.openCatalogPackages()" class="w-full bg-[#ffb703] text-black font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_#ffb703]">
+                    <i class="fa-solid fa-bolt text-base"></i> VER 5 PACKS TÁCTICOS ($ALPHA)
+                </button>
+            </div>
+
+            <div id="prof-creator-tools" class="hidden mb-5">
+                <button onclick="app.openTipMenuManagementModal()" class="w-full bg-black border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-black text-sm uppercase">
+                    EDITAR MIS 10 SLOTS (TIP MENU) 📋
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-xs text-[#00f3ff] mb-2 font-bold uppercase">NOMBRE DE USUARIO / ALIAS</label>
+                <input type="text" id="prof-alias" class="cyber-input text-base" placeholder="Tu alias VIP">
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-xs text-[#ff00ff] mb-2 font-bold uppercase">BIO / DESCRIPCIÓN VIP</label>
+                <textarea id="prof-bio" rows="3" class="cyber-input w-full text-base" placeholder="Escribe tu biografía..."></textarea>
+                <button onclick="app.saveProfile()" class="mt-3 w-full border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-bold text-sm uppercase">GUARDAR PERFIL</button>
+            </div>
+
+            <div class="mb-6">
+                <button onclick="app.openUploadPanel()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-base shadow-[0_0_15px_#00f3ff]">
+                    PUBLICAR CONTENIDO 📸
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: VERIFICACIÓN KYC (+18) -->
+    <div id="modal-kyc" class="hidden fixed inset-0 z-[85] flex items-end justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="glass-panel w-full max-w-md h-[90vh] rounded-t-3xl p-6 flex flex-col relative overflow-y-auto">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
+            <h2 class="text-3d-cyan text-2xl text-center mb-2 font-black">VERIFICACIÓN (+18)</h2>
+            <form onsubmit="event.preventDefault(); app.submitKYC();" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-[#00f3ff] mb-1 font-bold uppercase">Nombre Legal Completo</label>
+                    <input type="text" id="kyc-legal-name" required class="cyber-input w-full text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-[#ff00ff] mb-1 font-bold uppercase">Documento de Identidad (Frente) 🪪</label>
+                    <input type="file" id="kyc-doc-file" accept="image/*" class="hidden" onchange="app.handleKYCDocPreview(event)">
+                    <label for="kyc-doc-file" class="w-full flex items-center justify-between border border-dashed border-[#ff00ff] rounded-xl p-3 cursor-pointer">
+                        <span class="text-xs text-neutral-300" id="kyc-doc-label">Seleccionar foto del documento</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-xs text-[#ffb703] mb-1 font-bold uppercase">Selfie con papel y fecha 📸</label>
+                    <input type="file" id="kyc-selfie-file" accept="image/*" class="hidden" onchange="app.handleKYCSelfiePreview(event)">
+                    <label for="kyc-selfie-file" class="w-full flex items-center justify-between border border-dashed border-[#ffb703] rounded-xl p-3 cursor-pointer">
+                        <span class="text-xs text-neutral-300" id="kyc-selfie-label">Tomar / Seleccionar selfie</span>
+                    </label>
+                </div>
+                <button type="submit" class="w-full btn-neon-cyan py-3.5 rounded-xl font-black text-sm uppercase">ENVIAR AL BÚNKER ADMIN</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: CATÁLOGO DINÁMICO DE LOS 5 PACKS TÁCTICOS -->
+    <div id="modal-catalog" class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl p-6 flex flex-col relative border-b-0">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
+            <h2 class="text-3d-cyan text-2xl text-center mb-6 font-black">5 PACKS TÁCTICOS $ALPHA</h2>
+            <div class="overflow-y-auto pb-10 space-y-4 pr-2" id="catalog-packages-list">
+                <div class="text-center text-neutral-400 mt-10 font-bold">Cargando paquetes... ⏳</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: IN-APP CHAT (CRM & VIDEO CALL) -->
+    <div id="modal-chat" class="hidden fixed inset-0 z-[80] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm">
+        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col relative overflow-hidden">
+            <div class="bg-black p-4 flex items-center justify-between border-b border-[#00f3ff]">
+                <div>
+                    <h3 class="font-bold text-white text-base">CHAT GLOBAL & VIDEO BÚNKER</h3>
+                    <p class="text-xs text-[#00ff00] font-extrabold"><i class="fa-solid fa-circle text-[6px] animate-pulse"></i> Conectado en directo</p>
+                </div>
+                <button onclick="app.closeModals()" class="bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
+            </div>
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-black/50"></div>
+            <div class="p-4 bg-black border-t border-gray-800 flex items-center gap-3 pb-6">
+                <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-6 border-[#ff00ff]" placeholder="Escribe tu mensaje..." onkeypress="app.handleChatKeyPress(event)">
+                <button onclick="app.sendChatMessage()" class="w-14 h-14 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: MENÚ DE PROPINAS DEL FAN -->
+    <div id="modal-fan-tip-menu" class="hidden fixed inset-0 z-[95] flex items-end justify-center bg-black bg-opacity-90">
+        <div class="bg-neutral-900 border-t-2 border-[#ffb703] w-full max-w-md h-[75vh] rounded-t-3xl p-6 flex flex-col relative">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
+            <h2 class="text-xl font-black text-[#ffb703] uppercase mb-1">🪙 ENVIAR PROPINA A</h2>
+            <p id="fan-tip-creator-name" class="text-3xl font-black text-white mb-6">@Creador</p>
+            <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-6 pr-2"></div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">¡Copiado! 📋</div>
+    
+    <script src="js/security.js?v=4"></script>
+    <script src="js/translations.js?v=4"></script>
+    <script src="js/api.js?v=4"></script>
+    <script src="js/app.js?v=4" defer></script>
+</body>
+</html>
+```[cite: 5]
+
+---
+
+¿Todo listo para hacer el `git push` y verificar esta maravilla operando en Railway y Netlify, Master Tom?
