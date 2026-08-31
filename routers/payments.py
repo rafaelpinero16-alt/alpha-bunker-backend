@@ -4,7 +4,9 @@ from pydantic import BaseModel
 from aiogram import types, F
 from aiogram.types import LabeledPrice
 from core.config import bot, dp
-from database.db import get_db, update_user_tier
+from database.db import get_db
+# 🛡️ Importación corregida: ahora apuntamos al archivo de lógica
+from database.logic import update_user_tier
 from database.models import Package
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -50,6 +52,8 @@ async def success_payment(message: types.Message):
     if len(payload_parts) >= 3:
         tier_slug = payload_parts[1]
         user_id = message.from_user.id
+        
+        # ⚡ Ejecutamos la lógica de actualización en la base de datos
         update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
     
     await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tu rango en el Búnker ha sido actualizado.")
