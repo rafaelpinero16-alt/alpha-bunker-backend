@@ -17,6 +17,17 @@ const app = {
     // ⚡ WEBSOCKET PARA CHAT EN VIVO
     chatSocket: null,
 
+    // 🔒 Escapa HTML para prevenir XSS almacenado
+    escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    },
+
     haptic(style) {
         try { 
             if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -156,12 +167,6 @@ const app = {
             }
         }
 
-        if (this.userId == 8269470905) {
-            this.userData.access_tier = 4;
-            this.userData.role = 'creator';
-            localStorage.setItem('alpha_user_role', 'creator');
-        }
-
         const rankDisplay = document.getElementById('prof-rank');
         const rankFeed = document.getElementById('rank-feed');
         const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
@@ -175,8 +180,9 @@ const app = {
         const kycDescEl = document.getElementById('prof-kyc-desc');
         const kycBtn = document.getElementById('btn-verify-kyc');
 
+        // 🔒 Validación dinámica basada en el rol del usuario desde el backend
         if (kycStatusEl) {
-            if (kycStatus === 'verified' || this.userId == 8269470905) {
+            if (kycStatus === 'verified' || this.userData?.role === 'admin') {
                 kycStatusEl.innerText = 'VERIFICADO (+18) ✅';
                 kycStatusEl.className = 'text-xs font-black uppercase text-green-400';
                 if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
@@ -206,7 +212,7 @@ const app = {
         const creatorSubBox = document.getElementById('prof-creator-subscription-box');
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         if (creatorTools) {
-            if (userRole === 'creator' || this.userId == 8269470905) {
+            if (userRole === 'creator' || userRole === 'admin') {
                 creatorTools.classList.remove('hidden');
                 if (creatorSubBox) creatorSubBox.classList.remove('hidden');
             } else {
@@ -292,7 +298,7 @@ const app = {
                 <div class="bg-black border border-[#ff00ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative shadow-md">
                     <div class="absolute -top-2.5 left-3 bg-[#ff00ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Slot #${i}</div>
                     <div class="flex items-center gap-2 mt-1">
-                        <input type="text" id="tip-title-${i}" value="${existing.title}" placeholder="Ej: Video exclusivo 3min" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white focus:border-[#ff00ff] outline-none placeholder-gray-500 font-medium" />
+                        <input type="text" id="tip-title-${i}" value="${this.escapeHtml(existing.title)}" placeholder="Ej: Video exclusivo 3min" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white focus:border-[#ff00ff] outline-none placeholder-gray-500 font-medium" />
                         <div class="relative w-24 shrink-0">
                             <i class="fa-solid fa-coins absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[#ffb703] text-xs"></i>
                             <input type="number" id="tip-price-${i}" value="${existing.price_alpha}" placeholder="Precio" class="bg-neutral-900 border border-neutral-700 rounded-xl pl-7 pr-2 py-2.5 text-xs w-full text-white focus:border-[#ffb703] outline-none text-center font-black" />
@@ -410,13 +416,13 @@ const app = {
                 container.innerHTML = packages.map(pkg => `
                     <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative">
                         <div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-3 py-0.5 rounded-full text-[10px] font-black uppercase shadow">
-                            ${pkg.badge || 'TÁCTICO'} ${pkg.bonus_percentage > 0 ? `(+${pkg.bonus_percentage}% Bonus)` : ''}
+                            ${this.escapeHtml(pkg.badge || 'TÁCTICO')} ${pkg.bonus_percentage > 0 ? `(+${pkg.bonus_percentage}% Bonus)` : ''}
                         </div>
                         <div class="flex justify-between items-center mb-2 mt-1">
-                            <h3 class="text-lg font-black text-white"><i class="fa-solid fa-shield-halved text-[#00f3ff] mr-1.5"></i> ${pkg.name}</h3>
+                            <h3 class="text-lg font-black text-white"><i class="fa-solid fa-shield-halved text-[#00f3ff] mr-1.5"></i> ${this.escapeHtml(pkg.name)}</h3>
                             <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
                         </div>
-                        <p class="text-xs text-gray-300 mb-4 font-medium">${pkg.description || 'Recarga táctica con bonificación por volumen.'}</p>
+                        <p class="text-xs text-gray-300 mb-4 font-medium">${this.escapeHtml(pkg.description || 'Recarga táctica con bonificación por volumen.')}</p>
                         <div class="grid grid-cols-2 gap-2">
                             <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">
                                 ⭐ ${pkg.price_stars} Stars
@@ -441,7 +447,7 @@ const app = {
         this.initUserId();
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
 
-        if (kycStatus !== 'verified' && this.userId != 8269470905) {
+        if (kycStatus !== 'verified' && this.userData?.role !== 'admin') {
             this.showToast('⚠️ Debes verificar tu identidad (KYC +18) para activar tu suscripción de creador.');
             this.openKYCModal();
             return;
@@ -972,13 +978,17 @@ const app = {
         const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
         const rankName = ranks[msg.access_level] || ranks[0];
 
+        // 🔒 Filtrado Anti-XSS para el chat
+        const safeContent = this.escapeHtml(msg.content);
+        const safeAuthorName = this.escapeHtml(msg.author_name);
+
         let html = '';
         if (msg.is_system) {
-            html = `<div class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full font-bold text-center"><i class="fa-solid fa-bolt mr-1"></i> ${msg.content}</div></div>`;
+            html = `<div class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full font-bold text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeContent}</div></div>`;
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${msg.content}</div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeContent}</div></div>`;
         } else {
-            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black">@${msg.author_name}</span> • ${rankName}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${msg.content}</div></div>`;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • ${rankName}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeContent}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
     },
@@ -1005,7 +1015,8 @@ const app = {
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
 
-        if (this.userId != 8269470905 && userRole === 'creator' && kycStatus !== 'verified') {
+        // 🔒 Validación basada en el rol de la base de datos
+        if (userRole === 'creator' && kycStatus !== 'verified' && this.userData?.role !== 'admin') {
             this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar.');
             this.openKYCModal();
             return;
@@ -1037,7 +1048,8 @@ const app = {
     toggleAdminSecret() { 
         this.haptic('light');
         this.initUserId();
-        if (this.userId == 8269470905) {
+        
+        if (this.userData?.role === 'admin' || this.userId == 8269470905) {
             this.isAdmin = !this.isAdmin; 
             this.showToast(this.isAdmin ? 'Admin Mode ON 👑' : 'Admin Mode OFF');
         }
@@ -1139,7 +1151,13 @@ const app = {
 
             feedContainer.innerHTML = posts.map(post => {
                 const isLiked = likedPosts.includes(post.id);
-                const isOwner = (this.userId == post.creator_id || this.userId == 8269470905);
+                // 🔒 Autoridad basada en el backend
+                const isOwnerOrAdmin = (this.userId == post.creator_id || this.userData?.role === 'admin');
+
+                // 🔒 Filtrado Anti-XSS para el Muro
+                const safeAuthor = this.escapeHtml(post.author || 'mastertom');
+                const safeContent = this.escapeHtml(post.content);
+                const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
 
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
@@ -1148,14 +1166,14 @@ const app = {
                                 <div class="w-9 h-9 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center">
                                     <i class="fa-solid fa-user text-xs text-[#00f3ff]"></i>
                                 </div>
-                                <span class="font-bold text-amber-400 text-sm">@${post.author || 'mastertom'}</span>
+                                <span class="font-bold text-amber-400 text-sm">@${safeAuthor}</span>
                             </div>
                             <div class="flex items-center gap-2">
                                 <span class="text-xs text-neutral-500">Tier: Niv.${post.levelRequired}</span>
-                                ${isOwner ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
+                                ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
-                        ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${post.content}</p>` : ''}
+                        ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${safeContent}</p>` : ''}
                         ${post.is_locked ? `
                             <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
                                 <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
@@ -1164,12 +1182,12 @@ const app = {
                                     🔓 DESBLOQUEAR (${post.price_alpha || 20} $ALPHA)
                                 </button>
                             </div>
-                        ` : (post.media_url ? `<img src="${post.media_url}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
+                        ` : (post.media_url ? `<img src="${this.escapeHtml(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
                             <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
                                 <i class="fa-solid fa-heart"></i> Like
                             </button>
-                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${post.author || 'Creador'}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
+                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
                                 🪙 Dar Propina
                             </button>
                         </div>
@@ -1190,7 +1208,7 @@ const app = {
         const slots = await this.loadTipMenu(creatorId);
         container.innerHTML = slots.length === 0 ? '<div class="text-center text-neutral-500 mt-10 font-bold">Sin tip menu configurado.</div>' : slots.map(s => `
             <button onclick="app.sendTipFromPost(${creatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 rounded-2xl p-4 flex justify-between items-center text-white">
-                <span class="font-bold text-sm">${s.title}</span>
+                <span class="font-bold text-sm">${this.escapeHtml(s.title)}</span>
                 <span class="bg-[#ffb703] text-black text-xs font-black px-3 py-1.5 rounded-xl">${s.price_alpha} $ALPHA</span>
             </button>
         `).join('');
@@ -1220,393 +1238,3 @@ document.addEventListener("DOMContentLoaded", () => {
     app.checkSession(); 
     app.generateCaptcha();
 });
-```[cite: 4]
-
----
-
-### 2. Archivo `index.html` Actualizado
-
-```html
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ALPHA TOM - Hybrid Ecosystem & Vault</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;700;900&display=swap" rel="stylesheet">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#050505">
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-    <div class="tron-grid"></div>
-    <div class="grid-fade"></div>
-    <div class="watermark-footer">
-        RAFAEL SANCHEZ / "ARQUITECTO DE BOTS Y MINI APPS" * TELEGRAM: <a href="#" onclick="app.openLink('https://t.me/therealonetom'); return false;">@THEREALONETOM</a>
-    </div>
-
-    <!-- BOTÓN DE IDIOMA GLOBAL -->
-    <button onclick="app.toggleLanguage()" class="fab-lang levitate z-[100]">
-        <i class="fa-solid fa-language text-xl text-[#00f3ff] mb-0.5"></i>
-        <span class="text-[11px] font-black text-[#00f3ff]" id="fab-lang-text">ES</span>
-    </button>
-
-    <!-- VIEW -1: AGE CONSENT -->
-    <div id="view-consent" class="min-h-screen flex flex-col items-center justify-center p-6 relative z-10 transition-opacity duration-500">
-        <i class="fa-solid fa-triangle-exclamation text-8xl text-[#ff3333] mb-6 drop-shadow-[0_0_20px_#ff3333] levitate"></i>
-        <h1 id="txt-warn-title" class="text-3d-red text-4xl text-center mb-3 font-black">ADVERTENCIA</h1>
-        <h2 id="txt-warn-sub" class="text-2xl text-[#ff00ff] font-extrabold tracking-[0.2em] mb-8 text-center" style="text-shadow: 0 0 10px #ff00ff;">+18 ADULT CONTENT</h2>
-        <div class="glass-panel p-6 mb-8 max-w-sm text-center border-[#ff3333]">
-            <p id="txt-warn-p1" class="text-base text-gray-200 mb-4 font-semibold">Este espacio contiene material explícito y sexual.</p>
-            <p id="txt-warn-p2" class="text-base text-gray-300 font-medium">Al ingresar, confirmas bajo tu responsabilidad que eres mayor de edad (18+) y consientes visualizar este contenido (Safe Harbor Compliance).</p>
-        </div>
-        <div class="w-full max-w-sm space-y-4">
-            <button onclick="app.acceptConsent()" class="w-full btn-neon-magenta py-4 rounded-xl text-2xl font-black uppercase tracking-wider levitate">
-                <i class="fa-solid fa-check-circle mr-2"></i> <span id="btn-accept-text">ACEPTO / I ACCEPT</span>
-            </button>
-            <button onclick="app.exitApp()" class="w-full bg-transparent border-2 border-gray-600 text-gray-300 py-3.5 rounded-xl font-bold uppercase transition hover:text-white text-lg">
-                <i class="fa-solid fa-times mr-2"></i> <span id="btn-exit-text">SALIR / EXIT</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- VIEW -0.5: CAPTCHA -->
-    <div id="view-captcha" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
-        <i class="fa-solid fa-shield-halved text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
-        <h1 id="txt-cap-title" class="text-3d-cyan text-3xl text-center mb-3 font-black">VERIFICACIÓN HUMANA</h1>
-        <div class="glass-panel p-6 w-full max-w-sm text-center border-[#00f3ff]">
-            <div id="captcha-display" class="bg-black border-2 border-dashed border-[#00f3ff] py-4 rounded-xl text-3xl font-black text-[#00f3ff] tracking-[0.4em] mb-4 select-none">A7X9K</div>
-            <div class="mb-5">
-                <input type="text" id="captcha-input" placeholder="Ingresa el código..." class="cyber-input text-center uppercase tracking-widest text-lg" maxlength="5">
-            </div>
-            <button onclick="app.verifyCaptcha()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-lg uppercase tracking-wider levitate">
-                <i class="fa-solid fa-check mr-2"></i> <span id="btn-verify-text">VERIFICAR ACCESO</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- VIEW 0: LOGIN -->
-    <div id="view-login" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
-        <button onclick="app.switchView('consent')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center text-sm font-bold z-50">
-            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
-        </button>
-        <i class="fa-brands fa-telegram text-7xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
-        <h1 id="txt-login-title" class="text-3d-cyan text-4xl text-center mb-6 font-black">ACCESO AL VAULT</h1>
-        <div class="glass-panel p-6 w-full max-w-sm">
-            <div class="mb-4">
-                <label id="lbl-phone" class="block text-xs text-[#00f3ff] mb-1 font-bold tracking-wider uppercase">NÚMERO DE TELÉFONO</label>
-                <div class="relative">
-                    <i class="fa-solid fa-phone absolute left-4 top-1/2 transform -translate-y-1/2 text-[#00f3ff]"></i>
-                    <input type="tel" id="phone-input" placeholder="+1 234 567 8900" class="cyber-input pl-11 text-base">
-                </div>
-            </div>
-            <button onclick="app.loginWithPhone()" id="btn-phone-text" class="w-full bg-transparent border-2 border-[#00f3ff] text-[#00f3ff] py-3.5 rounded-xl font-black text-base uppercase mb-3">ACCEDER AL VAULT</button>
-            <button onclick="app.loginWithTelegram()" class="w-full flex items-center justify-center gap-3 bg-[#2481cc] text-white py-3.5 rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(36,129,204,0.5)] levitate">
-                <i class="fa-brands fa-telegram text-xl"></i> <span id="btn-tg-text">LOGIN CON TELEGRAM</span>
-            </button>
-            <div class="mt-5 text-center">
-                <button onclick="app.switchView('register')" id="btn-create-acc" class="text-sm font-bold text-[#ff00ff] underline">CREAR CUENTA NUEVA</button>
-            </div>
-        </div>
-    </div> 
-
-    <!-- VIEW 0.5: REGISTRATION -->
-    <div id="view-register" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
-        <button onclick="app.switchView('login')" class="absolute top-6 left-6 text-[#ff00ff] border border-[#ff00ff] rounded-full px-4 py-2 flex items-center text-sm font-bold z-50">
-            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
-        </button>
-        <h1 id="txt-reg-title" class="text-3d-magenta text-3xl text-center mb-4 font-black">NUEVA CUENTA</h1>
-        <div class="glass-panel p-6 w-full max-w-sm">
-            <label class="block text-xs text-[#ff00ff] mb-2 font-bold tracking-wider uppercase text-center">TIPO DE CUENTA</label>
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <button type="button" id="reg-role-fan" onclick="app.setRegisterRole('fan')" class="py-2.5 px-3 rounded-xl border-2 border-[#ff00ff] bg-[#ff00ff]/20 text-white font-black text-xs uppercase flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-eye"></i> <span>SOY FAN</span>
-                </button>
-                <button type="button" id="reg-role-creator" onclick="app.setRegisterRole('creator')" class="py-2.5 px-3 rounded-xl border-2 border-neutral-700 bg-black text-neutral-400 font-bold text-xs uppercase flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> <span>SOY CREADOR</span>
-                </button>
-            </div>
-            <div class="mb-3">
-                <label class="block text-xs text-[#ff00ff] mb-1 font-bold tracking-wider uppercase">NÚMERO DE TELÉFONO</label>
-                <input type="tel" id="reg-phone-input" placeholder="+1 234 567 8900" class="cyber-input border-[#ff00ff] pl-4 text-sm w-full">
-            </div>
-            <button onclick="app.registerWithData()" id="btn-reg-text" class="w-full bg-transparent border-2 border-[#ff00ff] text-[#ff00ff] py-3.5 rounded-xl font-black text-sm uppercase mb-3">REGISTRARSE</button>
-        </div>
-    </div>
-
-    <!-- VIEW 2: FEED -->
-    <div id="view-feed" class="hidden h-screen flex flex-col relative z-10">
-        <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="app.openProfile()">
-                <div class="w-12 h-12 rounded-full border-2 border-[#00f3ff] overflow-hidden shadow-[0_0_10px_#00f3ff] flex items-center justify-center bg-black">
-                    <img id="avatar-feed" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover">
-                </div>
-                <div class="flex flex-col justify-center">
-                    <h3 class="font-bold text-base text-white leading-tight" id="name-feed" onclick="app.toggleAdminSecret(); event.stopPropagation();">USER</h3>
-                    <div class="flex items-center gap-2 mt-1">
-                        <p class="text-[10px] font-black text-[#ffb703] tracking-wider bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/50"><span id="rank-feed">ESPÍA 🕵️</span></p>
-                        <p class="text-xs text-[#00f3ff] font-bold"><i class="fa-solid fa-eye animate-pulse mr-1"></i><span id="views-counter">0</span></p>
-                    </div>
-                </div>
-            </div>
-            <div class="flex gap-2 items-center">
-                <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center text-[10px] font-bold shadow-[0_0_8px_#00f3ff]">
-                    <i class="fa-solid fa-wallet mr-1.5 text-xs"></i> <span id="btn-wallet-hdr">CONECTAR WALLET</span>
-                </button>
-                <button onclick="app.logout()" class="text-[#ff00ff] border border-[#ff00ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
-                    <i class="fa-solid fa-right-from-bracket mr-1.5 text-xs"></i> <span id="btn-logout">CERRAR SESIÓN</span>
-                </button>
-            </div>
-        </header>
-
-        <!-- 🚀 GRAN BOTÓN / BANNER DEL MURO PARA CHAT GLOBAL Y VIDEOLLAMADA (ESTILO TELEGRAM) -->
-        <div class="mx-2 mt-2 bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border-2 border-[#00f3ff] rounded-2xl p-3.5 shadow-[0_0_15px_rgba(0,243,255,0.2)] flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-xl bg-[#00f3ff]/20 border border-[#00f3ff] flex items-center justify-center text-[#00f3ff] text-xl animate-pulse shrink-0">
-                    <i class="fa-solid fa-video"></i>
-                </div>
-                <div>
-                    <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
-                    <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Estilo Telegram)</p>
-                </div>
-            </div>
-            <div class="flex gap-1.5 shrink-0">
-                <button onclick="app.openSupport()" class="bg-[#00f3ff] hover:bg-cyan-400 text-black font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(0,243,255,0.4)] transition flex items-center gap-1">
-                    <i class="fa-solid fa-comments"></i> <span id="btn-wall-chat">CHAT</span>
-                </button>
-                <button onclick="app.startVideoCall()" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black px-3 py-2 rounded-xl text-[11px] uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition flex items-center gap-1">
-                    <i class="fa-solid fa-video"></i> <span id="btn-wall-video">VIDEO</span>
-                </button>
-            </div>
-        </div>
-
-        <main class="flex-1 feed-container p-4 mt-2 snap-y snap-mandatory scroll-smooth overflow-y-auto" id="feed-container"></main>
-
-        <div class="glass-panel mx-2 mb-2 p-2.5 flex justify-between items-end z-20 px-4">
-            <button onclick="app.openMenuModal()" class="flex flex-col items-center text-[#ff00ff] w-14 pb-1">
-                <i class="fa-solid fa-layer-group text-2xl mb-1"></i><span class="text-[9px] font-black" id="nav-catalog">CATÁLOGO</span>
-            </button>
-            <button onclick="app.goHome()" class="flex flex-col items-center text-[#00f3ff] relative -mt-7 w-16">
-                <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
-                    <i class="fa-solid fa-house text-2xl"></i>
-                </div>
-                <span class="text-[10px] font-black text-[#00f3ff]" id="nav-home">HOME</span>
-            </button>
-            <button onclick="app.openProfile()" class="flex flex-col items-center text-[#ffb703] w-14 pb-1">
-                <i class="fa-solid fa-user-astronaut text-2xl mb-1"></i><span class="text-[9px] font-black" id="nav-profile">MI PERFIL</span>
-            </button>
-            <button onclick="app.openSupport()" class="flex flex-col items-center text-[#ff00ff] w-14 pb-1">
-                <i class="fa-solid fa-envelope text-2xl mb-1"></i><span class="text-[9px] font-black" id="nav-support">MENSAJES</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- VIEW 3: UPLOAD PANEL -->
-    <div id="view-upload" class="hidden min-h-screen flex flex-col relative z-10 bg-[var(--bg-deep)]">
-        <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
-            <h3 class="font-extrabold text-xl text-[#00f3ff]"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i> SUBIR CONTENIDO</h3>
-            <button onclick="app.switchView('feed')" class="bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
-        </header>
-        <main class="flex-1 p-5 overflow-y-auto pb-20">
-            <div class="glass-panel p-6">
-                <form onsubmit="event.preventDefault(); app.publishPost();">
-                    <div class="mb-5">
-                        <label class="block text-xs text-[#ffb703] mb-2 font-bold">NIVEL REQUERIDO 👀</label>
-                        <select id="admin-level" class="cyber-input w-full bg-black border-[#ffb703] text-white text-base">
-                            <option value="0">🆓 Público (Todos)</option>
-                            <option value="1">🎖️ SOLDIER</option>
-                            <option value="2">⚔️ VETERAN</option>
-                            <option value="3">👑 LEGEND</option>
-                            <option value="4">💎 ICON LEGEND</option>
-                        </select>
-                    </div>
-                    <div class="mb-5">
-                        <label class="block text-xs text-[#ff00ff] mb-2 font-bold">FOTO O VIDEO 📸</label>
-                        <input type="file" accept="image/*" id="admin-file" class="hidden" onchange="app.previewImage(event)">
-                        <label for="admin-file" class="w-full flex flex-col items-center justify-center border-2 border-dashed border-[#ff00ff] rounded-xl p-8 cursor-pointer">
-                            <i class="fa-solid fa-cloud-arrow-up text-4xl text-[#ff00ff] mb-2"></i><span class="text-sm text-gray-200 font-bold" id="txt-upload">Tocar para subir archivo</span>
-                        </label>
-                    </div>
-                    <div class="mb-5">
-                        <label class="block text-xs text-gray-300 mb-2 font-bold uppercase">DESCRIPCIÓN</label>
-                        <textarea id="admin-text-es" rows="4" class="cyber-input w-full text-base"></textarea>
-                    </div>
-                    <button type="submit" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-lg">PUBLICAR AL MURO</button>
-                </form>
-            </div>
-        </main>
-    </div>
-
-    <!-- MODAL: PERFIL DEL USUARIO -->
-    <div id="modal-profile" class="hidden fixed inset-0 z-[65] flex items-end justify-center bg-black bg-opacity-90 backdrop-blur-sm">
-        <div class="glass-panel w-full max-w-md h-[90vh] rounded-t-3xl p-6 flex flex-col relative overflow-y-auto">
-            <input type="file" id="avatar-file-input" class="hidden" accept="image/*" onchange="app.handleAvatarChange(event)">
-            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
-            <h2 class="text-3d-cyan text-3xl text-center mb-6 font-black">MI PERFIL</h2>
-            
-            <div class="flex flex-col items-center mb-6">
-                <div onclick="app.triggerAvatarInput()" class="relative w-28 h-28 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] overflow-hidden mb-3 cursor-pointer group flex items-center justify-center bg-black">
-                    <img id="prof-avatar-img" src="" class="hidden w-full h-full object-cover" alt="User Avatar">
-                    <div class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                        <i class="fa-solid fa-camera text-white text-xl mb-1"></i>
-                        <span class="text-[10px] text-white font-bold">CAMBIAR</span>
-                    </div>
-                </div>
-                <p class="text-sm font-black text-[#ffb703] mt-1 bg-[#ffb703]/20 px-4 py-1.5 rounded-full border border-[#ffb703]/50" id="prof-rank">ESPÍA 🕵️</p>
-            </div>
-
-            <!-- ESTADO KYC (+18) -->
-            <div class="bg-neutral-900 border border-[#ff00ff] rounded-xl p-4 mb-5 shadow-md">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-xs font-bold text-[#ff00ff]"><i class="fa-solid fa-shield-halved mr-1.5"></i> ESTADO KYC (+18)</span>
-                    <span id="prof-kyc-status" class="text-xs font-black uppercase text-amber-400">NO VERIFICADO</span>
-                </div>
-                <p class="text-xs text-gray-300 mb-3" id="prof-kyc-desc">Verifica tu documento oficial y selfie para publicar y monetizar.</p>
-                <button onclick="app.openKYCModal()" id="btn-verify-kyc" class="w-full btn-neon-magenta py-2.5 rounded-xl font-bold text-xs uppercase">
-                    VERIFICAR CUENTA AHORA 🪪
-                </button>
-            </div>
-
-            <!-- SUSCRIPCIÓN DE CREADORES B2B -->
-            <div id="prof-creator-subscription-box" class="hidden bg-neutral-900 border-2 border-[#ff00ff] rounded-xl p-4 mb-5 shadow-[0_0_15px_rgba(255,0,255,0.2)]">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-black text-[#ff00ff] uppercase"><i class="fa-solid fa-crown mr-1.5"></i> MEMBRESÍA CREADOR B2B</span>
-                    <span class="text-[10px] font-black uppercase bg-[#ff00ff]/20 text-[#ff00ff] px-2 py-0.5 rounded-full border border-[#ff00ff]/40">1º MES GRATIS 🎁</span>
-                </div>
-                <p class="text-xs text-gray-300 mb-3 font-medium">Desbloquea la edición de tu Tip Menu y monetización activa.</p>
-                <div class="grid grid-cols-2 gap-2">
-                    <button onclick="app.subscribeCreatorTier('soldier_creator')" class="bg-black border border-[#00f3ff] hover:bg-[#00f3ff]/10 text-white p-3 rounded-xl text-left transition">
-                        <div class="text-xs font-black text-[#00f3ff]">SOLDIER CREATOR</div>
-                        <div class="text-[10px] text-gray-300 font-bold">$5.00 USD / mes</div>
-                    </button>
-                    <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-black border border-[#ffb703] hover:bg-[#ffb703]/10 text-white p-3 rounded-xl text-left transition">
-                        <div class="text-xs font-black text-[#ffb703]">ICON CREATOR</div>
-                        <div class="text-[10px] text-gray-300 font-bold">$7.99 USD / mes</div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Billetera $ALPHA con los 5 Packs Tácticos -->
-            <div class="bg-black border-2 border-[#ffb703] rounded-xl p-5 mb-5 shadow-[0_0_15px_rgba(255,183,3,0.3)]">
-                <div class="flex justify-between items-center mb-3">
-                    <span class="text-xs text-[#ffb703] font-bold uppercase"><i class="fa-solid fa-coins mr-1.5"></i> BILLETERA $ALPHA</span>
-                    <span id="prof-alpha-balance" class="font-black text-[#ffb703] text-lg">0 $ALPHA</span>
-                </div>
-                <p class="text-xs text-gray-300 mb-4 font-medium">Recarga saldo con bonificación por volumen para dar propinas y desbloquear contenido.</p>
-                <button onclick="app.openCatalogPackages()" class="w-full bg-[#ffb703] text-black font-black py-3.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-[0_0_15px_#ffb703]">
-                    <i class="fa-solid fa-bolt text-base"></i> VER 5 PACKS TÁCTICOS ($ALPHA)
-                </button>
-            </div>
-
-            <div id="prof-creator-tools" class="hidden mb-5">
-                <button onclick="app.openTipMenuManagementModal()" class="w-full bg-black border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-black text-sm uppercase">
-                    EDITAR MIS 10 SLOTS (TIP MENU) 📋
-                </button>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-xs text-[#00f3ff] mb-2 font-bold uppercase">NOMBRE DE USUARIO / ALIAS</label>
-                <input type="text" id="prof-alias" class="cyber-input text-base" placeholder="Tu alias VIP">
-            </div>
-
-            <div class="mb-5">
-                <label class="block text-xs text-[#ff00ff] mb-2 font-bold uppercase">BIO / DESCRIPCIÓN VIP</label>
-                <textarea id="prof-bio" rows="3" class="cyber-input w-full text-base" placeholder="Escribe tu biografía..."></textarea>
-                <button onclick="app.saveProfile()" class="mt-3 w-full border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-bold text-sm uppercase">GUARDAR PERFIL</button>
-            </div>
-
-            <div class="mb-6">
-                <button onclick="app.openUploadPanel()" class="w-full btn-neon-cyan py-4 rounded-xl font-black text-base shadow-[0_0_15px_#00f3ff]">
-                    PUBLICAR CONTENIDO 📸
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: VERIFICACIÓN KYC (+18) -->
-    <div id="modal-kyc" class="hidden fixed inset-0 z-[85] flex items-end justify-center bg-black bg-opacity-95 backdrop-blur-md">
-        <div class="glass-panel w-full max-w-md h-[90vh] rounded-t-3xl p-6 flex flex-col relative overflow-y-auto">
-            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
-            <h2 class="text-3d-cyan text-2xl text-center mb-2 font-black">VERIFICACIÓN (+18)</h2>
-            <form onsubmit="event.preventDefault(); app.submitKYC();" class="space-y-4">
-                <div>
-                    <label class="block text-xs text-[#00f3ff] mb-1 font-bold uppercase">Nombre Legal Completo</label>
-                    <input type="text" id="kyc-legal-name" required class="cyber-input w-full text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-[#ff00ff] mb-1 font-bold uppercase">Documento de Identidad (Frente) 🪪</label>
-                    <input type="file" id="kyc-doc-file" accept="image/*" class="hidden" onchange="app.handleKYCDocPreview(event)">
-                    <label for="kyc-doc-file" class="w-full flex items-center justify-between border border-dashed border-[#ff00ff] rounded-xl p-3 cursor-pointer">
-                        <span class="text-xs text-neutral-300" id="kyc-doc-label">Seleccionar foto del documento</span>
-                    </label>
-                </div>
-                <div>
-                    <label class="block text-xs text-[#ffb703] mb-1 font-bold uppercase">Selfie con papel y fecha 📸</label>
-                    <input type="file" id="kyc-selfie-file" accept="image/*" class="hidden" onchange="app.handleKYCSelfiePreview(event)">
-                    <label for="kyc-selfie-file" class="w-full flex items-center justify-between border border-dashed border-[#ffb703] rounded-xl p-3 cursor-pointer">
-                        <span class="text-xs text-neutral-300" id="kyc-selfie-label">Tomar / Seleccionar selfie</span>
-                    </label>
-                </div>
-                <button type="submit" class="w-full btn-neon-cyan py-3.5 rounded-xl font-black text-sm uppercase">ENVIAR AL BÚNKER ADMIN</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL: CATÁLOGO DINÁMICO DE LOS 5 PACKS TÁCTICOS -->
-    <div id="modal-catalog" class="hidden fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm">
-        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl p-6 flex flex-col relative border-b-0">
-            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
-            <h2 class="text-3d-cyan text-2xl text-center mb-6 font-black">5 PACKS TÁCTICOS $ALPHA</h2>
-            <div class="overflow-y-auto pb-10 space-y-4 pr-2" id="catalog-packages-list">
-                <div class="text-center text-neutral-400 mt-10 font-bold">Cargando paquetes... ⏳</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: IN-APP CHAT (CRM & VIDEO CALL) -->
-    <div id="modal-chat" class="hidden fixed inset-0 z-[80] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm">
-        <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col relative overflow-hidden">
-            <div class="bg-black p-4 flex items-center justify-between border-b border-[#00f3ff]">
-                <div>
-                    <h3 class="font-bold text-white text-base">CHAT GLOBAL & VIDEO BÚNKER</h3>
-                    <p class="text-xs text-[#00ff00] font-extrabold"><i class="fa-solid fa-circle text-[6px] animate-pulse"></i> Conectado en directo</p>
-                </div>
-                <button onclick="app.closeModals()" class="bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
-            </div>
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-black/50"></div>
-            <div class="p-4 bg-black border-t border-gray-800 flex items-center gap-3 pb-6">
-                <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-6 border-[#ff00ff]" placeholder="Escribe tu mensaje..." onkeypress="app.handleChatKeyPress(event)">
-                <button onclick="app.sendChatMessage()" class="w-14 h-14 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL: MENÚ DE PROPINAS DEL FAN -->
-    <div id="modal-fan-tip-menu" class="hidden fixed inset-0 z-[95] flex items-end justify-center bg-black bg-opacity-90">
-        <div class="bg-neutral-900 border-t-2 border-[#ffb703] w-full max-w-md h-[75vh] rounded-t-3xl p-6 flex flex-col relative">
-            <button onclick="app.closeModals()" class="absolute top-4 right-4 bg-red-600 rounded-full px-4 py-2 text-white font-bold text-sm">VOLVER</button>
-            <h2 class="text-xl font-black text-[#ffb703] uppercase mb-1">🪙 ENVIAR PROPINA A</h2>
-            <p id="fan-tip-creator-name" class="text-3xl font-black text-white mb-6">@Creador</p>
-            <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-6 pr-2"></div>
-        </div>
-    </div>
-
-    <div id="toast" class="toast">¡Copiado! 📋</div>
-    
-    <script src="js/security.js?v=4"></script>
-    <script src="js/translations.js?v=4"></script>
-    <script src="js/api.js?v=4"></script>
-    <script src="js/app.js?v=4" defer></script>
-</body>
-</html>
-```[cite: 5]
-
----
-
-¿Todo listo para hacer el `git push` y verificar esta maravilla operando en Railway y Netlify, Master Tom?
