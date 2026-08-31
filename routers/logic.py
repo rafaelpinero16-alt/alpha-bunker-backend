@@ -2,7 +2,7 @@ import os
 from sqlalchemy.orm import Session
 from core.config import bot
 from database.db import SessionLocal
-from database.models import User, Transaction[cite: 5]
+from database.models import User, Transaction
 
 # Mapeo oficial de los IDs de los canales o grupos VIP del Búnker en Telegram
 TIER_CHATS = {
@@ -14,17 +14,17 @@ TIER_CHATS = {
 
 async def update_user_tier(user_id: int, tier: str, amount: int):
     """
-    Sube el rango del usuario en la base de datos automáticamente[cite: 5],
-    registra la transacción[cite: 5] y le envia un enlace de invitación único en Telegram.
+    Sube el rango del usuario en la base de datos automáticamente,
+    registra la transacción y le envia un enlace de invitación único en Telegram.
     """
-    db: Session = SessionLocal()[cite: 5]
+    db: Session = SessionLocal()
     try:
-        user = db.query(User).filter(User.user_id == user_id).first()[cite: 5]
+        user = db.query(User).filter(User.user_id == user_id).first()
         
         if not user:
-            # Si el usuario pagó pero no estaba registrado, lo creamos[cite: 5]
-            user = User(user_id=user_id, name=f"VIP_{user_id}", role="fan")[cite: 5]
-            db.add(user)[cite: 5]
+            # Si el usuario pagó pero no estaba registrado, lo creamos
+            user = User(user_id=user_id, name=f"VIP_{user_id}", role="fan")
+            db.add(user)
         
         # Mapeo robusto de slugs (soporta nombres oficiales y alternativos)
         tier_map = {
@@ -39,24 +39,24 @@ async def update_user_tier(user_id: int, tier: str, amount: int):
         }
         
         clean_tier = tier.lower().strip()
-        new_level = tier_map.get(clean_tier, 1)[cite: 5]
+        new_level = tier_map.get(clean_tier, 1)
         
-        # Solo lo actualizamos si el nivel comprado es superior al actual[cite: 5]
+        # Solo lo actualizamos si el nivel comprado es superior al actual
         if user.access_level < new_level:
-            user.access_level = new_level[cite: 5]
+            user.access_level = new_level
             if new_level == 4:
                 user.role = "creator"
-            
-        # Registramos el pago en el historial de transacciones[cite: 5]
+                
+        # Registramos el pago en el historial de transacciones
         tx = Transaction(
             sender_id=user_id,
             receiver_id=user_id,
             amount=amount,
             tx_type="stars_subscription",
         )
-        db.add(tx)[cite: 5]
+        db.add(tx)
         
-        db.commit()[cite: 5]
+        db.commit()
         print(f"⚡ [DB SYNC] Usuario {user_id} actualizado al nivel {new_level} (Tier: {clean_tier})")
 
         # 🚀 MEJORA: Generación automática de enlace VIP único en Telegram
@@ -87,7 +87,7 @@ async def update_user_tier(user_id: int, tier: str, amount: int):
             print(f"ℹ️ [INFO] Rango '{clean_tier}' procesado en BD, pero falta configurar el Chat ID en variables de entorno.")
 
     except Exception as e:
-        db.rollback()[cite: 5]
-        print(f"[LOGIC ERROR] Falla al actualizar el tier: {e}")[cite: 5]
+        db.rollback()
+        print(f"[LOGIC ERROR] Falla al actualizar el tier: {e}")
     finally:
-        db.close()[cite: 5]
+        db.close()
