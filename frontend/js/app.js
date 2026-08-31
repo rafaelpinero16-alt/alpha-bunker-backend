@@ -182,7 +182,7 @@ const app = {
 
         const rankDisplay = document.getElementById('prof-rank');
         const rankFeed = document.getElementById('rank-feed');
-        const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
+        const ranks = ['SPY 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
         const currentRank = ranks[this.userData?.access_tier || 0] || ranks[0];
 
         if (rankDisplay) rankDisplay.innerText = currentRank;
@@ -418,7 +418,7 @@ const app = {
         }
     },
 
-    // 🌐 Catálogo de Paquetes con Traducción Dinámica Absoluta
+    // 🌐 Catálogo de Paquetes con Orden Estricto y Traducción Absoluta
     async openCatalogPackages() {
         this.closeModals();
         const modal = document.getElementById('modal-catalog');
@@ -434,10 +434,13 @@ const app = {
             const res = await fetch(`${this.backendUrl}/payments/packages`);
             if (res.ok) {
                 const data = await res.json();
-                const packages = data.packages || [];
+                let packages = data.packages || [];
+
+                // Orden estricto requerido: Spy -> Soldier -> Veteran -> Legend -> Icon Legend
+                const order = ['spy', 'soldier', 'veteran', 'legend', 'icon-legend'];
+                packages.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug));
 
                 container.innerHTML = packages.map(pkg => {
-                    // Traducción dinámica por slug para los 5 packs
                     const translatedName = this.getTrans(`pkg_${pkg.slug}_name`) || pkg.name;
                     const translatedDesc = this.getTrans(`pkg_${pkg.slug}_desc`) || pkg.description;
 
@@ -483,7 +486,7 @@ const app = {
             return;
         }
 
-        const planName = tierSlug === 'soldier_creator' ? 'Soldier Creator ($5/mes - 1º Mes Gratis)' : 'Icon Creator ($7.99/mes - 1º Mes Gratis)';
+        const planName = tierSlug === 'soldier_creator' ? 'Soldier Creator ($4.99/mes - 1º Mes Gratis)' : 'Icon Creator ($7.99/mes - 1º Mes Gratis)';
         const confirmSub = confirm(`¿Activar tu membresía B2B: ${planName}?\nDisfrutarás tu primer mes totalmente gratis.`);
         if (!confirmSub) return;
 
@@ -977,7 +980,7 @@ const app = {
         } catch (err) {}
     },
 
-    // 🌐 Inicialización de Chat en vivo con Traducciones Dinámicas
+    // 🌐 Inicialización de Chat en vivo para el CRM Privado
     initChatWebSocket() {
         this.initUserId();
         if (!this.userId) return;
@@ -1018,7 +1021,7 @@ const app = {
         if (!container) return;
 
         const isMe = msg.user_id == this.userId;
-        const ranks = ['ESPÍA 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
+        const ranks = ['SPY 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
         const rankName = ranks[msg.access_level] || ranks[0];
 
         // 🔒 Filtrado Anti-XSS para el chat
@@ -1277,11 +1280,25 @@ const app = {
         } catch (e) { this.showToast('⚠️ Saldo insuficiente'); }
     },
 
+    // 📹 Validación de Rango/Suscripción para la Videollamada (Independiente del Chat Global)
     startVideoCall() { 
         this.haptic('medium');
+        this.initUserId();
+        
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
+        const userTier = this.userData?.access_tier || 0; // 0: Spy, 1: Soldier, 2: Veteran, 3: Legend, 4: Icon Legend
+
+        // Requiere mínimo nivel Legend (3) o Icon Legend (4) para acceder a la videollamada grupal
+        if (userTier < 3 && !isAdminUser) {
+            this.showToast('⚠️ Acceso restringido. Requiere rango Legend o Icon Legend.');
+            this.openCatalogPackages();
+            return;
+        }
+
         this.showToast(this.getTrans('toast_video')); 
         this.openSupport();
     },
+
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     selectCreatorRole() { this.showToast('Rol de Creador seleccionado'); this.closeModals(); },
     selectFanRole() { this.showToast('Rol de Fan seleccionado'); this.closeModals(); }
