@@ -271,8 +271,6 @@ const app = {
     async openTipMenuManagementModal() {
         this.closeModals();
         this.initUserId();
-        this.showToast('Cargando los 10 espacios del Tip Menu... 📋');
-        const slots = await this.loadTipMenu(this.userId);
         
         let modal = document.getElementById('modal-tip-menu-edit');
         if (!modal) {
@@ -286,7 +284,9 @@ const app = {
                             </button>
                         </div>
                         <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">Configura tus 10 opciones de propina personalizadas para que tus fans las usen en tu perfil o videollamadas.</p>
-                        <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
+                        <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6">
+                            <div class="text-center text-neutral-500 mt-10 font-bold" id="tip-menu-loading">Cargando los 10 slots... ⏳</div>
+                        </div>
                         <div class="mt-4 pt-4 border-t border-[#ff00ff]/30 flex justify-end gap-2 shrink-0">
                             <button onclick="app.closeModals()" class="bg-black border border-[#ff00ff] text-[#ff00ff] hover:bg-[#ff00ff]/10 px-5 py-3 rounded-xl text-sm font-black transition uppercase">Volver</button>
                         </div>
@@ -299,12 +299,17 @@ const app = {
 
         modal.classList.remove('hidden');
         const container = document.getElementById('tip-menu-slots-form');
+        if (container) {
+            container.innerHTML = `<div class="text-center text-neutral-500 mt-10 font-bold" id="tip-menu-loading">Cargando los 10 slots... ⏳</div>`;
+        }
+
+        const slots = await this.loadTipMenu(this.userId);
         
         let htmlContent = '';
         for (let i = 1; i <= 10; i++) {
             const existing = slots.find(s => s.slot_number === i) || { title: '', price_alpha: 10 };
             htmlContent += `
-                <div class="bg-black border border-[#ff00ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative">
+                <div class="bg-black border border-[#ff00ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative shadow-md">
                     <div class="absolute -top-2.5 left-3 bg-[#ff00ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Slot #${i}</div>
                     <div class="flex items-center gap-2 mt-1">
                         <input type="text" id="tip-title-${i}" value="${existing.title}" placeholder="Ej: Video exclusivo 3min" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white focus:border-[#ff00ff] outline-none placeholder-gray-500 font-medium" />
@@ -312,14 +317,16 @@ const app = {
                             <i class="fa-solid fa-coins absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[#ffb703] text-xs"></i>
                             <input type="number" id="tip-price-${i}" value="${existing.price_alpha}" placeholder="Precio" class="bg-neutral-900 border border-neutral-700 rounded-xl pl-7 pr-2 py-2.5 text-xs w-full text-white focus:border-[#ffb703] outline-none text-center font-black" />
                         </div>
-                        <button onclick="app.saveSingleTipSlot(${i})" class="bg-[#00f3ff] hover:bg-cyan-400 text-black font-black w-10 h-10 rounded-xl text-sm transition active:scale-95 flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(0,243,255,0.4)]">
-                            <i class="fa-solid fa-floppy-disk"></i>
+                        <button onclick="app.saveSingleTipSlot(${i})" class="bg-[#00f3ff] hover:bg-cyan-400 text-black font-black px-3.5 h-10 rounded-xl text-xs transition active:scale-95 flex items-center justify-center gap-1.5 shrink-0 shadow-[0_0_10px_rgba(0,243,255,0.4)] uppercase">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar
                         </button>
                     </div>
                 </div>
             `;
         }
-        container.innerHTML = htmlContent;
+        if (container) {
+            container.innerHTML = htmlContent;
+        }
     },
 
     async saveSingleTipSlot(slotNumber) {
