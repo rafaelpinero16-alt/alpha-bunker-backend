@@ -49,8 +49,8 @@ def init_db():
             try:
                 with engine.begin() as conn:
                     conn.execute(text(query))
-            except Exception as e:
-                print(f"[MIGRATION NOTICE]: {e}")
+            except Exception:
+                pass
     
     db = SessionLocal()
     try:
@@ -63,9 +63,8 @@ def init_db():
                 Package(slug="whale", name="Whale VIP", description="Bonificación máxima +65%", alpha_base=1500, bonus_percentage=65, alpha_total=2475, price_stars=6000, price_ton=24, badge="💎 Whale")
             ])
             db.commit()
-            print("[DB SEED]: Paquetes de tokens $ALPHA registrados exitosamente.")
-    except Exception as e:
+            print("[DB SEED]: Paquetes registrados exitosamente.")
+    except Exception:
         db.rollback()
-        print(f"[DB SEED ERROR]: {e}")
     finally:
         db.close()
