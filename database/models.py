@@ -1,46 +1,77 @@
-from datetime import datetime
-from decimal import Decimal
-from sqlalchemy import Column, DateTime, ForeignKey, Numeric, String, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
-
-Base = declarative_base()
+from datetime import datetime
+from database.db import Base
 
 class User(Base):
-    __tablename__ = "vault_users"  # <--- ¡Nombre cambiado para no chocar con el bot!
+    __tablename__ = "users"
 
-    id = Column(String(36), primary_key=True)
-    email = Column(String(255), unique=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
-    role = Column(String(50), default="Fan")
-    kyc_status = Column(String(50), default="Pending")
-    contact_info = Column(String(255), nullable=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, unique=True, index=True, nullable=False)
+    name = Column(String(100), default="USER")
+    bio = Column(String(255), nullable=True)
+    avatar_url = Column(Text, nullable=True)
+    role = Column(String(20), default="fan")             
+    access_level = Column(Integer, default=0)            
+    kyc_status = Column(String(20), default="unverified") 
+    legal_name = Column(String(150), nullable=True)
+    is_adult = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    wallet = relationship("Wallet", back_populates="user", uselist=False)
 
 class Wallet(Base):
     __tablename__ = "wallets"
 
-    id = Column(String(36), primary_key=True)
-    user_id = Column(String(36), ForeignKey("vault_users.id"), unique=True, nullable=False)
-    balance_alfa_coins = Column(Numeric(precision=18, scale=4), default=Decimal('0.0000'), nullable=False)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, unique=True, index=True, nullable=False)
+    alpha_balance = Column(Integer, default=0)
+    total_earned = Column(Integer, default=0)
+    total_spent = Column(Integer, default=0)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    user = relationship("User", back_populates="wallet")
 
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id = Column(String(36), primary_key=True)
-    sender_id = Column(String(36), ForeignKey("vault_users.id"), nullable=False)
-    receiver_id = Column(String(36), ForeignKey("vault_users.id"), nullable=True)
-    alfa_coins = Column(Numeric(precision=18, scale=4), nullable=False)
-    gateway = Column(String(50), nullable=False)
-    tx_id = Column(String(255), unique=True, nullable=False)
-    status = Column(String(50), default="Pending")
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    sender_id = Column(BigInteger, nullable=True)
+    receiver_id = Column(BigInteger, nullable=True)
+    amount = Column(Integer, nullable=False)
+    tx_type = Column(String(50), nullable=False)        
+    reference_id = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        UniqueConstraint('tx_id', name='uq_transaction_tx_id'),
-    )
+class Post(Base):
+    __tablename__ = "posts"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    creator_id = Column(BigInteger, index=True, nullable=False)
+    author = Column(String(100), default="mastertom")
+    text_es = Column(Text, nullable=True)
+    image_url = Column(Text, nullable=True)
+    levelRequired = Column(Integer, default=0)
+    is_ppv = Column(Boolean, default=False)
+    price_alpha = Column(Integer, default=0)
+    date_created = Column(DateTime, default=datetime.utcnow)
+
+class UnlockedPost(Base):
+    __tablename__ = "unlocked_posts"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, index=True, nullable=False)
+    post_id = Column(Integer, index=True, nullable=False)
+    unlocked_at = Column(DateTime, default=datetime.utcnow)
+
+class Package(Base):
+    __tablename__ = "packages"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    slug = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(100), nullable=False)
+    description = Column(String(255), nullable=True)
+    alpha_base = Column(Integer, nullable=False)
+    bonus_percentage = Column(Integer, default=0)
+    alpha_total = Column(Integer, nullable=False)
+    price_stars = Column(Integer, nullable=False)
+    price_ton = Column(Integer, nullable=False)
+    badge = Column(String(50), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
