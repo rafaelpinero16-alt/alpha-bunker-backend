@@ -13,7 +13,7 @@ const app = {
     tempKYCDoc: null,
     tempKYCSelfie: null,
     tempChatMediaData: null, 
-    activeWebcamStream: null, // Stream de cámara activo
+    activeWebcamStream: null, 
 
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -1307,7 +1307,7 @@ const app = {
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
-    // 🛡️ REGLA: TÁCTICA DE PERMISOS NATIVOS PARA WEBRTC
+    // 🛡️ REGLA: TÁCTICA DE PERMISOS NATIVOS PARA WEBRTC CON ESTADO DE PREVISUALIZACIÓN Y TRANSMISIÓN
     async joinVideoBunker() {
         this.haptic('medium');
         this.initUserId();
@@ -1323,26 +1323,33 @@ const app = {
         const btn = document.getElementById('btn-join-video-global');
         const container = document.getElementById('video-bunker-container');
         const placeholder = document.getElementById('cam-loading-placeholder');
+        const badge = document.getElementById('video-badge');
+        const btnGoLive = document.getElementById('btn-go-live');
 
         if(btn) btn.style.display = 'none';
         if(container) {
             container.style.display = 'flex';
             container.classList.remove('hidden');
         }
+        
+        // 🛡️ Estado Inicial: Previsualización local (Standby)
+        if(badge) {
+            badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md';
+            badge.innerText = 'PREVISUALIZACIÓN';
+        }
+        if(btnGoLive) btnGoLive.classList.remove('hidden');
+
         if(placeholder) {
-            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i><p class="text-xs text-[#00f3ff] font-bold tracking-widest">SOLICITANDO PERMISOS...</p>`;
+            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i><p class="text-xs text-[#00f3ff] font-bold tracking-widest text-center">SOLICITANDO PERMISOS<br>EN NAVEGADOR...</p>`;
             placeholder.classList.remove('hidden');
         }
 
         this.showToast('Por favor acepta los permisos de cámara... 📡');
-        
-        // Ejecutamos la solicitud de permisos antes de escanear (Requisito WebRTC)
         await this.requestAndLoadCameras();
     },
 
     async requestAndLoadCameras() {
         try {
-            // 1. SOLICITAR PERMISOS PRIMERO (Abre cámara predeterminada celular/PC)
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             this.activeWebcamStream = stream;
 
@@ -1358,7 +1365,6 @@ const app = {
                 placeholder.classList.add('hidden');
             }
 
-            // 2. Una vez aceptado el permiso, leer las cámaras disponibles reales (OBS, frontal, trasera)
             if (navigator.mediaDevices.enumerateDevices) {
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const videoDevices = devices.filter(d => d.kind === 'videoinput');
@@ -1373,7 +1379,6 @@ const app = {
                         selectEl.appendChild(opt);
                     });
 
-                    // Autoseleccionar la cámara activa
                     const currentTrack = stream.getVideoTracks()[0];
                     if (currentTrack) {
                         const currentSettings = currentTrack.getSettings();
@@ -1381,7 +1386,7 @@ const app = {
                     }
                 }
             }
-            this.showToast('✅ Previsualización de cámara iniciada.');
+            this.showToast('✅ Previsualización lista. Toca "Transmitir" para ir en vivo.');
 
         } catch (err) {
             console.error(err);
@@ -1420,6 +1425,27 @@ const app = {
         }
     },
 
+    // 🛡️ BOTÓN DE TRANSMISIÓN OFICIAL
+    startLiveTransmission() {
+        this.haptic('heavy');
+        const badge = document.getElementById('video-badge');
+        const btnGoLive = document.getElementById('btn-go-live');
+        
+        if(badge) {
+            badge.className = 'absolute top-2 left-2 z-20 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md';
+            badge.innerText = 'EN VIVO';
+        }
+        if(btnGoLive) btnGoLive.classList.add('hidden');
+        
+        this.showToast('🔴 ¡Estás transmitiendo en vivo en el Búnker!');
+        
+        // Disparamos alerta de inicio de transmisión al chat global
+        const payload = JSON.stringify({ text: "🔴 ¡He iniciado una transmisión en vivo en el Búnker! Únanse al stream.", media_url: null });
+        if (typeof BunkerChat !== 'undefined') {
+            BunkerChat.sendGlobal(payload);
+        }
+    },
+
     leaveVideoBunker() {
         this.haptic('light');
         if (this.activeWebcamStream) {
@@ -1437,7 +1463,7 @@ const app = {
         if(container) { container.style.display = 'none'; container.classList.add('hidden'); }
         if(btn) { btn.style.display = 'flex'; btn.classList.remove('hidden'); }
         
-        this.showToast('Has salido de la transmisión.');
+        this.showToast('Transmisión finalizada.');
     },
 
     startVideoCall() { 

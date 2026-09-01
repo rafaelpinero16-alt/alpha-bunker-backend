@@ -599,7 +599,6 @@
                 </div>
             </div>
             
-            <!-- VISTA PREVIA MULTIMEDIA CRM -->
             <div id="crm-chat-preview-container" class="hidden px-4 pt-3 bg-[#050505] flex items-center gap-3">
                 <div class="relative inline-block">
                     <img id="crm-chat-preview-img" src="" class="hidden h-14 w-14 object-cover rounded-xl border border-[#ff00ff] shadow-[0_0_10px_rgba(255,0,255,0.3)]">
@@ -626,7 +625,6 @@
     <div id="modal-global-chat" class="hidden fixed inset-0 z-[82] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
         <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(255,0,255,0.2)]">
             
-            <!-- CABECERA DEL CHAT GLOBAL -->
             <div class="bg-black bg-opacity-60 p-4 flex items-center justify-between border-b border-[#ff00ff] shadow-[0_0_15px_rgba(255,0,255,0.1)]">
                 <div class="flex items-center gap-3">
                     <button onclick="app.openSupport()" class="w-9 h-9 rounded-xl bg-[#ff00ff]/20 border border-[#ff00ff] flex items-center justify-center text-[#ff00ff] hover:scale-110 transition shadow-[0_0_10px_#ff00ff]" title="Llamar a Soporte Admin">
@@ -647,30 +645,33 @@
                 </div>
             </div>
             
-            <!-- 🖥️ CONTENEDOR DE LA VIDEOLLAMADA CON SELECTOR DE CÁMARA (OBS / CÁMARA WEB / EXTERNA) -->
+            <!-- 🖥️ CONTENEDOR DE LA VIDEOLLAMADA CON MODO PREVISUALIZACIÓN -->
             <div id="video-bunker-container" class="hidden bg-[#050505] border-b border-[#ff00ff] p-3 flex flex-col items-center justify-center relative shadow-inner shrink-0">
                 <div class="w-full aspect-video bg-neutral-900 rounded-xl border border-neutral-700 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.8)]">
-                    <div class="absolute top-2 left-2 z-20 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md">EN VIVO</div>
+                    <div id="video-badge" class="absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md">PREVISUALIZACIÓN</div>
                     
-                    <!-- Elemento de video real para conectar la cámara de la tablet, cel, PC u OBS -->
-                    <video id="bunker-webcam-feed" autoplay playsinline muted class="w-full h-full object-cover absolute inset-0 z-10"></video>
+                    <video id="bunker-webcam-feed" autoplay playsinline muted class="w-full h-full object-cover absolute inset-0 z-10 hidden"></video>
                     
                     <div id="cam-loading-placeholder" class="flex flex-col items-center justify-center z-0">
                         <i class="fa-solid fa-satellite-dish text-4xl text-neutral-600 mb-2 animate-bounce"></i>
-                        <p class="text-xs text-[#00f3ff] font-bold tracking-widest">ACTIVANDO CÁMARA / OBS...</p>
+                        <p class="text-xs text-[#00f3ff] font-bold tracking-widest text-center">INICIANDO MÓDULO...</p>
                     </div>
                 </div>
 
-                <!-- Selector de dispositivos de video (OBS / Frontal / Trasera / WebCam) -->
                 <div class="w-full flex items-center gap-2 mt-2">
                     <select id="camera-source-select" onchange="app.switchCameraSource()" class="bg-neutral-900 border border-neutral-700 text-white text-[11px] rounded-lg p-2 flex-1 outline-none font-bold">
                         <option value="">Seleccionar Cámara / OBS...</option>
                     </select>
                 </div>
 
-                <button onclick="app.leaveVideoBunker()" class="mt-2.5 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-4 py-2 rounded-lg transition shadow-[0_0_10px_rgba(255,0,0,0.4)] uppercase">
-                    <i class="fa-solid fa-phone-slash mr-1"></i> SALIR DEL VIDEO
-                </button>
+                <div class="w-full flex items-center gap-2 mt-2">
+                    <button id="btn-go-live" onclick="app.startLiveTransmission()" class="flex-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-4 py-2 rounded-lg transition shadow-[0_0_10px_rgba(255,0,0,0.4)] uppercase">
+                        <i class="fa-solid fa-satellite-dish mr-1"></i> TRANSMITIR
+                    </button>
+                    <button onclick="app.leaveVideoBunker()" class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white text-[10px] font-black px-4 py-2 rounded-lg transition border border-neutral-600 uppercase">
+                        <i class="fa-solid fa-times mr-1"></i> CERRAR
+                    </button>
+                </div>
             </div>
 
             <div id="global-chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-transparent to-black/50">
@@ -681,7 +682,6 @@
                 </div>
             </div>
             
-            <!-- VISTA PREVIA MULTIMEDIA GLOBAL -->
             <div id="global-chat-preview-container" class="hidden px-4 pt-3 bg-[#050505] flex items-center gap-3">
                 <div class="relative inline-block">
                     <img id="global-chat-preview-img" src="" class="hidden h-14 w-14 object-cover rounded-xl border border-[#00f3ff] shadow-[0_0_10px_rgba(0,243,255,0.3)]">
@@ -706,7 +706,7 @@
         </div>
     </div>
 
-    <!-- 🛡️ VISOR DE PANTALLA COMPLETA (LIGHTBOX PARA FOTOS Y VIDEOS) -->
+    <!-- 🛡️ VISOR DE PANTALLA COMPLETA (LIGHTBOX) -->
     <div id="media-lightbox-modal" class="hidden fixed inset-0 z-[250] bg-black bg-opacity-95 backdrop-blur-md flex flex-col items-center justify-center p-4">
         <button onclick="app.closeLightbox()" class="absolute top-6 right-6 bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-black text-lg shadow-[0_0_15px_red] hover:scale-110 transition z-50">
             <i class="fa-solid fa-times"></i>
@@ -748,11 +748,11 @@
 
     <div id="toast" class="toast cursor-pointer hover:opacity-80 transition-opacity">¡Copiado! 📋</div>
     
-    <!-- 🛡️ SCRIPTS MAESTROS ACTUALIZADOS (VERSION 15) -->
-    <script src="js/security.js?v=15"></script>
-    <script src="js/translations.js?v=15"></script>
-    <script src="js/api.js?v=15"></script>
-    <script src="js/chat.js?v=15"></script>
-    <script src="js/app.js?v=15" defer></script>
+    <!-- 🛡️ SCRIPTS MAESTROS ACTUALIZADOS (VERSION 16) -->
+    <script src="js/security.js?v=16"></script>
+    <script src="js/translations.js?v=16"></script>
+    <script src="js/api.js?v=16"></script>
+    <script src="js/chat.js?v=16"></script>
+    <script src="js/app.js?v=16" defer></script>
 </body>
 </html>
