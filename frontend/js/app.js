@@ -49,7 +49,8 @@ const app = {
             toast.classList.add('show'); 
             toast.onclick = () => toast.classList.remove('show');
             clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 3500); 
+            // 🕒 Reducido a 1 segundo exacto (1000ms) para que no estorbe
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1000); 
         }
     },
 
