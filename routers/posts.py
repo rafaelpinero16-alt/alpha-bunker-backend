@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from database.db import get_db
 from database.models import Post, UnlockedPost, User, Wallet, Transaction, ChatMessage
-from routers.chat import manager  # Para lanzar la alerta dorada en el chat si se desea
+from routers.chat import manager
 
 router = APIRouter(prefix="/posts", tags=["Posts y Contenido"])
 
@@ -23,7 +23,7 @@ class UnlockPostRequest(BaseModel):
 
 @router.get("/")
 def get_posts():
-    return {"message": "Módulo de posts en línea y listo para estructurar."}[cite: 6]
+    return {"message": "Módulo de posts en línea y listo para estructurar."}
 
 @router.post("/create")
 def create_post(data: PostCreateRequest, db: Session = Depends(get_db)):
@@ -52,13 +52,15 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
         user = db.query(User).filter(User.user_id == user_id).first()
         user_access_level = user.access_level if user else 0
 
-        # Obtener los IDs de posts que este usuario ya ha desbloqueado mediante PPV
         unlocked_records = db.query(UnlockedPost.post_id).filter(UnlockedPost.user_id == user_id).all()
         unlocked_post_ids = {r[0] for r in unlocked_records}
 
         feed_data = []
         for p in posts:
-            # Lógica de bloqueo: Es PPV si cuesta alpha y no lo ha desbloqueado, O si requiere un nivel superior al del usuario
+            # 🛡️ Identificamos el rol del autor para controlar el botón de propinas
+            post_author = db.query(User).filter(User.user_id == p.creator_id).first()
+            author_role = post_author.role if post_author else "fan"
+
             is_ppv_locked = p.is_ppv and p.price_alpha > 0 and p.id not in unlocked_post_ids
             is_tier_locked = p.levelRequired > user_access_level
             
@@ -68,8 +70,9 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
                 "id": p.id,
                 "creator_id": p.creator_id,
                 "author": p.author,
+                "author_role": author_role,
                 "content": p.text_es,
-                "media_url": None if is_locked else p.image_url, # Se oculta la imagen si está bloqueado
+                "media_url": None if is_locked else p.image_url,
                 "levelRequired": p.levelRequired,
                 "is_ppv": p.is_ppv,
                 "price_alpha": p.price_alpha,
@@ -89,7 +92,6 @@ async def unlock_post(data: UnlockPostRequest, db: Session = Depends(get_db)):
         if not post:
             raise HTTPException(status_code=404, detail="Publicación no encontrada.")
 
-        # Verificar si ya lo tiene desbloqueado
         existing_unlock = db.query(UnlockedPost).filter(
             UnlockedPost.user_id == data.user_id,
             UnlockedPost.post_id == data.post_id
@@ -98,29 +100,24 @@ async def unlock_post(data: UnlockPostRequest, db: Session = Depends(get_db)):
         if existing_unlock:
             return {"status": "success", "message": "El contenido ya estaba desbloqueado."}
 
-        # Validar billetera del fan
         fan_wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
         if not fan_wallet or fan_wallet.alpha_balance < post.price_alpha:
             raise HTTPException(status_code=400, detail="Saldo insuficiente en $ALPHA para desbloquear este contenido.")
 
-        # Billetera del creador
         creator_wallet = db.query(Wallet).filter(Wallet.user_id == post.creator_id).first()
         if not creator_wallet:
-            creator_wallet = Wallet(user_id=post.creator_id, alpha_balance=0)
+            creator_wallet = Wallet(user_id=post.creator_id, alpha_balance=0, total_earned=0, total_spent=0)
             db.add(creator_wallet)
 
-        # Transacción de tokens
         fan_wallet.alpha_balance -= post.price_alpha
         fan_wallet.total_spent += post.price_alpha
 
         creator_wallet.alpha_balance += post.price_alpha
         creator_wallet.total_earned += post.price_alpha
 
-        # Registrar desbloqueo permanente
         new_unlock = UnlockedPost(user_id=data.user_id, post_id=data.post_id)
         db.add(new_unlock)
 
-        # Transacción histórica
         tx = Transaction(
             sender_id=data.user_id,
             receiver_id=post.creator_id,
@@ -150,7 +147,6 @@ def delete_post(data: dict, db: Session = Depends(get_db)):
         if not post:
             raise HTTPException(status_code=404, detail="Post no encontrado")
             
-        # Validar que sea el dueño o el admin maestro (8269470905)
         ADMIN_ID = 8269470905
         if post.creator_id != user_id and user_id != ADMIN_ID:
             raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este post.")
