@@ -50,7 +50,7 @@ const app = {
             toast.classList.add('show'); 
             toast.onclick = () => toast.classList.remove('show');
             clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1500); 
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); 
         }
     },
 
@@ -1082,6 +1082,7 @@ const app = {
         this.initUserId();
         if (!this.userId) return;
 
+        // 🛡️ REGLA: Prevenir bucles masivos. Si ya está conectado, no hace nada.
         if (this.globalChatSocket) {
             if(this.globalChatSocket.readyState === WebSocket.OPEN || this.globalChatSocket.readyState === WebSocket.CONNECTING) {
                 return; 
