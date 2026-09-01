@@ -236,14 +236,14 @@
             </div>
         </header>
 
-        <!-- 🚀 CHAT GLOBAL & VIDEO BÚNKER (CANAL INDEPENDIENTE) -->
+        <!-- 🚀 CHAT GLOBAL & VIDEO BÚNKER -->
         <div class="mx-2 mt-2 bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border-2 border-[#00f3ff] rounded-2xl p-3.5 shadow-[0_0_15px_rgba(0,243,255,0.2)] flex items-center justify-between shrink-0">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-[#00f3ff]/20 border border-[#00f3ff] flex items-center justify-center text-[#00f3ff] text-xl animate-pulse shrink-0">
                     <i class="fa-solid fa-video"></i>
                 </div>
                 <div>
-                    <h4 class="text-xs font-black text-white uppercase" id="global-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
+                    <h4 class="text-xs font-black text-white uppercase" id="wall-chat-title">CHAT GLOBAL & VIDEO BÚNKER</h4>
                     <p class="text-[10px] text-gray-300 font-medium" id="wall-chat-desc">Comunidad en directo (Independiente)</p>
                 </div>
             </div>
@@ -266,6 +266,7 @@
             <button onclick="app.openCommunitiesModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
                 <i class="fa-solid fa-users text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-communities">COMUNIDAD</span>
             </button>
+            <!-- 🛡️ NUEVO BOTÓN CENTRAL: POSTEAR / PUBLICAR PARA FANS Y CREADORES -->
             <button onclick="app.openUploadPanel()" class="flex flex-col items-center text-[#00f3ff] hover:scale-110 transition relative -mt-7 w-16">
                 <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
                     <i class="fa-solid fa-circle-plus text-2xl drop-shadow-[0_0_5px_#00f3ff]"></i>
@@ -506,6 +507,7 @@
             </button>
             <h2 id="com-title" class="text-3d-magenta text-3xl text-center mb-6 mt-4 font-black">RED DE ALIADOS</h2>
             <div class="overflow-y-auto space-y-4 pb-10">
+                <!-- 🛡️ ENLACES OFICIALES RESTAURADOS -->
                 <button onclick="app.openLink('https://t.me/+M59HYbw1IoIxMThh')" class="w-full bg-gray-900 border-2 border-[#00f3ff] rounded-2xl p-5 flex items-center justify-between hover:bg-gray-800 transition shadow-[0_0_10px_rgba(0,243,255,0.2)]">
                     <div class="flex items-center gap-4">
                         <i class="fa-solid fa-shield-halved text-3xl text-[#00f3ff]"></i><span class="font-extrabold text-white text-xl">THE BUNKER (CRM)</span>
@@ -595,6 +597,7 @@
                     </div>
                 </div>
             </div>
+            <!-- 📎 BOTÓN DE ADJUNTOS AÑADIDO AL CHAT CRM -->
             <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-2 pb-6">
                 <label for="crm-media-upload" class="text-[#00f3ff] text-2xl p-2 cursor-pointer hover:scale-110 transition active:scale-95">
                     <i class="fa-solid fa-paperclip"></i>
@@ -636,6 +639,7 @@
                     </div>
                 </div>
             </div>
+            <!-- 📎 BOTÓN DE ADJUNTOS AÑADIDO AL CHAT GLOBAL -->
             <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-2 pb-6">
                 <label for="global-media-upload" class="text-[#ff00ff] text-2xl p-2 cursor-pointer hover:scale-110 transition active:scale-95">
                     <i class="fa-solid fa-paperclip"></i>
@@ -681,9 +685,10 @@
 
     <div id="toast" class="toast">¡Copiado! 📋</div>
     
-    <script src="js/security.js?v=8"></script>
-    <script src="js/translations.js?v=8"></script>
-    <script src="js/api.js?v=8"></script>
-    <script src="js/app.js?v=8" defer></script>
+    <!-- 🛡️ VERSION 9 PARA ROMPER EL CACHÉ -->
+    <script src="js/security.js?v=9"></script>
+    <script src="js/translations.js?v=9"></script>
+    <script src="js/api.js?v=9"></script>
+    <script src="js/app.js?v=9" defer></script>
 </body>
 </html>
