@@ -14,9 +14,9 @@ class TipMenuSlotSchema(BaseModel):
 
 @router.get("/{creator_id}/tip-menu")
 def get_creator_tip_menu(creator_id: int, db: Session = Depends(get_db)):
-    """Obtiene los 10 espacios del Tip Menu del creador."""
+    """Obtiene los 10 espacios del Tip Menu del creador de forma segura."""
     slots = db.query(TipMenuSlot).filter(TipMenuSlot.creator_id == creator_id).all()
-    return {"status": "success", "slots": slots}
+    return {"status": "success", "slots": slots or []}
 
 @router.post("/tip-menu/update")
 def update_tip_menu_slot(data: TipMenuSlotSchema, db: Session = Depends(get_db)):
@@ -24,12 +24,10 @@ def update_tip_menu_slot(data: TipMenuSlotSchema, db: Session = Depends(get_db))
     if not (1 <= data.slot_number <= 10):
         raise HTTPException(status_code=400, detail="El espacio debe ser un número entre 1 y 10.")
     
-    # Verificar que el usuario sea creador
     creator = db.query(User).filter(User.user_id == data.user_id, User.is_creator == True).first()
     if not creator:
         raise HTTPException(status_code=403, detail="Acceso denegado. Solo creadores verificados pueden editar su Tip Menu.")
     
-    # Buscar si ya existe el slot
     slot = db.query(TipMenuSlot).filter(
         TipMenuSlot.creator_id == data.user_id, 
         TipMenuSlot.slot_number == data.slot_number
