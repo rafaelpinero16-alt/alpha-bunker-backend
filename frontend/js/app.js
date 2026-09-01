@@ -12,6 +12,7 @@ const app = {
     
     tempKYCDoc: null,
     tempKYCSelfie: null,
+    tempChatMediaData: null, 
 
     chatSocket: null,
     globalChatSocket: null,
@@ -49,7 +50,6 @@ const app = {
             toast.classList.add('show'); 
             toast.onclick = () => toast.classList.remove('show');
             clearTimeout(this.toastTimer);
-            // 🕒 Reducido a 1 segundo exacto (1000ms) para que no estorbe
             this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1000); 
         }
     },
@@ -156,9 +156,7 @@ const app = {
             balanceDisplays.forEach(el => {
                 el.innerText = `${balance} $ALPHA`;
             });
-        } catch (err) {
-            console.warn('[WALLET REFRESH ERROR]:', err);
-        }
+        } catch (err) {}
     },
 
     async syncKYCStatus() {
@@ -185,9 +183,7 @@ const app = {
                     this.updateProfileUI();
                 }
             }
-        } catch (err) {
-            console.warn('[KYC SYNC ERROR]:', err);
-        }
+        } catch (err) {}
     },
 
     updateProfileUI() {
@@ -200,27 +196,18 @@ const app = {
         }
 
         const nameFeed = document.getElementById('name-feed');
-        if (nameFeed && savedName) {
-            nameFeed.innerText = savedName;
-        }
+        if (nameFeed && savedName) nameFeed.innerText = savedName;
 
         const savedBio = localStorage.getItem('alpha_user_bio');
         const bioInput = document.getElementById('prof-bio');
-        if (bioInput && savedBio) {
-            bioInput.value = savedBio;
-        }
+        if (bioInput && savedBio) bioInput.value = savedBio;
 
         const savedAvatar = localStorage.getItem('alpha_user_avatar');
         const avatarImg = document.getElementById('prof-avatar-img');
         const avatarFeed = document.getElementById('avatar-feed');
         if (savedAvatar) {
-            if (avatarImg) {
-                avatarImg.src = savedAvatar;
-                avatarImg.classList.remove('hidden');
-            }
-            if (avatarFeed) {
-                avatarFeed.src = savedAvatar;
-            }
+            if (avatarImg) { avatarImg.src = savedAvatar; avatarImg.classList.remove('hidden'); }
+            if (avatarFeed) avatarFeed.src = savedAvatar;
         }
 
         const rankDisplay = document.getElementById('prof-rank');
@@ -315,9 +302,7 @@ const app = {
                 const data = await res.json();
                 return data.slots || [];
             }
-        } catch (err) {
-            console.warn('[TIP MENU LOAD ERROR]:', err);
-        }
+        } catch (err) {}
         return [];
     },
 
@@ -412,8 +397,7 @@ const app = {
                 throw new Error(data.detail || 'Error al guardar');
             }
         } catch (err) {
-            console.error('[TIP SLOT SAVE ERROR]:', err);
-            this.showToast(`⚠️ ${err.message || 'Error de conexión con el servidor'}`);
+            this.showToast(`⚠️ Error de conexión con el servidor`);
         }
     },
 
@@ -455,8 +439,7 @@ const app = {
                 throw new Error(data.detail || 'Error al generar la factura');
             }
         } catch (err) {
-            console.error('[BUY STARS ERROR]:', err);
-            this.showToast(`⚠️ ${err.message || 'Error con el servidor de pagos'}`);
+            this.showToast(`⚠️ Error con el servidor de pagos`);
         }
     },
 
@@ -509,7 +492,6 @@ const app = {
                 throw new Error('Error al cargar paquetes tácticos');
             }
         } catch (err) {
-            console.warn('[PACKAGES LOAD ERROR]:', err);
             container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`;
         }
     },
@@ -693,9 +675,7 @@ const app = {
                         if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET';
                     }
                 });
-            } catch (err) {
-                console.warn('[TONCONNECT INIT ERROR]:', err);
-            }
+            } catch (err) {}
         }
     },
 
@@ -1062,7 +1042,7 @@ const app = {
         };
     },
 
-    // 💬 MODAL 2: CHAT GLOBAL & VIDEO BÚNKER (COMUNIDAD INDEPENDIENTE)
+    // 💬 MODAL 2: CHAT GLOBAL INDEPENDIENTE
     async openGlobalChat() {
         this.closeModals();
         document.getElementById('modal-global-chat')?.classList.remove('hidden');
@@ -1104,10 +1084,31 @@ const app = {
         this.globalChatSocket.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
-                this.appendChatMessage(msg, 'global-chat-messages');
-                this.scrollToBottom('global-chat-messages');
+                if(msg.is_error){
+                    this.showToast(msg.message);
+                } else {
+                    this.appendChatMessage(msg, 'global-chat-messages');
+                    this.scrollToBottom('global-chat-messages');
+                }
             } catch (e) {}
         };
+    },
+
+    // 📎 Pre-carga de imágenes para el chat en vivo
+    async handleChatMediaPreview(event, type) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        this.haptic('light');
+        const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input');
+        
+        this.showToast('Adjuntando imagen... ⏳');
+        this.tempChatMediaData = await this.compressImage(file, 600, 0.7); 
+        
+        if (inputEl) {
+            inputEl.placeholder = `📷 ${file.name} (Escribe algo y envía)`;
+            inputEl.focus();
+        }
     },
 
     appendChatMessage(msg, containerId) {
@@ -1118,16 +1119,23 @@ const app = {
         const ranks = ['SPY 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
         const rankName = ranks[msg.access_level] || ranks[0];
 
-        const safeContent = this.escapeHtml(msg.content);
+        let contentObj = { text: msg.content, media_url: null };
+        try {
+            const parsed = JSON.parse(msg.content);
+            if(parsed.text !== undefined) contentObj = parsed;
+        } catch(e) {}
+
+        const safeText = this.escapeHtml(contentObj.text || '');
+        const safeMedia = contentObj.media_url ? `<img src="${this.escapeHtml(contentObj.media_url)}" class="rounded-xl w-full max-h-48 object-cover mt-2 mb-1" />` : '';
         const safeAuthorName = this.escapeHtml(msg.author_name);
 
         let html = '';
         if (msg.is_system) {
-            html = `<div class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full font-bold text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeContent}</div></div>`;
+            html = `<div class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full font-bold text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeContent}</div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         } else {
-            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • ${rankName}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeContent}</div></div>`;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • ${rankName}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
     },
@@ -1141,18 +1149,23 @@ const app = {
         this.haptic('light');
         const input = document.getElementById('chat-input'); 
         const text = input ? input.value.trim() : '';
-        if (!text) return;
+        
+        if (!text && !this.tempChatMediaData) return;
+
+        const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
 
         if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
-            this.chatSocket.send(text);
-            if (input) input.value = ''; 
+            this.chatSocket.send(payload);
+            if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+            this.tempChatMediaData = null;
         } else {
-            this.showToast(this.getTrans('toast_reconnecting'));
+            this.showToast('Reconectando...');
             this.initChatWebSocket();
             setTimeout(() => {
                 if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
-                    this.chatSocket.send(text);
-                    if (input) input.value = ''; 
+                    this.chatSocket.send(payload);
+                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+                    this.tempChatMediaData = null;
                 }
             }, 1000);
         }
@@ -1160,20 +1173,39 @@ const app = {
 
     sendGlobalChatMessage() {
         this.haptic('light');
+        this.initUserId();
+        
+        const userTier = this.userData?.access_tier || 0;
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
+
+        // 🛡️ REGLA: Los Veteran (T2), Legend (T3) e Icon (T4) pueden enviar fotos
+        if (this.tempChatMediaData && userTier < 2 && !isAdminUser) {
+            this.showToast('⚠️ Requiere rango VETERAN o superior para enviar fotos/videos.');
+            this.tempChatMediaData = null;
+            const input = document.getElementById('global-chat-input');
+            if(input) input.placeholder = this.getTrans('chat_placeholder');
+            return;
+        }
+
         const input = document.getElementById('global-chat-input');
         const text = input ? input.value.trim() : '';
-        if (!text) return;
+        
+        if (!text && !this.tempChatMediaData) return;
+
+        const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
 
         if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
-            this.globalChatSocket.send(text);
-            if (input) input.value = '';
+            this.globalChatSocket.send(payload);
+            if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+            this.tempChatMediaData = null;
         } else {
-            this.showToast(this.getTrans('toast_reconnecting'));
+            this.showToast('Reconectando...');
             this.initGlobalChatWebSocket();
             setTimeout(() => {
                 if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
-                    this.globalChatSocket.send(text);
-                    if (input) input.value = '';
+                    this.globalChatSocket.send(payload);
+                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+                    this.tempChatMediaData = null;
                 }
             }, 1000);
         }
@@ -1188,7 +1220,6 @@ const app = {
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         const isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin' || this.userData?.role === 'admin');
 
-        // Los fans ahora pueden publicar, solo se pide KYC a los Creadores.
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) {
             this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar como creador.');
             this.openKYCModal();
@@ -1215,7 +1246,6 @@ const app = {
         const langText = document.getElementById('fab-lang-text');
         if (langText) langText.innerText = lang.toUpperCase();
         if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
-        this.showToast(`Idioma: ${lang.toUpperCase()}`);
     },
 
     toggleAdminSecret() { 
@@ -1334,7 +1364,6 @@ const app = {
                 const safeContent = this.escapeHtml(post.content);
                 const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
 
-                // 🛡️ REGLA: Si el autor es 'fan', se oculta el botón de propinas. Solo Creadores y Admins reciben propinas.
                 const showTipBtn = (post.author_role === 'creator' || post.author_role === 'admin');
 
                 return `
