@@ -14,9 +14,6 @@ const app = {
     tempKYCSelfie: null,
     tempChatMediaData: null, 
 
-    chatSocket: null,
-    globalChatSocket: null,
-
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -43,12 +40,18 @@ const app = {
         } catch (e) {}
     },
 
+    // 🛡️ FIX: Toast mejorado. Desaparece instantáneamente si lo tocas.
     showToast(msg) {
         const toast = document.getElementById('toast');
         if (toast) { 
             toast.innerText = msg; 
             toast.classList.add('show'); 
-            toast.onclick = () => toast.classList.remove('show');
+            
+            toast.onclick = () => {
+                toast.classList.remove('show');
+                clearTimeout(this.toastTimer);
+            };
+            
             clearTimeout(this.toastTimer);
             this.toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); 
         }
@@ -972,14 +975,6 @@ const app = {
 
     closeModals() {
         this.haptic('light');
-        if (this.chatSocket) {
-            this.chatSocket.close();
-            this.chatSocket = null;
-        }
-        if (this.globalChatSocket) {
-            this.globalChatSocket.close();
-            this.globalChatSocket = null;
-        }
         ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
@@ -995,12 +990,11 @@ const app = {
     openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); },
     
-    // 💬 MODAL 1: SOPORTE BÚNKER (CRM PRIVADO CON ADMIN)
     async openSupport() { 
         this.closeModals(); 
         document.getElementById('modal-chat')?.classList.remove('hidden'); 
         await this.loadChatHistory();
-        this.initChatWebSocket();
+        BunkerChat.initCRM(this.userId, this.backendUrl);
     },
 
     async loadChatHistory() {
@@ -1020,45 +1014,11 @@ const app = {
         } catch (err) {}
     },
 
-    initChatWebSocket() {
-        this.initUserId();
-        if (!this.userId) return;
-
-        if (this.chatSocket) {
-            this.chatSocket.close();
-            this.chatSocket = null;
-        }
-
-        const wsProtocol = this.backendUrl.startsWith('https') ? 'wss://' : 'ws://';
-        const cleanBaseUrl = this.backendUrl.replace(/^https?:\/\//, '');
-        const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/ws/${this.userId}`;
-
-        const statusEl = document.getElementById('chat-routed');
-        if (statusEl) statusEl.innerText = this.getTrans('chat_connecting');
-
-        this.chatSocket = new WebSocket(wsUrl);
-        
-        this.chatSocket.onopen = () => {
-            if (statusEl) statusEl.innerText = this.getTrans('chat_connected');
-        };
-
-        this.chatSocket.onmessage = (event) => {
-            try {
-                const msg = JSON.parse(event.data);
-                this.appendChatMessage(msg, 'chat-messages');
-                this.scrollToBottom('chat-messages');
-            } catch (e) {}
-        };
-
-        this.chatSocket.onclose = () => {};
-    },
-
-    // 💬 MODAL 2: CHAT GLOBAL INDEPENDIENTE
     async openGlobalChat() {
         this.closeModals();
         document.getElementById('modal-global-chat')?.classList.remove('hidden');
         await this.loadGlobalChatHistory();
-        this.initGlobalChatWebSocket();
+        BunkerChat.initGlobal(this.userId, this.backendUrl);
     },
 
     async loadGlobalChatHistory() {
@@ -1078,53 +1038,7 @@ const app = {
         } catch (e) {}
     },
 
-    initGlobalChatWebSocket() {
-        this.initUserId();
-        if (!this.userId) return;
-
-        // 🛡️ REGLA: Prevenir bucles masivos. Si ya está conectado, no hace nada.
-        if (this.globalChatSocket) {
-            if(this.globalChatSocket.readyState === WebSocket.OPEN || this.globalChatSocket.readyState === WebSocket.CONNECTING) {
-                return; 
-            }
-            this.globalChatSocket.close();
-            this.globalChatSocket = null;
-        }
-
-        const wsProtocol = this.backendUrl.startsWith('https') ? 'wss://' : 'ws://';
-        const cleanBaseUrl = this.backendUrl.replace(/^https?:\/\//, '');
-        const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/global/ws/${this.userId}`;
-
-        this.globalChatSocket = new WebSocket(wsUrl);
-        
-        this.globalChatSocket.onopen = () => {
-            const input = document.getElementById('global-chat-input');
-            if (input) input.placeholder = "Escribe en el chat global...";
-        };
-
-        this.globalChatSocket.onmessage = (event) => {
-            try {
-                const msg = JSON.parse(event.data);
-                if(msg.is_error){
-                    this.showToast(msg.message);
-                } else {
-                    this.appendChatMessage(msg, 'global-chat-messages');
-                    this.scrollToBottom('global-chat-messages');
-                }
-            } catch (e) {}
-        };
-
-        this.globalChatSocket.onclose = () => {
-            if(this.globalChatReconnectTimer) clearTimeout(this.globalChatReconnectTimer);
-            this.globalChatReconnectTimer = setTimeout(() => {
-                const modal = document.getElementById('modal-global-chat');
-                if (modal && !modal.classList.contains('hidden')) {
-                    this.initGlobalChatWebSocket();
-                }
-            }, 3000);
-        };
-    },
-
+    // 🛡️ FIX: Desplegar Vista Previa Multimedia Visual
     async handleChatMediaPreview(event, type) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1148,31 +1062,69 @@ const app = {
 
         this.haptic('light');
         const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input');
+        
+        // Elementos de la vista previa
+        const previewContainer = document.getElementById(`${type}-chat-preview-container`);
+        const previewImg = document.getElementById(`${type}-chat-preview-img`);
+        const previewVideo = document.getElementById(`${type}-chat-preview-video`);
+        const previewName = document.getElementById(`${type}-chat-preview-name`);
+
         this.showToast('Procesando archivo... ⏳');
 
         if (isVideo) {
             if (file.size > 5 * 1024 * 1024) {
                 this.showToast('⚠️ El video no puede superar los 5MB para no saturar el Búnker.');
+                this.clearChatMedia(type);
                 return;
             }
             const reader = new FileReader();
             reader.onload = (e) => {
                 this.tempChatMediaData = e.target.result;
-                if (inputEl) {
-                    inputEl.placeholder = `📹 Video cargado (Escribe algo y envía)`;
-                    inputEl.focus();
+                
+                // Mostrar UI de Video
+                if (previewContainer) {
+                    previewContainer.classList.remove('hidden');
+                    previewImg.classList.add('hidden');
+                    previewVideo.src = e.target.result;
+                    previewVideo.classList.remove('hidden');
+                    previewName.innerText = `Video: ${file.name.substring(0,12)}...`;
                 }
+
+                if (inputEl) inputEl.focus();
                 this.showToast('✅ Video adjunto.');
             };
             reader.readAsDataURL(file);
         } else {
             this.tempChatMediaData = await this.compressImage(file, 800, 0.7); 
-            if (inputEl) {
-                inputEl.placeholder = `📷 Foto cargada (Escribe algo y envía)`;
-                inputEl.focus();
+            
+            // Mostrar UI de Foto
+            if (previewContainer) {
+                previewContainer.classList.remove('hidden');
+                previewVideo.classList.add('hidden');
+                previewVideo.src = "";
+                previewImg.src = this.tempChatMediaData;
+                previewImg.classList.remove('hidden');
+                previewName.innerText = `Foto: ${file.name.substring(0,12)}...`;
             }
+
+            if (inputEl) inputEl.focus();
             this.showToast('✅ Foto adjunta.');
         }
+    },
+
+    // 🛡️ FIX: Función para limpiar y ocultar la vista previa multimedia
+    clearChatMedia(type) {
+        this.haptic('light');
+        this.tempChatMediaData = null;
+        const uploadInput = document.getElementById(`${type}-media-upload`);
+        const previewContainer = document.getElementById(`${type}-chat-preview-container`);
+        const previewImg = document.getElementById(`${type}-chat-preview-img`);
+        const previewVideo = document.getElementById(`${type}-chat-preview-video`);
+        
+        if (uploadInput) uploadInput.value = '';
+        if (previewContainer) previewContainer.classList.add('hidden');
+        if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); }
+        if (previewVideo) { previewVideo.src = ''; previewVideo.classList.add('hidden'); }
     },
 
     appendChatMessage(msg, containerId) {
@@ -1226,19 +1178,17 @@ const app = {
         if (!text && !this.tempChatMediaData) return;
 
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
+        const success = BunkerChat.sendCRM(payload);
 
-        if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
-            this.chatSocket.send(payload);
+        if (success) {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-            this.tempChatMediaData = null;
+            this.clearChatMedia('crm'); // Limpia la vista previa tras enviar
         } else {
-            this.initChatWebSocket();
+            BunkerChat.initCRM(this.userId, this.backendUrl);
             setTimeout(() => {
-                if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
-                    this.chatSocket.send(payload);
-                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-                    this.tempChatMediaData = null;
-                }
+                BunkerChat.sendCRM(payload);
+                if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+                this.clearChatMedia('crm');
             }, 500);
         }
     },
@@ -1275,24 +1225,32 @@ const app = {
         }
 
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
+        const success = BunkerChat.sendGlobal(payload);
 
-        // 🛡️ FIX: Despachamos solo si está abierto para evitar el bucle congelado
-        if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
-            this.globalChatSocket.send(payload);
+        if (success) {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-            this.tempChatMediaData = null;
+            this.clearChatMedia('global'); // Limpia la vista previa tras enviar
         } else {
-            this.showToast('⚠️ Sin conexión al servidor. Reconectando...');
-            if(!this.globalChatSocket || this.globalChatSocket.readyState === WebSocket.CLOSED) {
-                 this.initGlobalChatWebSocket();
+            this.showToast('Reconectando al servidor... ⏳');
+            if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState === WebSocket.CLOSED) {
+                 BunkerChat.initGlobal(this.userId, this.backendUrl);
             }
+            if(this.globalSendRetry) clearTimeout(this.globalSendRetry);
+            this.globalSendRetry = setTimeout(() => {
+                if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) {
+                    BunkerChat.sendGlobal(payload);
+                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+                    this.clearChatMedia('global');
+                } else {
+                    this.showToast('⚠️ No se pudo enviar el mensaje. Intenta de nuevo.');
+                }
+            }, 2000);
         }
     },
 
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
-    // 🛡️ FIX: Forzamos la manipulación del DOM para salir del Video de manera infalible
     joinVideoBunker() {
         this.haptic('medium');
         this.initUserId();
