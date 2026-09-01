@@ -50,7 +50,7 @@ const app = {
             toast.classList.add('show'); 
             toast.onclick = () => toast.classList.remove('show');
             clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1000); 
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1500); 
         }
     },
 
@@ -1038,7 +1038,7 @@ const app = {
         };
 
         this.chatSocket.onclose = () => {
-            if (statusEl) statusEl.innerText = this.getTrans('chat_error');
+            // Se quitó el toast de error automático para evitar saturación
         };
     },
 
@@ -1094,20 +1094,55 @@ const app = {
         };
     },
 
-    // 📎 Pre-carga de imágenes para el chat en vivo
+    // 📎 Pre-carga de imágenes y videos para el chat con Reglas Militares
     async handleChatMediaPreview(event, type) {
         const file = event.target.files[0];
         if (!file) return;
 
+        this.initUserId();
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
+        const isCreator = this.userData?.role === 'creator';
+        const userTier = this.userData?.access_tier || 0;
+        const isVideo = file.type.startsWith('video/');
+
+        // 🛡️ REGLAS MILITARES DE MULTIMEDIA (Solo aplican al Chat Global)
+        if (type === 'global' && !isAdminUser && !isCreator) {
+            if (userTier < 2) {
+                this.showToast('⚠️ Requiere rango VETERAN para enviar fotos al chat.');
+                return;
+            }
+            if (isVideo && userTier < 3) {
+                this.showToast('⚠️ Requiere rango LEGEND para enviar videos cortos.');
+                return;
+            }
+        }
+
         this.haptic('light');
         const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input');
-        
-        this.showToast('Adjuntando imagen... ⏳');
-        this.tempChatMediaData = await this.compressImage(file, 600, 0.7); 
-        
-        if (inputEl) {
-            inputEl.placeholder = `📷 ${file.name} (Escribe algo y envía)`;
-            inputEl.focus();
+        this.showToast('Procesando archivo... ⏳');
+
+        if (isVideo) {
+            if (file.size > 5 * 1024 * 1024) {
+                this.showToast('⚠️ El video no puede superar los 5MB para no saturar el Búnker.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                this.tempChatMediaData = e.target.result;
+                if (inputEl) {
+                    inputEl.placeholder = `📹 Video cargado (Escribe algo y envía)`;
+                    inputEl.focus();
+                }
+                this.showToast('✅ Video adjunto.');
+            };
+            reader.readAsDataURL(file);
+        } else {
+            this.tempChatMediaData = await this.compressImage(file, 800, 0.7); 
+            if (inputEl) {
+                inputEl.placeholder = `📷 Foto cargada (Escribe algo y envía)`;
+                inputEl.focus();
+            }
+            this.showToast('✅ Foto adjunta.');
         }
     },
 
@@ -1126,7 +1161,16 @@ const app = {
         } catch(e) {}
 
         const safeText = this.escapeHtml(contentObj.text || '');
-        const safeMedia = contentObj.media_url ? `<img src="${this.escapeHtml(contentObj.media_url)}" class="rounded-xl w-full max-h-48 object-cover mt-2 mb-1" />` : '';
+        
+        let safeMedia = '';
+        if (contentObj.media_url) {
+            if (contentObj.media_url.startsWith('data:video')) {
+                safeMedia = `<video src="${this.escapeHtml(contentObj.media_url)}" controls class="rounded-xl w-full max-h-48 object-cover mt-2 mb-1"></video>`;
+            } else {
+                safeMedia = `<img src="${this.escapeHtml(contentObj.media_url)}" class="rounded-xl w-full max-h-48 object-cover mt-2 mb-1" />`;
+            }
+        }
+        
         const safeAuthorName = this.escapeHtml(msg.author_name);
 
         let html = '';
@@ -1159,7 +1203,6 @@ const app = {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.tempChatMediaData = null;
         } else {
-            this.showToast('Reconectando...');
             this.initChatWebSocket();
             setTimeout(() => {
                 if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
@@ -1167,26 +1210,12 @@ const app = {
                     if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
                     this.tempChatMediaData = null;
                 }
-            }, 1000);
+            }, 500);
         }
     },
 
     sendGlobalChatMessage() {
         this.haptic('light');
-        this.initUserId();
-        
-        const userTier = this.userData?.access_tier || 0;
-        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
-
-        // 🛡️ REGLA: Los Veteran (T2), Legend (T3) e Icon (T4) pueden enviar fotos
-        if (this.tempChatMediaData && userTier < 2 && !isAdminUser) {
-            this.showToast('⚠️ Requiere rango VETERAN o superior para enviar fotos/videos.');
-            this.tempChatMediaData = null;
-            const input = document.getElementById('global-chat-input');
-            if(input) input.placeholder = this.getTrans('chat_placeholder');
-            return;
-        }
-
         const input = document.getElementById('global-chat-input');
         const text = input ? input.value.trim() : '';
         
@@ -1199,7 +1228,6 @@ const app = {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.tempChatMediaData = null;
         } else {
-            this.showToast('Reconectando...');
             this.initGlobalChatWebSocket();
             setTimeout(() => {
                 if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
@@ -1207,7 +1235,7 @@ const app = {
                     if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
                     this.tempChatMediaData = null;
                 }
-            }, 1000);
+            }, 500);
         }
     },
 
@@ -1220,6 +1248,7 @@ const app = {
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         const isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin' || this.userData?.role === 'admin');
 
+        // Los fans ahora pueden publicar, solo se pide KYC a los Creadores.
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) {
             this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar como creador.');
             this.openKYCModal();
