@@ -1307,7 +1307,6 @@ const app = {
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
-    // 🛡️ REGLA: TÁCTICA DE PERMISOS NATIVOS PARA WEBRTC CON ESTADO DE PREVISUALIZACIÓN Y TRANSMISIÓN
     async joinVideoBunker() {
         this.haptic('medium');
         this.initUserId();
@@ -1332,7 +1331,6 @@ const app = {
             container.classList.remove('hidden');
         }
         
-        // 🛡️ Estado Inicial: Previsualización local (Standby)
         if(badge) {
             badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md';
             badge.innerText = 'PREVISUALIZACIÓN';
@@ -1425,7 +1423,6 @@ const app = {
         }
     },
 
-    // 🛡️ BOTÓN DE TRANSMISIÓN OFICIAL
     startLiveTransmission() {
         this.haptic('heavy');
         const badge = document.getElementById('video-badge');
@@ -1439,7 +1436,6 @@ const app = {
         
         this.showToast('🔴 ¡Estás transmitiendo en vivo en el Búnker!');
         
-        // Disparamos alerta de inicio de transmisión al chat global
         const payload = JSON.stringify({ text: "🔴 ¡He iniciado una transmisión en vivo en el Búnker! Únanse al stream.", media_url: null });
         if (typeof BunkerChat !== 'undefined') {
             BunkerChat.sendGlobal(payload);
