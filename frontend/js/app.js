@@ -1037,9 +1037,7 @@ const app = {
             } catch (e) {}
         };
 
-        this.chatSocket.onclose = () => {
-            // Se quitó el toast de error automático para evitar saturación
-        };
+        this.chatSocket.onclose = () => {};
     },
 
     // 💬 MODAL 2: CHAT GLOBAL INDEPENDIENTE
@@ -1094,7 +1092,7 @@ const app = {
         };
     },
 
-    // 📎 Pre-carga de imágenes y videos para el chat con Reglas Militares
+    // 📎 Pre-carga de imágenes y videos para el chat con Reglas Militares (Frontend Validations)
     async handleChatMediaPreview(event, type) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1105,14 +1103,14 @@ const app = {
         const userTier = this.userData?.access_tier || 0;
         const isVideo = file.type.startsWith('video/');
 
-        // 🛡️ REGLAS MILITARES DE MULTIMEDIA (Solo aplican al Chat Global)
+        // 🛡️ REGLAS MILITARES DE MULTIMEDIA FRONTEND
         if (type === 'global' && !isAdminUser && !isCreator) {
             if (userTier < 2) {
-                this.showToast('⚠️ Requiere rango VETERAN para enviar fotos al chat.');
+                this.showToast('⚠️ Requiere rango VETERAN (Niv.2) para enviar fotos al chat.');
                 return;
             }
             if (isVideo && userTier < 3) {
-                this.showToast('⚠️ Requiere rango LEGEND para enviar videos cortos.');
+                this.showToast('⚠️ Requiere rango LEGEND (Niv.3) para enviar videos cortos.');
                 return;
             }
         }
@@ -1216,10 +1214,36 @@ const app = {
 
     sendGlobalChatMessage() {
         this.haptic('light');
+        this.initUserId();
+        
+        const userTier = this.userData?.access_tier || 0;
+        const userRole = this.userData?.role || 'fan';
+        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
+        const isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin');
+
         const input = document.getElementById('global-chat-input');
         const text = input ? input.value.trim() : '';
         
         if (!text && !this.tempChatMediaData) return;
+
+        // 🛡️ REGLA FRONTEND: Creadores sin KYC no pueden escribir
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) {
+            this.showToast('⚠️ Identidad no confirmada. Requieres KYC para interactuar.');
+            this.openKYCModal();
+            return;
+        }
+
+        // 🛡️ REGLA FRONTEND: Etiquetar requiere Soldier Creator
+        if (text.includes('@') && !isAdminUser) {
+            if (userRole !== 'creator') {
+                this.showToast('⚠️ Etiquetar usuarios es exclusivo para Creadores.');
+                return;
+            }
+            if (userRole === 'creator' && userTier < 1) {
+                this.showToast('⚠️ Necesitas ser SOLDIER CREATOR o superior para etiquetar.');
+                return;
+            }
+        }
 
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
 
@@ -1248,7 +1272,6 @@ const app = {
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         const isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin' || this.userData?.role === 'admin');
 
-        // Los fans ahora pueden publicar, solo se pide KYC a los Creadores.
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) {
             this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar como creador.');
             this.openKYCModal();
@@ -1464,6 +1487,7 @@ const app = {
         } catch (e) { this.showToast('⚠️ Saldo insuficiente'); }
     },
 
+    // 🛡️ REGLA: Videollamada solo accesible para Icon Legend (T4)
     startVideoCall() { 
         this.haptic('medium');
         this.initUserId();
@@ -1471,8 +1495,8 @@ const app = {
         const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
         const userTier = this.userData?.access_tier || 0; 
 
-        if (userTier < 3 && !isAdminUser) {
-            this.showToast('⚠️ Acceso restringido. Requiere rango Legend o Icon Legend.');
+        if (userTier < 4 && !isAdminUser) {
+            this.showToast('⚠️ Acceso restringido. Requiere rango ICON LEGEND para entrar a la cámara.');
             this.openCatalogPackages();
             return;
         }
