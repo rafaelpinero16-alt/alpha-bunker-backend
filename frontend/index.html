@@ -266,11 +266,12 @@
             <button onclick="app.openCommunitiesModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
                 <i class="fa-solid fa-users text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-communities">COMUNIDAD</span>
             </button>
-            <button onclick="app.goHome()" class="flex flex-col items-center text-[#00f3ff] hover:scale-110 transition relative -mt-7 w-16">
+            <!-- 🛡️ NUEVO BOTÓN CENTRAL: POSTEAR / PUBLICAR PARA FANS Y CREADORES -->
+            <button onclick="app.openUploadPanel()" class="flex flex-col items-center text-[#00f3ff] hover:scale-110 transition relative -mt-7 w-16">
                 <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
-                    <i class="fa-solid fa-house text-2xl drop-shadow-[0_0_5px_#00f3ff]"></i>
+                    <i class="fa-solid fa-circle-plus text-2xl drop-shadow-[0_0_5px_#00f3ff]"></i>
                 </div>
-                <span class="text-[10px] font-black tracking-wide text-[#00f3ff]" id="nav-home">HOME</span>
+                <span class="text-[10px] font-black tracking-wide text-[#00f3ff]" id="nav-post">PUBLICAR</span>
             </button>
             <button onclick="app.openProfile()" class="flex flex-col items-center text-[#ffb703] levitate hover:scale-110 transition w-14 pb-1">
                 <i class="fa-solid fa-user-astronaut text-2xl mb-1 drop-shadow-[0_0_5px_#ffb703]"></i><span class="text-[9px] font-black tracking-wide" id="nav-profile">MI PERFIL</span>
@@ -673,6 +674,6 @@
     <script src="js/security.js?v=5"></script>
     <script src="js/translations.js?v=5"></script>
     <script src="js/api.js?v=5"></script>
-    <script src="js/app.js?v=5" defer></script>
+    <script src="js/app.js?v=6" defer></script>
 </body>
 </html>
