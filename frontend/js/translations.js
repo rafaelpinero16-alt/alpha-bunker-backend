@@ -23,7 +23,11 @@ const t = {
         chat_title: "SOPORTE BÚNKER (CRM PRIVADO)", chat_routed: "Canal Directo con el Administrador", btn_send_proof: "ENVIAR COMPROBANTE AL BÚNKER", chat_welcome: "¡Soporte Búnker CRM Activo! Este canal es privado y directo con la administración.", chat_placeholder: "Escribe tu mensaje...",
         wall_chat_title: "CHAT GLOBAL & VIDEO BÚNKER", wall_chat_desc: "Comunidad en directo (Independiente)", btn_wall_chat: "CHAT", btn_wall_video: "VIDEO",
         
-        toast_video: "Conectando videollamada...", chat_connecting: "CONECTANDO AL BÚNKER... ⚡", chat_connected: "CONEXIÓN EN VIVO ESTABLECIDA ✅", chat_error: "RECONECTANDO... 🔄", toast_reconnecting: "Reconectando canal..."
+        toast_video: "Conectando videollamada...", chat_connecting: "CONECTANDO AL BÚNKER... ⚡", chat_connected: "CONEXIÓN EN VIVO ESTABLECIDA ✅", chat_error: "RECONECTANDO... 🔄", toast_reconnecting: "Reconectando canal...",
+        
+        // 🛡️ TRADUCCIONES DE TRANSMISIÓN BÚNKER
+        btn_go_live: "TRANSMITIR", btn_cancel_stream: "DETENER", btn_close_cam: "CERRAR",
+        stream_announce: "🔴 ¡He iniciado una transmisión en vivo en el Búnker! Únanse al stream."
     },
     en: { 
         warn_title: "WARNING", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "This space contains explicit and sexual material.", warn_p2: "By entering, you confirm under your responsibility that you are of legal age (18+) and consent to view this content.", btn_accept: "I ACCEPT", btn_exit: "EXIT", btn_back: "BACK", login_title: "VAULT ACCESS", login_desc: "Log in or create your account connecting directly with Telegram or entering your number.", lbl_phone: "PHONE NUMBER", btn_phone_login: "LOGIN WITH NUMBER", or_direct: "OR DIRECTLY WITH", btn_tg_login: "LOGIN WITH TELEGRAM", no_account: "Don't have an account yet?", btn_create_acc: "CREATE NEW ACCOUNT", cap_title: "HUMAN VERIFICATION", cap_desc: "Solve the security code to enter the Vault.", btn_new_code: "Generate another code", btn_verify: "VERIFY ACCESS", reg_title: "NEW ACCOUNT", reg_desc: "Register to get access to Alpha Tom's Vault.", lbl_email: "EMAIL ADDRESS", btn_register: "REGISTER", or_fast: "OR FAST WITH", have_account: "Already have an account?", btn_login_link: "Log In", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -46,10 +50,13 @@ const t = {
         btn_sel: "SELECT", btn_life: "SELECT B2B / PROMO", btn_bank: "Bank & Crypto / Stripe Payments", com_title: "PARTNER NETWORK", pay_stars: "Pay with Telegram Stars", btn_stripe: "Stripe / External Checkout", txt_pay_proof: "Send receipt to bot/Bunker CRM after external payments.", bank_title: "BANK DETAILS", copy_global: "Copy Data", copy_airtm: "Copy Data", copy_ton: "Copy Address",
         chat_title: "BUNKER SUPPORT (PRIVATE CRM)", chat_routed: "Direct Channel with Admin", btn_send_proof: "SEND RECEIPT TO BUNKER", chat_welcome: "Bunker CRM Active! This channel is private and direct with administration.", chat_placeholder: "Type your message...",
         wall_chat_title: "GLOBAL CHAT & VIDEO BUNKER", wall_chat_desc: "Live Community (Independent)", btn_wall_chat: "CHAT", btn_wall_video: "VIDEO",
-        toast_video: "Connecting video call...", chat_connecting: "CONNECTING TO BUNKER... ⚡", chat_connected: "LIVE CONNECTION ESTABLISHED ✅", chat_error: "RECONNECTING... 🔄", toast_reconnecting: "Reconnecting channel..."
+        toast_video: "Connecting video call...", chat_connecting: "CONNECTING TO BUNKER... ⚡", chat_connected: "LIVE CONNECTION ESTABLISHED ✅", chat_error: "RECONNECTING... 🔄", toast_reconnecting: "Reconnecting channel...",
+        
+        btn_go_live: "GO LIVE", btn_cancel_stream: "STOP", btn_close_cam: "CLOSE",
+        stream_announce: "🔴 I've started a live stream in the Bunker! Join the broadcast."
     },
     it: { 
-        warn_title: "AVVERTENZA", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Questo spazio contiene materiale esplicito e sessuale.", warn_p2: "Entrando, confermi sotto la tua responsabilità di essere maggiorenne (18+).", btn_accept: "ACCETTO", btn_exit: "ESCI", btn_back: "INDIETRO", login_title: "ACCESSO AL VAULT", login_desc: "Accedi o crea il tuo account.", lbl_phone: "NUMERO DI TELEFONO", btn_phone_login: "ACCEDI CON NUMERO", or_direct: "O DIRETTAMENTE CON", btn_tg_login: "LOGIN CON TELEGRAM", no_account: "Non hai ancora un account?", btn_create_acc: "CREA NUOVO ACCOUNT", cap_title: "VERIFICA UMANA", cap_desc: "Risolvi il codice di sicurezza.", btn_new_code: "Genera altro codice", btn_verify: "VERIFICAR ACCESSO", reg_title: "NUOVO ACCOUNT", reg_desc: "Registrati per l'accesso.", lbl_email: "EMAIL", btn_register: "REGISTRATI", or_fast: "O VELOCE CON", have_account: "Hai già un account?", btn_login_link: "Accedi", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
+        warn_title: "AVVERTENZA", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Questo spazio contiene materiale esplicito e sessuale.", warn_p2: "Entrando, confermi sotto la tua responsabilità di essere maggiorenne (18+).", btn_accept: "ACCETTO", btn_exit: "ESCI", btn_back: "INDIETRO", login_title: "ACCESSO AL VAULT", login_desc: "Accedi o crea il tuo account.", lbl_phone: "NUMERO DI TELEFONE", btn_phone_login: "ACCEDI CON NUMERO", or_direct: "O DIRETTAMENTE CON", btn_tg_login: "LOGIN CON TELEGRAM", no_account: "Non hai ancora un account?", btn_create_acc: "CREA NUOVO ACCOUNT", cap_title: "VERIFICA UMANA", cap_desc: "Risolvi il codice di sicurezza.", btn_new_code: "Genera altro codice", btn_verify: "VERIFICAR ACCESSO", reg_title: "NUOVO ACCOUNT", reg_desc: "Registrati per l'accesso.", lbl_email: "EMAIL", btn_register: "REGISTRATI", or_fast: "O VELOCE CON", have_account: "Hai già un account?", btn_login_link: "Accedi", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
         nav_cat: "CATALOGO", nav_com: "COMUNITÀ", nav_post: "PUBBLICA", nav_profile: "PROFILO", nav_sup: "MESSAGGI CRM", btn_wallet: "CONNETTI WALLET", btn_logout: "ESCI", rank_0: "SPIA 🕵️", rank_1: "SOLDATO 🎖️", rank_2: "VETERANO ⚔️", rank_3: "LEGGENDA 👑", rank_4: "ICONA 💎",
         upload_hdr: "CARICA CONTENUTO", lbl_level: "LIVELLO RICHIESTO 👀", opt_0: "🆓 Pubblico", opt_1: "🎖️ Blocca per SOLDIER", opt_2: "⚔️ Blocca per VETERAN", opt_3: "👑 Blocca per LEGEND", lbl_file: "FOTO O VIDEO 📸", txt_upload: "Tocca per caricare file", lbl_desc: "DESCRIZIONE", btn_pub: "PUBBLICA",
         prof_title: "MIO PROFILO", prof_alpha_title: "PORTAFOGLIO $ALPHA", prof_alpha_desc: "Ricarica il saldo per sbloccare contenuti.", btn_recharge: "RICARICA 1 TON x 100 $ALPHA", lbl_alias: "USERNAME / ALIAS", prof_growth: "Crescita", prof_next: "Prossimo: SOLDIER", lbl_bio: "BIO / DESCRIZIONE VIP", btn_save_bio: "SALVA PROFILO", btn_pub_content: "PUBBLICA CONTENUTO",
@@ -69,7 +76,10 @@ const t = {
         btn_sel: "SELEZIONA", btn_life: "SELEZIONA B2B", btn_bank: "Pagamenti Bancari & Stripe", com_title: "RETE PARTNER", pay_stars: "Paga con Telegram Stars", btn_stripe: "Stripe / Checkout Esterno", txt_pay_proof: "Invia ricevuta al CRM.", bank_title: "DATI BANCARI", copy_global: "Copia Dati", copy_airtm: "Copia Dati", copy_ton: "Copia Indirizzo",
         chat_title: "SUPPORTO BÚNKER (CRM PRIVATO)", chat_routed: "Canale Diretto con Admin", btn_send_proof: "INVIA RICEVUTA", chat_welcome: "Bunker CRM Attivo!", chat_placeholder: "Scrivi messaggio...",
         wall_chat_title: "CHAT GLOBALE & VIDEO BUNKER", wall_chat_desc: "Community dal vivo (Indipendente)", btn_wall_chat: "CHAT", btn_wall_video: "VIDEO",
-        toast_video: "Connessione videochiamata...", chat_connecting: "CONNESSIONE AL BUNKER... ⚡", chat_connected: "CONNESSIONE STABILITA ✅", chat_error: "RICONNESSIONE... 🔄", toast_reconnecting: "Riconnessione in corso..."
+        toast_video: "Connessione videochiamata...", chat_connecting: "CONNESSIONE AL BUNKER... ⚡", chat_connected: "CONNESSIONE STABILITA ✅", chat_error: "RICONNESSIONE... 🔄", toast_reconnecting: "Riconnessione in corso...",
+        
+        btn_go_live: "TRASMETTI", btn_cancel_stream: "FERMA", btn_close_cam: "CHIUDI",
+        stream_announce: "🔴 Ho avviato una diretta nel Bunker! Unitevi allo stream."
     },
     pt: { 
         warn_title: "AVISO", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Este espaço contém material explícito e sexual.", warn_p2: "Ao entrar, você confirma ser maior de idade (18+).", btn_accept: "ACEITO", btn_exit: "SAIR", btn_back: "VOLTAR", login_title: "ACESSO AO VAULT", login_desc: "Faça login ou crie sua conta.", lbl_phone: "NÚMERO DE TELEFONE", btn_phone_login: "ENTRAR COM NÚMERO", or_direct: "OU DIRETAMENTE COM", btn_tg_login: "LOGIN COM TELEGRAM", no_account: "Ainda não tem conta?", btn_create_acc: "CRIAR NOVA CONTA", cap_title: "VERIFICAÇÃO HUMANA", cap_desc: "Resolva o código de segurança.", btn_new_code: "Gerar outro código", btn_verify: "VERIFICAR ACESSO", reg_title: "NOVA CONTA", reg_desc: "Registre-se para acessar.", lbl_email: "E-MAIL", btn_register: "REGISTRAR", or_fast: "OU RÁPIDO COM", have_account: "Já tem conta?", btn_login_link: "Fazer Login", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -92,7 +102,10 @@ const t = {
         btn_sel: "SELECIONAR", btn_life: "SELECIONAR B2B", btn_bank: "Bancos e Stripe", com_title: "PARCEIROS", pay_stars: "Pagar com Telegram Stars", btn_stripe: "Stripe / Checkout Externo", txt_pay_proof: "Enviar comprovante ao CRM.", bank_title: "BANCOS", copy_global: "Copiar Dados", copy_airtm: "Copiar Dados", copy_ton: "Copiar Endereço",
         chat_title: "SUPORTE (CRM PRIVADO)", chat_routed: "Canal Direto com Admin", btn_send_proof: "ENVIAR COMPROVANTE", chat_welcome: "Bunker CRM Ativo!", chat_placeholder: "Escreva sua mensagem...",
         wall_chat_title: "CHAT GLOBAL & VÍDEO BÚNKER", wall_chat_desc: "Comunidade ao vivo (Independente)", btn_wall_chat: "CHAT", btn_wall_video: "VÍDEO",
-        toast_video: "Conectando videochamada...", chat_connecting: "CONECTANDO AO BÚNKER... ⚡", chat_connected: "CONEXÃO ESTABELECIDA ✅", chat_error: "RECONECTANDO... 🔄", toast_reconnecting: "Reconectando canal..."
+        toast_video: "Conectando videochamada...", chat_connecting: "CONECTANDO AO BÚNKER... ⚡", chat_connected: "CONEXÃO ESTABELECIDA ✅", chat_error: "RECONECTANDO... 🔄", toast_reconnecting: "Reconectando canal...",
+        
+        btn_go_live: "TRANSMITIR", btn_cancel_stream: "PARAR", btn_close_cam: "FECHAR",
+        stream_announce: "🔴 Iniciei uma transmissão ao vivo no Búnker! Juntem-se."
     },
     de: { 
         warn_title: "WARNUNG", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Dieser Raum enthält sexuelles Material.", warn_p2: "Mit dem Betreten bestätigen Sie, dass Sie über 18 Jahre alt sind.", btn_accept: "AKZEPTIEREN", btn_exit: "VERLASSEN", btn_back: "ZURÜCK", login_title: "VAULT ZUGANG", login_desc: "Melden Sie sich an.", lbl_phone: "TELEFONNUMMER", btn_phone_login: "MIT NUMMER ANMELDEN", or_direct: "ODER DIREKT MIT", btn_tg_login: "LOGIN MIT TELEGRAM", no_account: "Noch kein Konto?", btn_create_acc: "NEUES KONTO ERSTELLEN", cap_title: "MENSCHLICHE PRÜFUNG", cap_desc: "Lösen Sie den Sicherheitscode.", btn_new_code: "Neuen Code generieren", btn_verify: "ZUGANG PRÜFEN", reg_title: "NEUES KONTO", reg_desc: "Registrieren.", lbl_email: "E-MAIL", btn_register: "REGISTRAR", or_fast: "ODER SCHNELL MIT", have_account: "Bereits ein Konto?", btn_login_link: "Anmelden", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -115,7 +128,10 @@ const t = {
         btn_sel: "AUSWÄHLEN", btn_life: "B2B WÄHLEN", btn_bank: "Bank & Stripe", com_title: "PARTNER", pay_stars: "Telegram Stars", btn_stripe: "Stripe / Checkout", txt_pay_proof: "Beleg an CRM senden.", bank_title: "BANKDATEN", copy_global: "Kopieren", copy_airtm: "Kopieren", copy_ton: "Adresse kopieren",
         chat_title: "SUPPORT (PRIVATES CRM)", chat_routed: "Direkter Kanal mit Admin", btn_send_proof: "BELEG SENDEN", chat_welcome: "Bunker CRM Aktiv!", chat_placeholder: "Nachricht schreiben...",
         wall_chat_title: "GLOBALER CHAT & VIDEO BUNKER", wall_chat_desc: "Live-Community (Unabhängig)", btn_wall_chat: "CHAT", btn_wall_video: "VIDEO",
-        toast_video: "Videoanruf verbinden...", chat_connecting: "VERBINDUNG ZUM BUNKER... ⚡", chat_connected: "VERBINDUNG HERGESTELLT ✅", chat_error: "VERBINDUNG WIEDERHERSTELLEN... 🔄", toast_reconnecting: "Kanal wird wiederhergestellt..."
+        toast_video: "Videoanruf verbinden...", chat_connecting: "VERBINDUNG ZUM BUNKER... ⚡", chat_connected: "VERBINDUNG HERGESTELLT ✅", chat_error: "VERBINDUNG WIEDERHERSTELLEN... 🔄", toast_reconnecting: "Kanal wird wiederhergestellt...",
+        
+        btn_go_live: "STREAMEN", btn_cancel_stream: "STOPPEN", btn_close_cam: "SCHLIEßEN",
+        stream_announce: "🔴 Ich habe einen Livestream im Bunker gestartet! Tretet bei."
     },
     fr: { 
         warn_title: "AVERTISSEMENT", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Cet espace contient du matériel explicite.", warn_p2: "En entrant, vous confirmez avoir plus de 18 ans.", btn_accept: "J'ACCEPTE", btn_exit: "SORTIR", btn_back: "RETOUR", login_title: "ACCÈS VAULT", login_desc: "Connectez-vous.", lbl_phone: "NUMÉRO DE TÉLÉPHONE", btn_phone_login: "CONNEXION AVEC NUMÉRO", or_direct: "OU DIRECTEMENT AVEC", btn_tg_login: "CONNEXION TELEGRAM", no_account: "Pas encore de compte ?", btn_create_acc: "CRÉER UN COMPTE", cap_title: "VÉRIFICATION", cap_desc: "Résolvez le code.", btn_new_code: "Générer un autre code", btn_verify: "VÉRIFIER", reg_title: "NOUVEAU COMPTE", reg_desc: "Inscrivez-vous.", lbl_email: "E-MAIL", btn_register: "S'INSCRIRE", or_fast: "OU RAPIDE AVEC", have_account: "Déjà un compte ?", btn_login_link: "Se connecter", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -138,7 +154,10 @@ const t = {
         btn_sel: "SÉLECTIONNER", btn_life: "SÉLECTIONNER B2B", btn_bank: "Banques & Stripe", com_title: "PARTENAIRES", pay_stars: "Telegram Stars", btn_stripe: "Stripe / Checkout", txt_pay_proof: "Envoyer reçu au CRM.", bank_title: "BANQUE", copy_global: "Copiar", copy_airtm: "Copier", copy_ton: "Copier l'adresse",
         chat_title: "SUPPORT (CRM PRIVÉ)", chat_routed: "Canal Direct avec Admin", btn_send_proof: "ENVOYER REÇU", chat_welcome: "Bunker CRM Actif !", chat_placeholder: "Écrire un message...",
         wall_chat_title: "CHAT GLOBAL & VIDÉO BUNKER", wall_chat_desc: "Communauté en direct (Indépendant)", btn_wall_chat: "CHAT", btn_wall_video: "VIDÉO",
-        toast_video: "Connexion appel vidéo...", chat_connecting: "CONNEXION AU BUNKER... ⚡", chat_connected: "CONNEXION ÉTABLIE ✅", chat_error: "RECONNEXION... 🔄", toast_reconnecting: "Reconnexion de la chaîne..."
+        toast_video: "Connexion appel vidéo...", chat_connecting: "CONNEXION AU BUNKER... ⚡", chat_connected: "CONNESSION ÉTABLIE ✅", chat_error: "RECONNEXION... 🔄", toast_reconnecting: "Reconnexion de la chaîne...",
+        
+        btn_go_live: "DIFFUSER", btn_cancel_stream: "ARRÊTER", btn_close_cam: "FERMER",
+        stream_announce: "🔴 J'ai lancé un live dans le Bunker ! Rejoignez le stream."
     }
 };
 
@@ -155,7 +174,6 @@ window.applyTranslations = function(lang) {
         'btn-wallet-hdr': 'btn_wallet', 'btn-logout': 'btn_logout', 'rank-feed': 'rank_0',
         'upload-hdr': 'upload_hdr', 'lbl-level': 'lbl_level', 'opt-0': 'opt_0', 'opt-1': 'opt_1', 'opt-2': 'opt_2', 'opt-3': 'opt_3', 'lbl-file': 'lbl_file', 'txt-upload': 'txt_upload', 'lbl-desc': 'lbl_desc', 'btn-pub-text': 'btn_pub',
         
-        // MApeo Universal del Perfil y Billetera
         'prof-title': 'prof_title', 'prof-rank': 'rank_0', 'prof-alpha-title': 'prof_alpha_title', 'prof-alpha-desc': 'prof_alpha_desc', 'btn-recharge-text': 'btn_recharge', 'lbl-alias': 'lbl_alias', 'prof-growth-title': 'prof_growth', 'prof-next-rank': 'prof_next', 'lbl-bio': 'lbl_bio', 'btn-save-bio': 'btn_save_bio', 'btn-pub-content': 'btn_pub_content',
         'txt-kyc-title': 'prof_kyc_title', 'prof-kyc-desc': 'prof_kyc_desc',
         'txt-b2b-title': 'b2b_main_title', 'txt-b2b-free': 'b2b_free_month', 'txt-b2b-desc': 'b2b_desc',
@@ -168,7 +186,10 @@ window.applyTranslations = function(lang) {
         'com-title': 'com_title', 'pay-btn-stars': 'pay_stars', 'btn-stripe': 'btn_stripe', 'txt_pay_proof': 'txt_pay_proof', 'bank-title': 'bank_title', 'copy-global': 'copy_global', 'copy-airtm': 'copy_airtm', 'copy-ton': 'copy_ton',
         'chat-title': 'chat_title', 'chat-routed': 'chat_routed', 'btn-send-proof': 'btn_send_proof', 'chat-welcome': 'chat_welcome',
         'global-chat-title': 'wall_chat_title', 'wall-chat-desc': 'wall_chat_desc', 'btn-wall-chat': 'btn_wall_chat', 'btn-wall-video': 'btn_wall_video',
-        'watermark-signature': 'watermark_text'
+        'watermark-signature': 'watermark_text',
+        
+        // BOTONES DEL VIDEO BÚNKER
+        'txt-go-live': 'btn_go_live', 'txt-cancel-stream': 'btn_cancel_stream', 'txt-close-cam': 'btn_close_cam'
     };
 
     Object.keys(map).forEach(id => {

@@ -13,7 +13,6 @@
     <meta name="theme-color" content="#050505">
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* 🛡️ Blindaje anti-descarga y anti-menú contextual en multimedia */
         video::-webkit-media-controls-download-button { display: none !important; }
         video::-internal-media-controls-overflow-button { display: none !important; }
         .no-download { -webkit-touch-callout: none; pointer-events: auto; }
@@ -645,31 +644,36 @@
                 </div>
             </div>
             
-            <!-- 🖥️ CONTENEDOR DE LA VIDEOLLAMADA CON MODO PREVISUALIZACIÓN -->
+            <!-- 🖥️ CONTENEDOR DE LA VIDEOLLAMADA CON GRID MULTIPANTALLA -->
             <div id="video-bunker-container" class="hidden bg-[#050505] border-b border-[#ff00ff] p-3 flex flex-col items-center justify-center relative shadow-inner shrink-0">
-                <div class="w-full aspect-video bg-neutral-900 rounded-xl border border-neutral-700 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.8)]">
-                    <div id="video-badge" class="absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md">PREVISUALIZACIÓN</div>
-                    
-                    <video id="bunker-webcam-feed" autoplay playsinline muted class="w-full h-full object-cover absolute inset-0 z-10 hidden"></video>
-                    
-                    <div id="cam-loading-placeholder" class="flex flex-col items-center justify-center z-0">
-                        <i class="fa-solid fa-satellite-dish text-4xl text-neutral-600 mb-2 animate-bounce"></i>
-                        <p class="text-xs text-[#00f3ff] font-bold tracking-widest text-center">INICIANDO MÓDULO...</p>
+                
+                <!-- El grid que alojará a ti y a los demás usuarios -->
+                <div class="video-grid-container w-full" id="global-video-grid">
+                    <div class="video-wrapper">
+                        <div id="video-badge" class="absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md">PREVISUALIZACIÓN</div>
+                        <video id="bunker-webcam-feed" autoplay playsinline muted class="hidden"></video>
+                        <div id="cam-loading-placeholder" class="absolute inset-0 flex flex-col items-center justify-center bg-black z-0">
+                            <i class="fa-solid fa-satellite-dish text-4xl text-neutral-600 mb-2 animate-bounce"></i>
+                            <p class="text-[10px] text-[#00f3ff] font-bold tracking-widest text-center px-2">INICIANDO MÓDULO...</p>
+                        </div>
                     </div>
                 </div>
 
                 <div class="w-full flex items-center gap-2 mt-2">
                     <select id="camera-source-select" onchange="app.switchCameraSource()" class="bg-neutral-900 border border-neutral-700 text-white text-[11px] rounded-lg p-2 flex-1 outline-none font-bold">
-                        <option value="">Seleccionar Cámara / OBS...</option>
+                        <option value="">Cargando cámaras...</option>
                     </select>
                 </div>
 
                 <div class="w-full flex items-center gap-2 mt-2">
-                    <button id="btn-go-live" onclick="app.startLiveTransmission()" class="flex-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-4 py-2 rounded-lg transition shadow-[0_0_10px_rgba(255,0,0,0.4)] uppercase">
-                        <i class="fa-solid fa-satellite-dish mr-1"></i> TRANSMITIR
+                    <button id="btn-go-live" onclick="app.startLiveTransmission()" class="flex-1 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-3 py-2 rounded-lg transition shadow-[0_0_10px_rgba(255,0,0,0.4)] uppercase">
+                        <i class="fa-solid fa-satellite-dish mr-1"></i> <span id="txt-go-live">TRANSMITIR</span>
                     </button>
-                    <button onclick="app.leaveVideoBunker()" class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white text-[10px] font-black px-4 py-2 rounded-lg transition border border-neutral-600 uppercase">
-                        <i class="fa-solid fa-times mr-1"></i> CERRAR
+                    <button id="btn-cancel-stream" onclick="app.cancelLiveTransmission()" class="hidden flex-1 bg-amber-500 hover:bg-amber-400 text-black text-[10px] font-black px-3 py-2 rounded-lg transition shadow-[0_0_10px_rgba(255,183,3,0.4)] uppercase">
+                        <i class="fa-solid fa-stop mr-1"></i> <span id="txt-cancel-stream">DETENER</span>
+                    </button>
+                    <button onclick="app.leaveVideoBunker()" class="flex-1 bg-neutral-800 hover:bg-neutral-700 text-white text-[10px] font-black px-3 py-2 rounded-lg transition border border-neutral-600 uppercase">
+                        <i class="fa-solid fa-times mr-1"></i> <span id="txt-close-cam">CERRAR</span>
                     </button>
                 </div>
             </div>
@@ -748,11 +752,11 @@
 
     <div id="toast" class="toast cursor-pointer hover:opacity-80 transition-opacity">¡Copiado! 📋</div>
     
-    <!-- 🛡️ SCRIPTS MAESTROS ACTUALIZADOS (VERSION 16) -->
-    <script src="js/security.js?v=16"></script>
-    <script src="js/translations.js?v=16"></script>
-    <script src="js/api.js?v=16"></script>
-    <script src="js/chat.js?v=16"></script>
-    <script src="js/app.js?v=16" defer></script>
+    <!-- 🛡️ SCRIPTS MAESTROS ACTUALIZADOS (VERSION 17) -->
+    <script src="js/security.js?v=17"></script>
+    <script src="js/translations.js?v=17"></script>
+    <script src="js/api.js?v=17"></script>
+    <script src="js/chat.js?v=17"></script>
+    <script src="js/app.js?v=17" defer></script>
 </body>
 </html>
