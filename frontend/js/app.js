@@ -50,7 +50,7 @@ const app = {
             toast.classList.add('show'); 
             toast.onclick = () => toast.classList.remove('show');
             clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); 
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1500); 
         }
     },
 
@@ -886,7 +886,6 @@ const app = {
             if (activeLogin === 'true' || (tgUser && tgUser.id)) { 
                 this.switchView('feed'); 
                 
-                // 🛡️ FIX: Obligar al frontend a sincronizar tu perfil en BD antes de abrir WebSockets
                 try {
                     await fetch(`${this.backendUrl}/users/sync`, {
                         method: "POST",
@@ -1276,31 +1275,23 @@ const app = {
 
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
 
+        // 🛡️ FIX: Despachamos solo si está abierto para evitar el bucle congelado
         if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
             this.globalChatSocket.send(payload);
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.tempChatMediaData = null;
         } else {
-            this.showToast('Reconectando al servidor... ⏳');
+            this.showToast('⚠️ Sin conexión al servidor. Reconectando...');
             if(!this.globalChatSocket || this.globalChatSocket.readyState === WebSocket.CLOSED) {
                  this.initGlobalChatWebSocket();
             }
-            if(this.globalSendRetry) clearTimeout(this.globalSendRetry);
-            this.globalSendRetry = setTimeout(() => {
-                if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
-                    this.globalChatSocket.send(payload);
-                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-                    this.tempChatMediaData = null;
-                } else {
-                    this.showToast('⚠️ No se pudo enviar el mensaje. Intenta de nuevo.');
-                }
-            }, 2000);
         }
     },
 
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
+    // 🛡️ FIX: Forzamos la manipulación del DOM para salir del Video de manera infalible
     joinVideoBunker() {
         this.haptic('medium');
         this.initUserId();
@@ -1313,15 +1304,28 @@ const app = {
             return;
         }
 
-        document.getElementById('btn-join-video-global')?.classList.add('hidden');
-        document.getElementById('video-bunker-container')?.classList.remove('hidden');
+        const btn = document.getElementById('btn-join-video-global');
+        const container = document.getElementById('video-bunker-container');
+        if(btn) btn.style.display = 'none';
+        if(container) {
+            container.style.display = 'flex';
+            container.classList.remove('hidden');
+        }
         this.showToast('Conectando a la transmisión... 📡');
     },
 
     leaveVideoBunker() {
         this.haptic('light');
-        document.getElementById('video-bunker-container')?.classList.add('hidden');
-        document.getElementById('btn-join-video-global')?.classList.remove('hidden');
+        const btn = document.getElementById('btn-join-video-global');
+        const container = document.getElementById('video-bunker-container');
+        if(container) {
+            container.style.display = 'none';
+            container.classList.add('hidden');
+        }
+        if(btn) {
+            btn.style.display = 'flex';
+            btn.classList.remove('hidden');
+        }
         this.showToast('Has salido de la transmisión.');
     },
 
