@@ -13,7 +13,12 @@ const app = {
     tempKYCDoc: null,
     tempKYCSelfie: null,
     tempChatMediaData: null, 
+    
+    // 🛡️ Estado WebRTC y PIP
     activeWebcamStream: null, 
+    isMicMuted: false,
+    isCamOff: false,
+    isVideoMinimized: false,
 
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -981,23 +986,6 @@ const app = {
             this.globalChatSocket.close();
             this.globalChatSocket = null;
         }
-        
-        if (this.activeWebcamStream) {
-            this.activeWebcamStream.getTracks().forEach(track => track.stop());
-            this.activeWebcamStream = null;
-        }
-
-        const videoElem = document.getElementById('bunker-webcam-feed');
-        if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
-        
-        const placeholder = document.getElementById('cam-loading-placeholder');
-        if (placeholder) placeholder.classList.remove('hidden');
-        
-        const videoBunker = document.getElementById('video-bunker-container');
-        if (videoBunker) videoBunker.classList.add('hidden');
-        
-        const btnJoin = document.getElementById('btn-join-video-global');
-        if (btnJoin) btnJoin.style.display = 'flex';
 
         ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
@@ -1307,7 +1295,7 @@ const app = {
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
-    // 🛡️ REGLA: TÁCTICA DE PERMISOS NATIVOS Y FILTRO DE NOMBRES PARA WEBRTC
+    // 🛡️ REGLA: VENTANA FLOTANTE DE VIDEO INDEPENDIENTE + AUDIO + OBS
     async joinVideoBunker() {
         this.haptic('medium');
         this.initUserId();
@@ -1320,20 +1308,20 @@ const app = {
             return;
         }
 
-        const btn = document.getElementById('btn-join-video-global');
-        const container = document.getElementById('video-bunker-container');
+        const bunker = document.getElementById('floating-video-bunker');
         const placeholder = document.getElementById('cam-loading-placeholder');
         const badge = document.getElementById('video-badge');
         const btnGoLive = document.getElementById('btn-go-live');
         const btnCancel = document.getElementById('btn-cancel-stream');
 
-        if(btn) btn.style.display = 'none';
-        if(container) {
-            container.style.display = 'flex';
-            container.classList.remove('hidden');
+        if(bunker) {
+            bunker.classList.remove('hidden');
+            this.isVideoMinimized = false;
+            bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300';
+            document.getElementById('video-controls-bar').classList.remove('hidden');
+            document.getElementById('icon-minimize').className = 'fa-solid fa-compress';
         }
         
-        // 🛡️ Modo Standby (Inicial)
         if(badge) {
             badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md';
             badge.innerText = 'PREVISUALIZACIÓN';
@@ -1342,18 +1330,29 @@ const app = {
         if(btnCancel) btnCancel.classList.add('hidden');
 
         if(placeholder) {
-            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i><p class="text-xs text-[#00f3ff] font-bold tracking-widest text-center">SOLICITANDO PERMISOS<br>EN NAVEGADOR...</p>`;
+            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i><p class="text-xs text-[#00f3ff] font-bold tracking-widest text-center mt-2">SOLICITANDO PERMISOS<br>EN NAVEGADOR...</p>`;
             placeholder.classList.remove('hidden');
         }
 
-        this.showToast('Por favor acepta los permisos de cámara... 📡');
-        await this.requestAndLoadCameras();
+        this.showToast('Acepta los permisos de micrófono y cámara... 📡');
+        await this.requestAndLoadMedia();
     },
 
-    async requestAndLoadCameras() {
+    async requestAndLoadMedia() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            // Intentar pedir Video + Audio
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            } catch (e) {
+                // Fallback por si la PC no tiene micrófono pero sí tiene OBS/Cámara
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            }
+
             this.activeWebcamStream = stream;
+            this.isMicMuted = false;
+            this.isCamOff = false;
+            this.updateMediaTogglesUI();
 
             const videoElem = document.getElementById('bunker-webcam-feed');
             const placeholder = document.getElementById('cam-loading-placeholder');
@@ -1367,98 +1366,199 @@ const app = {
                 placeholder.classList.add('hidden');
             }
 
-            if (navigator.mediaDevices.enumerateDevices) {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(d => d.kind === 'videoinput');
-                const selectEl = document.getElementById('camera-source-select');
-
-                if (selectEl) {
-                    selectEl.innerHTML = '';
-                    let seen = new Set();
-                    let obsFound = false;
-
-                    // 🛡️ Limpieza estricta de nombres y eliminación de duplicados
-                    videoDevices.forEach((device, index) => {
-                        let original = device.label.toLowerCase();
-                        let cleanLabel = `Cámara #${index + 1}`;
-
-                        if (original.includes('obs') || original.includes('virtual')) {
-                            cleanLabel = '🎥 OBS Virtual Camera';
-                            obsFound = true;
-                        } else if (original.includes('front')) {
-                            cleanLabel = '📱 Cámara Frontal';
-                        } else if (original.includes('back')) {
-                            cleanLabel = '📱 Cámara Trasera';
-                        } else if (device.label) {
-                            cleanLabel = device.label;
-                        }
-
-                        if (!seen.has(cleanLabel)) {
-                            seen.add(cleanLabel);
-                            const opt = document.createElement('option');
-                            opt.value = device.deviceId;
-                            opt.text = cleanLabel;
-                            selectEl.appendChild(opt);
-                        }
-                    });
-
-                    // Forzar opción OBS si no se detectó nativamente pero el usuario confía
-                    if(!obsFound) {
-                        const optObs = document.createElement('option');
-                        optObs.value = "obs-fallback";
-                        optObs.text = "🎥 Forzar OBS / Capturadora USB";
-                        selectEl.appendChild(optObs);
-                    }
-
-                    const currentTrack = stream.getVideoTracks()[0];
-                    if (currentTrack) {
-                        const currentSettings = currentTrack.getSettings();
-                        if (currentSettings.deviceId) selectEl.value = currentSettings.deviceId;
-                    }
-                }
-            }
-            this.showToast('✅ Previsualización lista. Toca "Transmitir" para ir en vivo.');
+            this.showToast('✅ Módulo A/V listo. Puedes revisar los Ajustes (⚙️).');
+            await this.populateMediaDevices(stream);
 
         } catch (err) {
             console.error(err);
             const placeholder = document.getElementById('cam-loading-placeholder');
             if(placeholder) {
-                placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i><p class="text-xs text-red-500 font-bold tracking-widest text-center">PERMISO DENEGADO<br>Debes habilitar la cámara en el navegador</p>`;
+                placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i><p class="text-xs text-red-500 font-bold tracking-widest text-center mt-2">PERMISO DENEGADO<br>Habilita la cámara/mic en tu navegador</p>`;
             }
-            this.showToast('⚠️ Permiso denegado. Activa la cámara en tu navegador.');
+            this.showToast('⚠️ Permiso denegado.');
         }
     },
 
-    async switchCameraSource() {
-        const selectEl = document.getElementById('camera-source-select');
-        if (!selectEl || !selectEl.value) return;
+    async populateMediaDevices(currentStream) {
+        if (!navigator.mediaDevices.enumerateDevices) return;
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        const audioDevices = devices.filter(d => d.kind === 'audioinput');
+        
+        const selectCam = document.getElementById('setting-cam-source');
+        const selectMic = document.getElementById('setting-mic-source');
 
-        const deviceId = selectEl.value;
-        this.showToast('Cambiando cámara... 🔄');
+        if (selectCam) {
+            selectCam.innerHTML = '';
+            let seen = new Set();
+            let obsFound = false;
+
+            videoDevices.forEach((device, index) => {
+                let original = device.label.toLowerCase();
+                let cleanLabel = `Cámara #${index + 1}`;
+
+                if (original.includes('obs') || original.includes('virtual')) {
+                    cleanLabel = '🎥 OBS Virtual Camera';
+                    obsFound = true;
+                } else if (original.includes('front')) {
+                    cleanLabel = '📱 Cámara Frontal';
+                } else if (original.includes('back')) {
+                    cleanLabel = '📱 Cámara Trasera';
+                } else if (device.label) {
+                    cleanLabel = device.label;
+                }
+
+                if (!seen.has(cleanLabel)) {
+                    seen.add(cleanLabel);
+                    const opt = document.createElement('option');
+                    opt.value = device.deviceId;
+                    opt.text = cleanLabel;
+                    selectCam.appendChild(opt);
+                }
+            });
+
+            if(!obsFound) {
+                const optObs = document.createElement('option');
+                optObs.value = "obs-fallback";
+                optObs.text = "🎥 Forzar Capturadora OBS / USB";
+                selectCam.appendChild(optObs);
+            }
+
+            if (currentStream) {
+                const currentTrack = currentStream.getVideoTracks()[0];
+                if (currentTrack) {
+                    const currentSettings = currentTrack.getSettings();
+                    if (currentSettings.deviceId) selectCam.value = currentSettings.deviceId;
+                }
+            }
+        }
+
+        if (selectMic) {
+            selectMic.innerHTML = '<option value="none">🔇 Sin Micrófono</option>';
+            audioDevices.forEach((device, index) => {
+                const opt = document.createElement('option');
+                opt.value = device.deviceId;
+                opt.text = device.label || `Micrófono #${index + 1}`;
+                selectMic.appendChild(opt);
+            });
+            if (currentStream && currentStream.getAudioTracks().length > 0) {
+                const currentTrack = currentStream.getAudioTracks()[0];
+                const currentSettings = currentTrack.getSettings();
+                if (currentSettings.deviceId) selectMic.value = currentSettings.deviceId;
+            }
+        }
+    },
+
+    // 🛡️ CONTROLES HARDWARE (Mic, Cam, Tuerca Ajustes)
+    toggleMic() {
+        this.haptic('light');
+        if (this.activeWebcamStream && this.activeWebcamStream.getAudioTracks().length > 0) {
+            this.isMicMuted = !this.isMicMuted;
+            this.activeWebcamStream.getAudioTracks()[0].enabled = !this.isMicMuted;
+            this.updateMediaTogglesUI();
+        } else {
+            this.showToast('⚠️ No hay micrófono activo. Revisa ajustes (⚙️).');
+        }
+    },
+
+    toggleCam() {
+        this.haptic('light');
+        if (this.activeWebcamStream && this.activeWebcamStream.getVideoTracks().length > 0) {
+            this.isCamOff = !this.isCamOff;
+            this.activeWebcamStream.getVideoTracks()[0].enabled = !this.isCamOff;
+            this.updateMediaTogglesUI();
+        }
+    },
+
+    updateMediaTogglesUI() {
+        const btnMic = document.getElementById('btn-toggle-mic');
+        const btnCam = document.getElementById('btn-toggle-cam');
+
+        if(btnMic) {
+            if(this.isMicMuted) {
+                btnMic.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+                btnMic.className = 'w-12 h-12 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-xl';
+            } else {
+                btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+                btnMic.className = 'w-12 h-12 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-xl';
+            }
+        }
+        if(btnCam) {
+            if(this.isCamOff) {
+                btnCam.innerHTML = '<i class="fa-solid fa-video-slash"></i>';
+                btnCam.className = 'w-12 h-12 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-xl';
+            } else {
+                btnCam.innerHTML = '<i class="fa-solid fa-video"></i>';
+                btnCam.className = 'w-12 h-12 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-xl';
+            }
+        }
+    },
+
+    openAVSettings() {
+        this.haptic('light');
+        document.getElementById('modal-av-settings')?.classList.remove('hidden');
+    },
+
+    closeAVSettings() {
+        this.haptic('light');
+        document.getElementById('modal-av-settings')?.classList.add('hidden');
+    },
+
+    async applyAVSettings() {
+        this.haptic('heavy');
+        const camId = document.getElementById('setting-cam-source')?.value;
+        const micId = document.getElementById('setting-mic-source')?.value;
 
         if (this.activeWebcamStream) {
             this.activeWebcamStream.getTracks().forEach(track => track.stop());
         }
 
-        try {
-            // Manejar opción Forzada OBS
-            if(deviceId === 'obs-fallback') {
-                this.activeWebcamStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            } else {
-                this.activeWebcamStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { deviceId: { exact: deviceId } }, 
-                    audio: false 
-                });
-            }
+        let constraints = { video: true, audio: false };
 
+        if (camId === 'obs-fallback') constraints.video = true;
+        else if (camId) constraints.video = { deviceId: { exact: camId } };
+
+        if (micId && micId !== 'none') constraints.audio = { deviceId: { exact: micId } };
+        else if (micId === 'none') constraints.audio = false;
+
+        try {
+            this.activeWebcamStream = await navigator.mediaDevices.getUserMedia(constraints);
             const videoElem = document.getElementById('bunker-webcam-feed');
             if (videoElem) {
                 videoElem.srcObject = this.activeWebcamStream;
                 videoElem.play();
             }
-            this.showToast('✅ Cámara actualizada.');
-        } catch (e) {
-            this.showToast('⚠️ No se pudo cambiar la cámara.');
+            this.isMicMuted = false;
+            this.isCamOff = false;
+            this.updateMediaTogglesUI();
+            this.closeAVSettings();
+            this.showToast('✅ Dispositivos actualizados.');
+        } catch(e) {
+            this.showToast('⚠️ Error al aplicar dispositivos.');
+        }
+    },
+
+    // 🛡️ BOTÓN: MINIMIZAR A VENTANA FLOTANTE (PIP) PARA CHATEAR
+    toggleMinimizeVideo() {
+        this.haptic('light');
+        const bunker = document.getElementById('floating-video-bunker');
+        const controls = document.getElementById('video-controls-bar');
+        const icon = document.getElementById('icon-minimize');
+        
+        this.isVideoMinimized = !this.isVideoMinimized;
+
+        if (this.isVideoMinimized) {
+            bunker.classList.add('pip-mode');
+            bunker.classList.remove('inset-0');
+            controls.classList.add('hidden');
+            icon.className = 'fa-solid fa-expand';
+            this.showToast('Modo Ventana Flotante activo. Puedes abrir el chat.');
+        } else {
+            bunker.classList.remove('pip-mode');
+            bunker.classList.add('inset-0');
+            controls.classList.remove('hidden');
+            icon.className = 'fa-solid fa-compress';
         }
     },
 
@@ -1478,7 +1578,6 @@ const app = {
         
         this.showToast('🔴 ¡Estás transmitiendo en vivo en el Búnker!');
         
-        // Emite el mensaje traducido al idioma de origen
         const announceMsg = this.getTrans('stream_announce');
         const payload = JSON.stringify({ text: announceMsg, media_url: null });
         
@@ -1487,7 +1586,6 @@ const app = {
         }
     },
 
-    // 🛡️ BOTÓN: DETENER TRANSMISIÓN (VUELVE A STANDBY, NO CERRAR)
     cancelLiveTransmission() {
         this.haptic('medium');
         const badge = document.getElementById('video-badge');
@@ -1504,7 +1602,6 @@ const app = {
         this.showToast('Transmisión pública pausada. Solo tú puedes ver esto.');
     },
 
-    // 🛡️ BOTÓN: CERRAR COMPLETAMENTE
     leaveVideoBunker() {
         this.haptic('light');
         if (this.activeWebcamStream) {
@@ -1512,15 +1609,15 @@ const app = {
             this.activeWebcamStream = null;
         }
 
-        const btn = document.getElementById('btn-join-video-global');
-        const container = document.getElementById('video-bunker-container');
+        const bunker = document.getElementById('floating-video-bunker');
         const videoElem = document.getElementById('bunker-webcam-feed');
         const placeholder = document.getElementById('cam-loading-placeholder');
 
         if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
         if (placeholder) placeholder.classList.remove('hidden');
-        if(container) { container.style.display = 'none'; container.classList.add('hidden'); }
-        if(btn) { btn.style.display = 'flex'; btn.classList.remove('hidden'); }
+        if (bunker) bunker.classList.add('hidden');
+        
+        this.isVideoMinimized = false;
         
         this.showToast('Cámara cerrada.');
     },
