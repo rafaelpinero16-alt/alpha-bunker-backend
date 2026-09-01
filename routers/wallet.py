@@ -4,11 +4,10 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from database.db import get_db
 from database.models import Wallet, User, Transaction, ChatMessage
-from routers.chat import manager  # ⚡ Importamos el cerebro del WebSocket en vivo
+from routers.chat import manager  # ⚡ Cerebro del WebSocket en vivo
 
 router = APIRouter(prefix="/wallet", tags=["Wallet & Alfa Coins"])
 
-# 🛡️ Alineado con el payload del frontend en app.js
 class TipRequest(BaseModel):
     sender_id: int
     receiver_id: int
@@ -25,10 +24,24 @@ class RechargeRequest(BaseModel):
     alpha_added: int
     boc: str
 
+@router.get("/balance/{user_id}")
+def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
+    """Consulta el balance de la billetera. Si no existe, la autogenera para evitar el error 404."""
+    wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
+    if not wallet:
+        wallet = Wallet(user_id=user_id, alpha_balance=0, total_earned=0, total_spent=0)
+        db.add(wallet)
+        db.commit()
+        db.refresh(wallet)
+    return {
+        "status": "success", 
+        "alpha_balance": wallet.alpha_balance, 
+        "balance_alfa_coins": wallet.alpha_balance
+    }
+
 @router.post("/send-tip")
 async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
     try:
-        # 1. Buscar Identidades
         sender = db.query(User).filter(User.user_id == data.sender_id).first()
         receiver = db.query(User).filter(User.user_id == data.receiver_id).first()
         
@@ -38,23 +51,19 @@ async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
         sender_wallet = db.query(Wallet).filter(Wallet.user_id == data.sender_id).first()
         receiver_wallet = db.query(Wallet).filter(Wallet.user_id == data.receiver_id).first()
 
-        # 2. Validar Fondos
         if not sender_wallet or sender_wallet.alpha_balance < data.amount:
             raise HTTPException(status_code=400, detail="Saldo insuficiente para enviar la propina.")
 
-        # 3. Transferencia (Lógica de Billeteras)
         sender_wallet.alpha_balance -= data.amount
         sender_wallet.total_spent += data.amount
         
         if not receiver_wallet:
-            receiver_wallet = Wallet(user_id=data.receiver_id, alpha_balance=0)
+            receiver_wallet = Wallet(user_id=data.receiver_id, alpha_balance=0, total_earned=0, total_spent=0)
             db.add(receiver_wallet)
             
-        # Aquí puedes aplicar un RevShare del 10% al sistema si lo deseas. Por ahora pasa el 100%.
         receiver_wallet.alpha_balance += data.amount
         receiver_wallet.total_earned += data.amount
 
-        # 4. Registrar Transacción Histórica
         tx = Transaction(
             sender_id=data.sender_id,
             receiver_id=data.receiver_id,
@@ -64,7 +73,6 @@ async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
         )
         db.add(tx)
 
-        # 5. ⚡ MÁGIA EN VIVO: CREAR ALERTA DORADA EN EL CHAT GENERAL ⚡
         alert_msg = f"¡{sender.name} ha enviado una propina de {data.amount} $ALPHA a @{receiver.name}! 🪙💎"
         
         new_system_msg = ChatMessage(
@@ -73,13 +81,12 @@ async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
             author_role="admin",
             access_level=99,
             content=alert_msg,
-            is_system=True  # 🛡️ Esto hace que el frontend lo renderice dorado
+            is_system=True
         )
         db.add(new_system_msg)
         db.commit()
         db.refresh(new_system_msg)
 
-        # 6. Disparar al WebSocket de Inmediato
         msg_payload = {
             "id": new_system_msg.id,
             "user_id": new_system_msg.user_id,
@@ -106,7 +113,7 @@ def connect_ton_wallet(data: TonConnectRequest, db: Session = Depends(get_db)):
     try:
         wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
         if not wallet:
-            wallet = Wallet(user_id=data.user_id, alpha_balance=0)
+            wallet = Wallet(user_id=data.user_id, alpha_balance=0, total_earned=0, total_spent=0)
             db.add(wallet)
         
         db.commit()
@@ -120,7 +127,7 @@ def recharge_wallet(data: RechargeRequest, db: Session = Depends(get_db)):
     try:
         wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
         if not wallet:
-            wallet = Wallet(user_id=data.user_id, alpha_balance=0)
+            wallet = Wallet(user_id=data.user_id, alpha_balance=0, total_earned=0, total_spent=0)
             db.add(wallet)
             
         wallet.alpha_balance += data.alpha_added
