@@ -30,7 +30,7 @@ class ConnectionManager:
 manager = ConnectionManager()
 global_manager = ConnectionManager()
 
-# 🧹 Limpieza Automática de 24 horas
+# 🧹 Limpieza Automática de 24 horas[cite: 16]
 def clean_old_messages(db: Session):
     time_threshold = datetime.utcnow() - timedelta(hours=24)
     db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
@@ -48,7 +48,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
     try:
         while True:
             data = await websocket.receive_text()
-            # En CRM guardamos como texto simple
             db_content = json.dumps({"text": data, "media_url": None})
             
             new_msg = ChatMessage(
@@ -105,21 +104,46 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
             except:
                 pass
 
-            # 🛡️ REGLA ESPÍA (Cobra 1 $ALPHA por mensaje)
-            if user.role == "fan" and user.access_level == 0:
-                wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
-                if not wallet or wallet.alpha_balance < 1:
-                    await websocket.send_json({"is_error": True, "message": "Saldo insuficiente. Necesitas 1 $ALPHA para enviar un mensaje como Espía."})
-                    continue 
-                
-                # Cobramos el token
-                wallet.alpha_balance -= 1
-                wallet.total_spent += 1
-                tx = Transaction(sender_id=user_id, receiver_id=None, amount=1, tx_type="spy_chat_fee")
-                db.add(tx)
-                db.commit()
+            is_admin = (user.role == "admin" or user.user_id == 8269470905)
 
-            # Guardamos el formato JSON unificado
+            if not is_admin:
+                # 🛡️ REGLA 1: Creadores sin KYC verificado no pueden escribir
+                if user.role == "creator" and user.kyc_status != "verified":
+                    await websocket.send_json({"is_error": True, "message": "⚠️ Identidad no confirmada. Requieres KYC para escribir en el chat."})
+                    continue
+
+                # 🛡️ REGLA 2: Etiquetar (@) es exclusivo de Soldier Creator (Nivel 1) o superior
+                if "@" in text_val:
+                    if user.role != "creator":
+                        await websocket.send_json({"is_error": True, "message": "⚠️ Etiquetar usuarios es exclusivo para Creadores."})
+                        continue
+                    if user.role == "creator" and user.access_level < 1:
+                        await websocket.send_json({"is_error": True, "message": "⚠️ Necesitas membresía Soldier Creator o superior para etiquetar."})
+                        continue
+
+                # 🛡️ REGLA 3: Control de Multimedia por Rangos
+                if media_val:
+                    if media_val.startswith("data:video") and user.access_level < 3:
+                        await websocket.send_json({"is_error": True, "message": "⚠️ Requiere rango LEGEND para enviar videos al chat."})
+                        continue
+                    if media_val.startswith("data:image") and user.access_level < 2:
+                        await websocket.send_json({"is_error": True, "message": "⚠️ Requiere rango VETERAN para enviar fotos al chat."})
+                        continue
+
+                # 🛡️ REGLA 4: Espía (Nivel 0) paga 1 $ALPHA por cada mensaje
+                if user.role == "fan" and user.access_level == 0:
+                    wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
+                    if not wallet or wallet.alpha_balance < 1:
+                        await websocket.send_json({"is_error": True, "message": "⚠️ Saldo insuficiente. Espías pagan 1 $ALPHA por mensaje en este canal."})
+                        continue 
+                    
+                    wallet.alpha_balance -= 1
+                    wallet.total_spent += 1
+                    tx = Transaction(sender_id=user_id, receiver_id=None, amount=1, tx_type="spy_chat_fee")
+                    db.add(tx)
+                    db.commit()
+
+            # Guardado en DB si pasó todas las pruebas
             db_content = json.dumps({"text": text_val, "media_url": media_val})
 
             new_msg = ChatMessage(
