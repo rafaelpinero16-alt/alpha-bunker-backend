@@ -13,6 +13,7 @@ const app = {
     tempKYCDoc: null,
     tempKYCSelfie: null,
     tempChatMediaData: null, 
+    activeWebcamStream: null, // Stream de cámara activo
 
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -40,20 +41,17 @@ const app = {
         } catch (e) {}
     },
 
-    // 🛡️ FIX: Toast mejorado. Desaparece instantáneamente si lo tocas.
     showToast(msg) {
         const toast = document.getElementById('toast');
         if (toast) { 
             toast.innerText = msg; 
             toast.classList.add('show'); 
-            
             toast.onclick = () => {
                 toast.classList.remove('show');
                 clearTimeout(this.toastTimer);
             };
-            
             clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); 
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1500); 
         }
     },
 
@@ -975,7 +973,33 @@ const app = {
 
     closeModals() {
         this.haptic('light');
-        ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu'].forEach(m => {
+        if (this.chatSocket) {
+            this.chatSocket.close();
+            this.chatSocket = null;
+        }
+        if (this.globalChatSocket) {
+            this.globalChatSocket.close();
+            this.globalChatSocket = null;
+        }
+        
+        if (this.activeWebcamStream) {
+            this.activeWebcamStream.getTracks().forEach(track => track.stop());
+            this.activeWebcamStream = null;
+        }
+
+        const videoElem = document.getElementById('bunker-webcam-feed');
+        if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
+        
+        const placeholder = document.getElementById('cam-loading-placeholder');
+        if (placeholder) placeholder.classList.remove('hidden');
+        
+        const videoBunker = document.getElementById('video-bunker-container');
+        if (videoBunker) videoBunker.classList.add('hidden');
+        
+        const btnJoin = document.getElementById('btn-join-video-global');
+        if (btnJoin) btnJoin.style.display = 'flex';
+
+        ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
@@ -1038,7 +1062,6 @@ const app = {
         } catch (e) {}
     },
 
-    // 🛡️ FIX: Desplegar Vista Previa Multimedia Visual
     async handleChatMediaPreview(event, type) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1063,7 +1086,6 @@ const app = {
         this.haptic('light');
         const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input');
         
-        // Elementos de la vista previa
         const previewContainer = document.getElementById(`${type}-chat-preview-container`);
         const previewImg = document.getElementById(`${type}-chat-preview-img`);
         const previewVideo = document.getElementById(`${type}-chat-preview-video`);
@@ -1081,7 +1103,6 @@ const app = {
             reader.onload = (e) => {
                 this.tempChatMediaData = e.target.result;
                 
-                // Mostrar UI de Video
                 if (previewContainer) {
                     previewContainer.classList.remove('hidden');
                     previewImg.classList.add('hidden');
@@ -1097,7 +1118,6 @@ const app = {
         } else {
             this.tempChatMediaData = await this.compressImage(file, 800, 0.7); 
             
-            // Mostrar UI de Foto
             if (previewContainer) {
                 previewContainer.classList.remove('hidden');
                 previewVideo.classList.add('hidden');
@@ -1112,7 +1132,6 @@ const app = {
         }
     },
 
-    // 🛡️ FIX: Función para limpiar y ocultar la vista previa multimedia
     clearChatMedia(type) {
         this.haptic('light');
         this.tempChatMediaData = null;
@@ -1145,10 +1164,17 @@ const app = {
         
         let safeMedia = '';
         if (contentObj.media_url) {
+            const encodedUrl = encodeURI(contentObj.media_url);
             if (contentObj.media_url.startsWith('data:video')) {
-                safeMedia = `<video src="${this.escapeHtml(contentObj.media_url)}" controls class="rounded-xl w-full max-h-48 object-cover mt-2 mb-1"></video>`;
+                safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer" onclick="app.openLightbox('${encodedUrl}', 'video')">
+                    <video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" controlsList="nodownload noremoteplayback" disablePictureInPicture></video>
+                    <div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl"><i class="fa-solid fa-expand text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>
+                </div>`;
             } else {
-                safeMedia = `<img src="${this.escapeHtml(contentObj.media_url)}" class="rounded-xl w-full max-h-48 object-cover mt-2 mb-1" />`;
+                safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer" onclick="app.openLightbox('${encodedUrl}', 'image')">
+                    <img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" />
+                    <div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl"><i class="fa-solid fa-magnifying-glass-plus text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>
+                </div>`;
             }
         }
         
@@ -1163,6 +1189,36 @@ const app = {
             html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • ${rankName}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
+    },
+
+    openLightbox(mediaUrl, type) {
+        this.haptic('light');
+        const modal = document.getElementById('media-lightbox-modal');
+        const imgEl = document.getElementById('lightbox-img');
+        const videoEl = document.getElementById('lightbox-video');
+
+        if (!modal) return;
+        modal.classList.remove('hidden');
+
+        if (type === 'image') {
+            videoEl.classList.add('hidden');
+            videoEl.pause();
+            imgEl.src = mediaUrl;
+            imgEl.classList.remove('hidden');
+        } else {
+            imgEl.classList.add('hidden');
+            videoEl.src = mediaUrl;
+            videoEl.classList.remove('hidden');
+            videoEl.play();
+        }
+    },
+
+    closeLightbox() {
+        this.haptic('light');
+        const modal = document.getElementById('media-lightbox-modal');
+        const videoEl = document.getElementById('lightbox-video');
+        if (videoEl) videoEl.pause();
+        if (modal) modal.classList.add('hidden');
     },
 
     scrollToBottom(containerId) {
@@ -1182,7 +1238,7 @@ const app = {
 
         if (success) {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-            this.clearChatMedia('crm'); // Limpia la vista previa tras enviar
+            this.clearChatMedia('crm');
         } else {
             BunkerChat.initCRM(this.userId, this.backendUrl);
             setTimeout(() => {
@@ -1229,7 +1285,7 @@ const app = {
 
         if (success) {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-            this.clearChatMedia('global'); // Limpia la vista previa tras enviar
+            this.clearChatMedia('global');
         } else {
             this.showToast('Reconectando al servidor... ⏳');
             if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState === WebSocket.CLOSED) {
@@ -1251,7 +1307,8 @@ const app = {
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
-    joinVideoBunker() {
+    // 🛡️ REGLA: TÁCTICA DE PERMISOS NATIVOS PARA WEBRTC
+    async joinVideoBunker() {
         this.haptic('medium');
         this.initUserId();
         const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
@@ -1265,26 +1322,121 @@ const app = {
 
         const btn = document.getElementById('btn-join-video-global');
         const container = document.getElementById('video-bunker-container');
+        const placeholder = document.getElementById('cam-loading-placeholder');
+
         if(btn) btn.style.display = 'none';
         if(container) {
             container.style.display = 'flex';
             container.classList.remove('hidden');
         }
-        this.showToast('Conectando a la transmisión... 📡');
+        if(placeholder) {
+            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i><p class="text-xs text-[#00f3ff] font-bold tracking-widest">SOLICITANDO PERMISOS...</p>`;
+            placeholder.classList.remove('hidden');
+        }
+
+        this.showToast('Por favor acepta los permisos de cámara... 📡');
+        
+        // Ejecutamos la solicitud de permisos antes de escanear (Requisito WebRTC)
+        await this.requestAndLoadCameras();
+    },
+
+    async requestAndLoadCameras() {
+        try {
+            // 1. SOLICITAR PERMISOS PRIMERO (Abre cámara predeterminada celular/PC)
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            this.activeWebcamStream = stream;
+
+            const videoElem = document.getElementById('bunker-webcam-feed');
+            const placeholder = document.getElementById('cam-loading-placeholder');
+
+            if (videoElem) {
+                videoElem.srcObject = this.activeWebcamStream;
+                videoElem.play();
+                videoElem.classList.remove('hidden');
+            }
+            if (placeholder) {
+                placeholder.classList.add('hidden');
+            }
+
+            // 2. Una vez aceptado el permiso, leer las cámaras disponibles reales (OBS, frontal, trasera)
+            if (navigator.mediaDevices.enumerateDevices) {
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                const selectEl = document.getElementById('camera-source-select');
+
+                if (selectEl) {
+                    selectEl.innerHTML = '';
+                    videoDevices.forEach((device, index) => {
+                        const opt = document.createElement('option');
+                        opt.value = device.deviceId;
+                        opt.text = device.label || `Cámara #${index + 1}`;
+                        selectEl.appendChild(opt);
+                    });
+
+                    // Autoseleccionar la cámara activa
+                    const currentTrack = stream.getVideoTracks()[0];
+                    if (currentTrack) {
+                        const currentSettings = currentTrack.getSettings();
+                        if (currentSettings.deviceId) selectEl.value = currentSettings.deviceId;
+                    }
+                }
+            }
+            this.showToast('✅ Previsualización de cámara iniciada.');
+
+        } catch (err) {
+            console.error(err);
+            const placeholder = document.getElementById('cam-loading-placeholder');
+            if(placeholder) {
+                placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i><p class="text-xs text-red-500 font-bold tracking-widest text-center">PERMISO DENEGADO<br>Debes habilitar la cámara en el navegador</p>`;
+            }
+            this.showToast('⚠️ Permiso denegado. Activa la cámara en tu navegador.');
+        }
+    },
+
+    async switchCameraSource() {
+        const selectEl = document.getElementById('camera-source-select');
+        if (!selectEl || !selectEl.value) return;
+
+        const deviceId = selectEl.value;
+        this.showToast('Cambiando cámara... 🔄');
+
+        if (this.activeWebcamStream) {
+            this.activeWebcamStream.getTracks().forEach(track => track.stop());
+        }
+
+        try {
+            this.activeWebcamStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { deviceId: { exact: deviceId } }, 
+                audio: false 
+            });
+            const videoElem = document.getElementById('bunker-webcam-feed');
+            if (videoElem) {
+                videoElem.srcObject = this.activeWebcamStream;
+                videoElem.play();
+            }
+            this.showToast('✅ Cámara actualizada.');
+        } catch (e) {
+            this.showToast('⚠️ No se pudo cambiar la cámara.');
+        }
     },
 
     leaveVideoBunker() {
         this.haptic('light');
+        if (this.activeWebcamStream) {
+            this.activeWebcamStream.getTracks().forEach(track => track.stop());
+            this.activeWebcamStream = null;
+        }
+
         const btn = document.getElementById('btn-join-video-global');
         const container = document.getElementById('video-bunker-container');
-        if(container) {
-            container.style.display = 'none';
-            container.classList.add('hidden');
-        }
-        if(btn) {
-            btn.style.display = 'flex';
-            btn.classList.remove('hidden');
-        }
+        const videoElem = document.getElementById('bunker-webcam-feed');
+        const placeholder = document.getElementById('cam-loading-placeholder');
+
+        if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
+        if (placeholder) placeholder.classList.remove('hidden');
+        if(container) { container.style.display = 'none'; container.classList.add('hidden'); }
+        if(btn) { btn.style.display = 'flex'; btn.classList.remove('hidden'); }
+        
         this.showToast('Has salido de la transmisión.');
     },
 
