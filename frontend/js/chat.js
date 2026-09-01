@@ -3,10 +3,9 @@ const BunkerChat = {
     globalSocket: null,
 
     initCRM(userId, backendUrl) {
-        if (this.socket) {
-            this.socket.close();
-            this.socket = null;
-        }
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
+        if (this.socket) this.socket.close();
+
         const wsProtocol = backendUrl.startsWith('https') ? 'wss://' : 'ws://';
         const cleanUrl = backendUrl.replace(/^https?:\/\//, '');
         this.socket = new WebSocket(`${wsProtocol}${cleanUrl}/chat/ws/${userId}`);
@@ -21,8 +20,9 @@ const BunkerChat = {
     },
 
     initGlobal(userId, backendUrl) {
+        // 🛡️ Blindaje absoluto: Si ya está conectado o conectándose, no abre otro socket jamás.
         if (this.globalSocket && (this.globalSocket.readyState === WebSocket.OPEN || this.globalSocket.readyState === WebSocket.CONNECTING)) {
-            return; // Evita el bucle masivo de conexiones que viste en los logs
+            return; 
         }
         if (this.globalSocket) {
             this.globalSocket.close();
@@ -46,7 +46,12 @@ const BunkerChat = {
         };
 
         this.globalSocket.onclose = () => {
-            setTimeout(() => this.initGlobal(userId, backendUrl), 3000);
+            setTimeout(() => {
+                const modal = document.getElementById('modal-global-chat');
+                if (modal && !modal.classList.contains('hidden')) {
+                    this.initGlobal(userId, backendUrl);
+                }
+            }, 3000);
         };
     },
 
