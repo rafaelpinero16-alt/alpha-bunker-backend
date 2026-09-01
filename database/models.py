@@ -88,7 +88,7 @@ class Package(Base):
     bonus_percentage = Column(Integer, default=0)
     alpha_total = Column(Integer, nullable=False)
     price_stars = Column(Integer, nullable=False)
-    price_ton = Column(Float, nullable=False)                     # Cambiado a Float para soportar decimales de TON (ej. 3.2 TON)
+    price_ton = Column(Float, nullable=False)                     
     badge = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -99,10 +99,10 @@ class ChatMessage(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
     author_name = Column(String(100), nullable=False)
-    author_role = Column(String(20), default="fan")  # fan, creator, admin
-    access_level = Column(Integer, default=0)        # 0: Espía, 1: Soldier, etc. (Para renderizar su rango al instante)
+    author_role = Column(String(20), default="fan")  
+    access_level = Column(Integer, default=0)        
     content = Column(Text, nullable=False)
-    is_system = Column(Boolean, default=False)       # True = Notificaciones de propinas y alertas del Búnker
+    is_system = Column(Boolean, default=False)       
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class VideoCallSession(Base):
@@ -112,6 +112,6 @@ class VideoCallSession(Base):
     fan_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
     creator_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
     cost_alpha = Column(Integer, nullable=False)
-    status = Column(String(20), default="pending")  # pending, accepted, completed, rejected
+    status = Column(String(20), default="pending")  
     room_url = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
