@@ -266,7 +266,6 @@
             <button onclick="app.openCommunitiesModal()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
                 <i class="fa-solid fa-users text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-communities">COMUNIDAD</span>
             </button>
-            <!-- 🛡️ NUEVO BOTÓN CENTRAL: POSTEAR / PUBLICAR PARA FANS Y CREADORES -->
             <button onclick="app.openUploadPanel()" class="flex flex-col items-center text-[#00f3ff] hover:scale-110 transition relative -mt-7 w-16">
                 <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
                     <i class="fa-solid fa-circle-plus text-2xl drop-shadow-[0_0_5px_#00f3ff]"></i>
@@ -596,9 +595,15 @@
                     </div>
                 </div>
             </div>
-            <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-3 pb-6">
-                <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-6 border-[#ff00ff] focus:border-[#ff00ff]" placeholder="Escribe tu consulta..." onkeypress="app.handleChatKeyPress(event)">
-                <button onclick="app.sendChatMessage()" class="w-14 h-14 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_0_15px_rgba(0,243,255,0.5)] text-xl">
+            <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-2 pb-6">
+                <label for="crm-media-upload" class="text-[#00f3ff] text-2xl p-2 cursor-pointer hover:scale-110 transition active:scale-95">
+                    <i class="fa-solid fa-paperclip"></i>
+                </label>
+                <input type="file" id="crm-media-upload" accept="image/*,video/*" class="hidden" onchange="app.handleChatMediaPreview(event, 'crm')">
+                
+                <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-4 border-[#ff00ff] focus:border-[#ff00ff]" placeholder="Escribe tu consulta..." onkeypress="app.handleChatKeyPress(event)">
+                
+                <button onclick="app.sendChatMessage()" class="w-12 h-12 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_0_15px_rgba(0,243,255,0.5)] text-lg">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
             </div>
@@ -610,7 +615,6 @@
         <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(255,0,255,0.2)]">
             <div class="bg-black bg-opacity-60 p-4 flex items-center justify-between border-b border-[#ff00ff] shadow-[0_0_15px_rgba(255,0,255,0.1)]">
                 <div class="flex items-center gap-3">
-                    <!-- Botón pequeño con logotipo del Búnker / Alfa para llamar al Admin -->
                     <button onclick="app.openSupport()" class="w-9 h-9 rounded-xl bg-[#ff00ff]/20 border border-[#ff00ff] flex items-center justify-center text-[#ff00ff] hover:scale-110 transition shadow-[0_0_10px_#ff00ff]" title="Llamar a Soporte Admin">
                         <i class="fa-solid fa-shield-halved text-sm"></i>
                     </button>
@@ -632,9 +636,15 @@
                     </div>
                 </div>
             </div>
-            <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-3 pb-6">
-                <input type="text" id="global-chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-6 border-[#00f3ff] focus:border-[#00f3ff]" placeholder="Escribe en el chat global..." onkeypress="app.handleGlobalChatKeyPress(event)">
-                <button onclick="app.sendGlobalChatMessage()" class="w-14 h-14 shrink-0 rounded-full bg-gradient-to-tr from-[#ff00ff] to-[#00f3ff] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_0_15px_rgba(255,0,255,0.5)] text-xl">
+            <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-2 pb-6">
+                <label for="global-media-upload" class="text-[#ff00ff] text-2xl p-2 cursor-pointer hover:scale-110 transition active:scale-95">
+                    <i class="fa-solid fa-paperclip"></i>
+                </label>
+                <input type="file" id="global-media-upload" accept="image/*,video/*" class="hidden" onchange="app.handleChatMediaPreview(event, 'global')">
+
+                <input type="text" id="global-chat-input" class="flex-1 cyber-input rounded-full text-base py-3 px-4 border-[#00f3ff] focus:border-[#00f3ff]" placeholder="Escribe en el chat global..." onkeypress="app.handleGlobalChatKeyPress(event)">
+                
+                <button onclick="app.sendGlobalChatMessage()" class="w-12 h-12 shrink-0 rounded-full bg-gradient-to-tr from-[#ff00ff] to-[#00f3ff] text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-[0_0_15px_rgba(255,0,255,0.5)] text-lg">
                     <i class="fa-solid fa-paper-plane"></i>
                 </button>
             </div>
@@ -666,14 +676,14 @@
         </div>
     </div>
 
-    <!-- CANVAS PARA FUEGOS ARTIFICIALES (ÉXITO DE PAGO / SUSCRIPCIÓN) -->
+    <!-- CANVAS PARA FUEGOS ARTIFICIALES -->
     <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
 
     <div id="toast" class="toast">¡Copiado! 📋</div>
     
-    <script src="js/security.js?v=7"></script>
-    <script src="js/translations.js?v=7"></script>
-    <script src="js/api.js?v=7"></script>
-    <script src="js/app.js?v=7" defer></script>
+    <script src="js/security.js?v=8"></script>
+    <script src="js/translations.js?v=8"></script>
+    <script src="js/api.js?v=8"></script>
+    <script src="js/app.js?v=8" defer></script>
 </body>
 </html>
