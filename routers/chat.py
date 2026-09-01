@@ -30,7 +30,6 @@ class ConnectionManager:
 manager = ConnectionManager()
 global_manager = ConnectionManager()
 
-# 🧹 Limpieza Automática de 24 horas[cite: 16]
 def clean_old_messages(db: Session):
     time_threshold = datetime.utcnow() - timedelta(hours=24)
     db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
@@ -41,9 +40,13 @@ def clean_old_messages(db: Session):
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await manager.connect(websocket)
     user = db.query(User).filter(User.user_id == user_id).first()
+    
+    # 🛡️ FIX: Si el usuario no está en la base de datos, lo auto-registramos para no romper el socket
     if not user:
-        await websocket.close(code=1008)
-        return
+        user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     try:
         while True:
@@ -75,6 +78,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             await manager.broadcast(msg_payload)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
+    except Exception as e:
+        print(f"[CRM CHAT ERROR]: {e}")
+        manager.disconnect(websocket)
 
 @router.get("/history")
 def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
@@ -87,9 +93,13 @@ def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await global_manager.connect(websocket)
     user = db.query(User).filter(User.user_id == user_id).first()
+    
+    # 🛡️ FIX MAESTRO: Auto-registro silencioso para evitar que el socket rechace la conexión (Código 1008)
     if not user:
-        await websocket.close(code=1008)
-        return
+        user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified")
+        db.add(user)
+        db.commit()
+        db.refresh(user)
 
     try:
         while True:
@@ -107,12 +117,10 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
             is_admin = (user.role == "admin" or user.user_id == 8269470905)
 
             if not is_admin:
-                # 🛡️ REGLA 1: Creadores sin KYC verificado no pueden escribir
                 if user.role == "creator" and user.kyc_status != "verified":
                     await websocket.send_json({"is_error": True, "message": "⚠️ Identidad no confirmada. Requieres KYC para escribir en el chat."})
                     continue
 
-                # 🛡️ REGLA 2: Etiquetar (@) es exclusivo de Soldier Creator (Nivel 1) o superior
                 if "@" in text_val:
                     if user.role != "creator":
                         await websocket.send_json({"is_error": True, "message": "⚠️ Etiquetar usuarios es exclusivo para Creadores."})
@@ -121,7 +129,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         await websocket.send_json({"is_error": True, "message": "⚠️ Necesitas membresía Soldier Creator o superior para etiquetar."})
                         continue
 
-                # 🛡️ REGLA 3: Control de Multimedia por Rangos
                 if media_val:
                     if media_val.startswith("data:video") and user.access_level < 3:
                         await websocket.send_json({"is_error": True, "message": "⚠️ Requiere rango LEGEND para enviar videos al chat."})
@@ -130,7 +137,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         await websocket.send_json({"is_error": True, "message": "⚠️ Requiere rango VETERAN para enviar fotos al chat."})
                         continue
 
-                # 🛡️ REGLA 4: Espía (Nivel 0) paga 1 $ALPHA por cada mensaje
                 if user.role == "fan" and user.access_level == 0:
                     wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
                     if not wallet or wallet.alpha_balance < 1:
@@ -143,7 +149,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                     db.add(tx)
                     db.commit()
 
-            # Guardado en DB si pasó todas las pruebas
             db_content = json.dumps({"text": text_val, "media_url": media_val})
 
             new_msg = ChatMessage(
@@ -169,7 +174,11 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                 "created_at": new_msg.created_at.isoformat()
             }
             await global_manager.broadcast(msg_payload)
+            
     except WebSocketDisconnect:
+        global_manager.disconnect(websocket)
+    except Exception as e:
+        print(f"[GLOBAL CHAT ERROR]: {e}")
         global_manager.disconnect(websocket)
 
 @router.get("/global/history")

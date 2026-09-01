@@ -14,6 +14,9 @@ const app = {
     tempKYCSelfie: null,
     tempChatMediaData: null, 
 
+    chatSocket: null,
+    globalChatSocket: null,
+
     escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -47,7 +50,7 @@ const app = {
             toast.classList.add('show'); 
             toast.onclick = () => toast.classList.remove('show');
             clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1500); 
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); 
         }
     },
 
@@ -882,6 +885,20 @@ const app = {
 
             if (activeLogin === 'true' || (tgUser && tgUser.id)) { 
                 this.switchView('feed'); 
+                
+                // 🛡️ FIX: Obligar al frontend a sincronizar tu perfil en BD antes de abrir WebSockets
+                try {
+                    await fetch(`${this.backendUrl}/users/sync`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            user_id: this.userId,
+                            name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || "Agente Búnker",
+                            bio: "Sincronizado al iniciar app"
+                        })
+                    });
+                } catch(e) {}
+                
                 this.updateProfileUI();
                 this.updateViewsCounter();
                 await this.syncKYCStatus();
@@ -956,6 +973,14 @@ const app = {
 
     closeModals() {
         this.haptic('light');
+        if (this.chatSocket) {
+            this.chatSocket.close();
+            this.chatSocket = null;
+        }
+        if (this.globalChatSocket) {
+            this.globalChatSocket.close();
+            this.globalChatSocket = null;
+        }
         ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
@@ -971,11 +996,12 @@ const app = {
     openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); },
     
+    // 💬 MODAL 1: SOPORTE BÚNKER (CRM PRIVADO CON ADMIN)
     async openSupport() { 
         this.closeModals(); 
         document.getElementById('modal-chat')?.classList.remove('hidden'); 
         await this.loadChatHistory();
-        BunkerChat.initCRM(this.userId, this.backendUrl);
+        this.initChatWebSocket();
     },
 
     async loadChatHistory() {
@@ -995,11 +1021,45 @@ const app = {
         } catch (err) {}
     },
 
+    initChatWebSocket() {
+        this.initUserId();
+        if (!this.userId) return;
+
+        if (this.chatSocket) {
+            this.chatSocket.close();
+            this.chatSocket = null;
+        }
+
+        const wsProtocol = this.backendUrl.startsWith('https') ? 'wss://' : 'ws://';
+        const cleanBaseUrl = this.backendUrl.replace(/^https?:\/\//, '');
+        const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/ws/${this.userId}`;
+
+        const statusEl = document.getElementById('chat-routed');
+        if (statusEl) statusEl.innerText = this.getTrans('chat_connecting');
+
+        this.chatSocket = new WebSocket(wsUrl);
+        
+        this.chatSocket.onopen = () => {
+            if (statusEl) statusEl.innerText = this.getTrans('chat_connected');
+        };
+
+        this.chatSocket.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                this.appendChatMessage(msg, 'chat-messages');
+                this.scrollToBottom('chat-messages');
+            } catch (e) {}
+        };
+
+        this.chatSocket.onclose = () => {};
+    },
+
+    // 💬 MODAL 2: CHAT GLOBAL INDEPENDIENTE
     async openGlobalChat() {
         this.closeModals();
         document.getElementById('modal-global-chat')?.classList.remove('hidden');
         await this.loadGlobalChatHistory();
-        BunkerChat.initGlobal(this.userId, this.backendUrl);
+        this.initGlobalChatWebSocket();
     },
 
     async loadGlobalChatHistory() {
@@ -1017,6 +1077,52 @@ const app = {
                 }
             }
         } catch (e) {}
+    },
+
+    initGlobalChatWebSocket() {
+        this.initUserId();
+        if (!this.userId) return;
+
+        if (this.globalChatSocket) {
+            if(this.globalChatSocket.readyState === WebSocket.OPEN || this.globalChatSocket.readyState === WebSocket.CONNECTING) {
+                return; 
+            }
+            this.globalChatSocket.close();
+            this.globalChatSocket = null;
+        }
+
+        const wsProtocol = this.backendUrl.startsWith('https') ? 'wss://' : 'ws://';
+        const cleanBaseUrl = this.backendUrl.replace(/^https?:\/\//, '');
+        const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/global/ws/${this.userId}`;
+
+        this.globalChatSocket = new WebSocket(wsUrl);
+        
+        this.globalChatSocket.onopen = () => {
+            const input = document.getElementById('global-chat-input');
+            if (input) input.placeholder = "Escribe en el chat global...";
+        };
+
+        this.globalChatSocket.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                if(msg.is_error){
+                    this.showToast(msg.message);
+                } else {
+                    this.appendChatMessage(msg, 'global-chat-messages');
+                    this.scrollToBottom('global-chat-messages');
+                }
+            } catch (e) {}
+        };
+
+        this.globalChatSocket.onclose = () => {
+            if(this.globalChatReconnectTimer) clearTimeout(this.globalChatReconnectTimer);
+            this.globalChatReconnectTimer = setTimeout(() => {
+                const modal = document.getElementById('modal-global-chat');
+                if (modal && !modal.classList.contains('hidden')) {
+                    this.initGlobalChatWebSocket();
+                }
+            }, 3000);
+        };
     },
 
     async handleChatMediaPreview(event, type) {
@@ -1120,17 +1226,19 @@ const app = {
         if (!text && !this.tempChatMediaData) return;
 
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
-        const success = BunkerChat.sendCRM(payload);
 
-        if (success) {
+        if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
+            this.chatSocket.send(payload);
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.tempChatMediaData = null;
         } else {
-            BunkerChat.initCRM(this.userId, this.backendUrl);
+            this.initChatWebSocket();
             setTimeout(() => {
-                BunkerChat.sendCRM(payload);
-                if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-                this.tempChatMediaData = null;
+                if (this.chatSocket && this.chatSocket.readyState === WebSocket.OPEN) {
+                    this.chatSocket.send(payload);
+                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+                    this.tempChatMediaData = null;
+                }
             }, 500);
         }
     },
@@ -1167,19 +1275,26 @@ const app = {
         }
 
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
-        const success = BunkerChat.sendGlobal(payload);
 
-        if (success) {
+        if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
+            this.globalChatSocket.send(payload);
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.tempChatMediaData = null;
         } else {
             this.showToast('Reconectando al servidor... ⏳');
-            BunkerChat.initGlobal(this.userId, this.backendUrl);
-            setTimeout(() => {
-                BunkerChat.sendGlobal(payload);
-                if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-                this.tempChatMediaData = null;
-            }, 1000);
+            if(!this.globalChatSocket || this.globalChatSocket.readyState === WebSocket.CLOSED) {
+                 this.initGlobalChatWebSocket();
+            }
+            if(this.globalSendRetry) clearTimeout(this.globalSendRetry);
+            this.globalSendRetry = setTimeout(() => {
+                if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
+                    this.globalChatSocket.send(payload);
+                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+                    this.tempChatMediaData = null;
+                } else {
+                    this.showToast('⚠️ No se pudo enviar el mensaje. Intenta de nuevo.');
+                }
+            }, 2000);
         }
     },
 
