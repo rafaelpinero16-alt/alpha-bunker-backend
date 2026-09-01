@@ -12,6 +12,12 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#050505">
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        /* 🛡️ Blindaje anti-descarga y anti-menú contextual en multimedia */
+        video::-webkit-media-controls-download-button { display: none !important; }
+        video::-internal-media-controls-overflow-button { display: none !important; }
+        .no-download { -webkit-touch-callout: none; pointer-events: auto; }
+    </style>
 </head>
 <body>
     <div class="tron-grid"></div>
@@ -641,14 +647,28 @@
                 </div>
             </div>
             
-            <!-- 🖥️ CONTENEDOR DE LA VIDEOLLAMADA -->
+            <!-- 🖥️ CONTENEDOR DE LA VIDEOLLAMADA CON SELECTOR DE CÁMARA (OBS / CÁMARA WEB / EXTERNA) -->
             <div id="video-bunker-container" class="hidden bg-[#050505] border-b border-[#ff00ff] p-3 flex flex-col items-center justify-center relative shadow-inner shrink-0">
                 <div class="w-full aspect-video bg-neutral-900 rounded-xl border border-neutral-700 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.8)]">
-                    <div class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md">EN VIVO</div>
-                    <i class="fa-solid fa-satellite-dish text-4xl text-neutral-600 mb-2 animate-bounce"></i>
-                    <p class="text-xs text-[#00f3ff] font-bold tracking-widest">TRANSMISIÓN BÚNKER</p>
+                    <div class="absolute top-2 left-2 z-20 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md">EN VIVO</div>
+                    
+                    <!-- Elemento de video real para conectar la cámara de la tablet, cel, PC u OBS -->
+                    <video id="bunker-webcam-feed" autoplay playsinline muted class="w-full h-full object-cover absolute inset-0 z-10"></video>
+                    
+                    <div id="cam-loading-placeholder" class="flex flex-col items-center justify-center z-0">
+                        <i class="fa-solid fa-satellite-dish text-4xl text-neutral-600 mb-2 animate-bounce"></i>
+                        <p class="text-xs text-[#00f3ff] font-bold tracking-widest">ACTIVANDO CÁMARA / OBS...</p>
+                    </div>
                 </div>
-                <button onclick="app.leaveVideoBunker()" class="mt-3 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-4 py-2 rounded-lg transition shadow-[0_0_10px_rgba(255,0,0,0.4)]">
+
+                <!-- Selector de dispositivos de video (OBS / Frontal / Trasera / WebCam) -->
+                <div class="w-full flex items-center gap-2 mt-2">
+                    <select id="camera-source-select" onchange="app.switchCameraSource()" class="bg-neutral-900 border border-neutral-700 text-white text-[11px] rounded-lg p-2 flex-1 outline-none font-bold">
+                        <option value="">Seleccionar Cámara / OBS...</option>
+                    </select>
+                </div>
+
+                <button onclick="app.leaveVideoBunker()" class="mt-2.5 bg-red-600 hover:bg-red-500 text-white text-[10px] font-black px-4 py-2 rounded-lg transition shadow-[0_0_10px_rgba(255,0,0,0.4)] uppercase">
                     <i class="fa-solid fa-phone-slash mr-1"></i> SALIR DEL VIDEO
                 </button>
             </div>
@@ -686,6 +706,18 @@
         </div>
     </div>
 
+    <!-- 🛡️ VISOR DE PANTALLA COMPLETA (LIGHTBOX PARA FOTOS Y VIDEOS) -->
+    <div id="media-lightbox-modal" class="hidden fixed inset-0 z-[250] bg-black bg-opacity-95 backdrop-blur-md flex flex-col items-center justify-center p-4">
+        <button onclick="app.closeLightbox()" class="absolute top-6 right-6 bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-black text-lg shadow-[0_0_15px_red] hover:scale-110 transition z-50">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div class="relative max-w-4xl max-h-[85vh] w-full flex items-center justify-center overflow-hidden rounded-2xl border border-[#00f3ff]/50 shadow-[0_0_30px_rgba(0,243,255,0.3)] bg-neutral-900">
+            <img id="lightbox-img" src="" class="hidden max-h-[80vh] max-w-full object-contain select-none no-download">
+            <video id="lightbox-video" src="" controls autoplay playsinline class="hidden max-h-[80vh] max-w-full object-contain select-none no-download"></video>
+        </div>
+        <p class="text-xs text-neutral-400 font-bold mt-3 uppercase tracking-widest">Modo Seguro Búnker 🛡️ (Contenido Protegido)</p>
+    </div>
+
     <!-- MODAL: MENÚ DE PROPINAS DEL FAN -->
     <div id="modal-fan-tip-menu" class="hidden fixed inset-0 z-[95] flex items-end justify-center bg-black bg-opacity-90 backdrop-blur-sm transition-opacity duration-300">
         <div class="bg-neutral-900 border-t-2 border-[#ffb703] w-full max-w-md h-[75vh] rounded-t-3xl p-6 flex flex-col relative shadow-[0_-5px_20px_rgba(255,183,3,0.3)]">
@@ -716,11 +748,11 @@
 
     <div id="toast" class="toast cursor-pointer hover:opacity-80 transition-opacity">¡Copiado! 📋</div>
     
-    <!-- 🛡️ SCRIPTS MAESTROS ACTUALIZADOS (VERSION 14) -->
-    <script src="js/security.js?v=14"></script>
-    <script src="js/translations.js?v=14"></script>
-    <script src="js/api.js?v=14"></script>
-    <script src="js/chat.js?v=14"></script>
-    <script src="js/app.js?v=14" defer></script>
+    <!-- 🛡️ SCRIPTS MAESTROS ACTUALIZADOS (VERSION 15) -->
+    <script src="js/security.js?v=15"></script>
+    <script src="js/translations.js?v=15"></script>
+    <script src="js/api.js?v=15"></script>
+    <script src="js/chat.js?v=15"></script>
+    <script src="js/app.js?v=15" defer></script>
 </body>
 </html>
