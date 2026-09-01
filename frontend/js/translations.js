@@ -10,7 +10,7 @@ const t = {
         b2b_main_title: "MEMBRESÍA CREADOR B2B", b2b_free_month: "1º MES GRATIS 🎁", b2b_desc: "Desbloquea la edición de tu Tip Menu y monetización activa.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mes", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mes", b2b_edit_tips: "EDITAR MIS 10 SLOTS (TIP MENU)",
 
         role_title: "SELECCIONA TU ROL", role_desc: "¿Cómo deseas interactuar con la plataforma?", role_creator: "SOY CREADOR (B2B)", role_creator_desc: "Pautas / Promos (150 XTR)", role_fan: "SOY FAN (B2C)", role_fan_desc: "Suscripciones VIP por Tiers",
-        cat_title: "UPGRADE PLAN", cat_loading: "Cargando 5 packs tácticos del Búnker... ⏳", cat_error: "⚠️ Error al conectar con el servidor de pagos.",
+        cat_title: "UPGRADE PLAN", cat_loading: "Cargando 5 packs tácticos del Búnker... ⏳", cat_error: "⚠️ Error al conectar con el servidor.",
         
         pkg_spy_name: "Spy 🕵️", pkg_spy_desc: "Reconocimiento y acceso inicial al Búnker.",
         pkg_soldier_name: "Soldier 🎖️", pkg_soldier_desc: "Infantería táctica con contenido esencial.",
@@ -35,7 +35,7 @@ const t = {
         b2b_main_title: "B2B CREATOR MEMBERSHIP", b2b_free_month: "1ST MONTH FREE 🎁", b2b_desc: "Unlock your Tip Menu edition and active monetization.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mo", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mo", b2b_edit_tips: "EDIT MY 10 SLOTS (TIP MENU)",
 
         role_title: "SELECT YOUR ROLE", role_desc: "How do you want to interact with the platform?", role_creator: "I AM CREATOR (B2B)", role_creator_desc: "Promos / Ads (150 XTR)", role_fan: "I AM FAN (B2C)", role_fan_desc: "VIP Subscriptions by Tiers",
-        cat_title: "UPGRADE PLAN", cat_loading: "Loading 5 tactical Bunker packs... ⏳", cat_error: "⚠️ Error connecting to payment server.",
+        cat_title: "UPGRADE PLAN", cat_loading: "Loading 5 tactical Bunker packs... ⏳", cat_error: "⚠️ Error connecting to server.",
         
         pkg_spy_name: "Spy 🕵️", pkg_spy_desc: "Recon and initial access to the Bunker.",
         pkg_soldier_name: "Soldier 🎖️", pkg_soldier_desc: "Tactical infantry with essential content.",
@@ -49,7 +49,7 @@ const t = {
         toast_video: "Connecting video call...", chat_connecting: "CONNECTING TO BUNKER... ⚡", chat_connected: "LIVE CONNECTION ESTABLISHED ✅", chat_error: "RECONNECTING... 🔄", toast_reconnecting: "Reconnecting channel..."
     },
     it: { 
-        warn_title: "AVVERTENZA", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Questo spazio contiene materiale esplicito e sessuale.", warn_p2: "Entrando, confermi sotto la tua responsabilità di essere maggiorenne (18+).", btn_accept: "ACCETTO", btn_exit: "ESCI", btn_back: "INDIETRO", login_title: "ACCESSO AL VAULT", login_desc: "Accedi o crea il tuo account.", lbl_phone: "NUMERO DI TELEFONO", btn_phone_login: "ACCEDI CON NUMERO", or_direct: "O DIRETTAMENTE CON", btn_tg_login: "LOGIN CON TELEGRAM", no_account: "Non hai ancora un account?", btn_create_acc: "CREA NUOVO ACCOUNT", cap_title: "VERIFICA UMANA", cap_desc: "Risolvi il codice di sicurezza.", btn_new_code: "Genera altro codice", btn_verify: "VERIFICA ACCESSO", reg_title: "NUOVO ACCOUNT", reg_desc: "Registrati per l'accesso.", lbl_email: "EMAIL", btn_register: "REGISTRATI", or_fast: "O VELOCE CON", have_account: "Hai già un account?", btn_login_link: "Accedi", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
+        warn_title: "AVVERTENZA", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Questo spazio contiene materiale esplicito e sessuale.", warn_p2: "Entrando, confermi sotto la tua responsabilità di essere maggiorenne (18+).", btn_accept: "ACCETTO", btn_exit: "ESCI", btn_back: "INDIETRO", login_title: "ACCESSO AL VAULT", login_desc: "Accedi o crea il tuo account.", lbl_phone: "NUMERO DI TELEFONO", btn_phone_login: "ACCEDI CON NUMERO", or_direct: "O DIRETTAMENTE CON", btn_tg_login: "LOGIN CON TELEGRAM", no_account: "Non hai ancora un account?", btn_create_acc: "CREA NUOVO ACCOUNT", cap_title: "VERIFICA UMANA", cap_desc: "Risolvi il codice di sicurezza.", btn_new_code: "Genera altro codice", btn_verify: "VERIFICAR ACCESSO", reg_title: "NUOVO ACCOUNT", reg_desc: "Registrati per l'accesso.", lbl_email: "EMAIL", btn_register: "REGISTRATI", or_fast: "O VELOCE CON", have_account: "Hai già un account?", btn_login_link: "Accedi", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
         nav_cat: "CATALOGO", nav_com: "COMUNITÀ", nav_post: "PUBBLICA", nav_profile: "PROFILO", nav_sup: "MESSAGGI CRM", btn_wallet: "CONNETTI WALLET", btn_logout: "ESCI", rank_0: "SPIA 🕵️", rank_1: "SOLDATO 🎖️", rank_2: "VETERANO ⚔️", rank_3: "LEGGENDA 👑", rank_4: "ICONA 💎",
         upload_hdr: "CARICA CONTENUTO", lbl_level: "LIVELLO RICHIESTO 👀", opt_0: "🆓 Pubblico", opt_1: "🎖️ Blocca per SOLDIER", opt_2: "⚔️ Blocca per VETERAN", opt_3: "👑 Blocca per LEGEND", lbl_file: "FOTO O VIDEO 📸", txt_upload: "Tocca per caricare file", lbl_desc: "DESCRIZIONE", btn_pub: "PUBBLICA",
         prof_title: "MIO PROFILO", prof_alpha_title: "PORTAFOGLIO $ALPHA", prof_alpha_desc: "Ricarica il saldo per sbloccare contenuti.", btn_recharge: "RICARICA 1 TON x 100 $ALPHA", lbl_alias: "USERNAME / ALIAS", prof_growth: "Crescita", prof_next: "Prossimo: SOLDIER", lbl_bio: "BIO / DESCRIZIONE VIP", btn_save_bio: "SALVA PROFILO", btn_pub_content: "PUBBLICA CONTENUTO",
@@ -58,7 +58,7 @@ const t = {
         b2b_main_title: "ABBONAMENTO CREATORE B2B", b2b_free_month: "1º MESE GRATIS 🎁", b2b_desc: "Sblocca la modifica del tuo Tip Menu e la monetizzazione.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mese", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mese", b2b_edit_tips: "MODIFICA I MIEI 10 SLOTS (TIP MENU)",
 
         role_title: "SELEZIONA RUOLO", role_desc: "Scegli come interagire", role_creator: "CREATORE (B2B)", role_creator_desc: "Promo", role_fan: "FAN (B2C)", role_fan_desc: "Abbonamenti VIP",
-        cat_title: "AGGIORNA PIANO", cat_loading: "Caricamento 5 pack tattici del Bunker... ⏳", cat_error: "⚠️ Errore di connessione al server di pagamento.",
+        cat_title: "AGGIORNA PIANO", cat_loading: "Caricamento 5 pack tattici del Bunker... ⏳", cat_error: "⚠️ Errore di connessione al server.",
         
         pkg_spy_name: "Spy 🕵️", pkg_spy_desc: "Ricognizione e accesso iniziale al Bunker.",
         pkg_soldier_name: "Soldier 🎖️", pkg_soldier_desc: "Fanteria tattica con contenuti essenziali.",
@@ -81,7 +81,7 @@ const t = {
         b2b_main_title: "ASSINATURA CRIADOR B2B", b2b_free_month: "1º MÊS GRÁTIS 🎁", b2b_desc: "Desbloqueie a edição do seu Tip Menu e monetização.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mês", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mês", b2b_edit_tips: "EDITAR MEUS 10 SLOTS (TIP MENU)",
 
         role_title: "SELECIONE SEU PAPEL", role_desc: "Escolha", role_creator: "CRIADOR (B2B)", role_creator_desc: "Promo", role_fan: "FÃ (B2C)", role_fan_desc: "VIP",
-        cat_title: "ATUALIZAR PLANO", cat_loading: "Carregando 5 pacotes táticos do Búnker... ⏳", cat_error: "⚠️ Erro ao conectar ao servidor de pagamento.",
+        cat_title: "ATUALIZAR PLANO", cat_loading: "Carregando 5 pacotes táticos do Búnker... ⏳", cat_error: "⚠️ Erro ao conectar ao servidor.",
         
         pkg_spy_name: "Spy 🕵️", pkg_spy_desc: "Reconhecimento e acesso inicial ao Búnker.",
         pkg_soldier_name: "Soldier 🎖️", pkg_soldier_desc: "Infantaria tática com conteúdo essencial.",
@@ -127,7 +127,7 @@ const t = {
         b2b_main_title: "ABONNEMENT CRÉATEUR B2B", b2b_free_month: "1er MOIS GRATUIT 🎁", b2b_desc: "Débloquez l'édition de votre Tip Menu.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mois", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mois", b2b_edit_tips: "MODIFIER MES 10 SLOTS (TIP MENU)",
 
         role_title: "RÔLE", role_desc: "Choisir", role_creator: "CRÉATEUR (B2B)", role_creator_desc: "Promo", role_fan: "FAN (B2C)", role_fan_desc: "VIP",
-        cat_title: "METTRE À JOUR", cat_loading: "Chargement des 5 packs tactiques du Bunker... ⏳", cat_error: "⚠️ Erreur de connexion au serveur de paiement.",
+        cat_title: "METTRE À JOUR", cat_loading: "Chargement des 5 packs tactiques du Bunker... ⏳", cat_error: "⚠️ Erreur de connexion au serveur.",
         
         pkg_spy_name: "Spy 🕵️", pkg_spy_desc: "Reconnaissance et accès initial au Bunker.",
         pkg_soldier_name: "Soldier 🎖️", pkg_soldier_desc: "Infanterie tactique avec contenu essentiel.",
@@ -155,6 +155,7 @@ window.applyTranslations = function(lang) {
         'btn-wallet-hdr': 'btn_wallet', 'btn-logout': 'btn_logout', 'rank-feed': 'rank_0',
         'upload-hdr': 'upload_hdr', 'lbl-level': 'lbl_level', 'opt-0': 'opt_0', 'opt-1': 'opt_1', 'opt-2': 'opt_2', 'opt-3': 'opt_3', 'lbl-file': 'lbl_file', 'txt-upload': 'txt_upload', 'lbl-desc': 'lbl_desc', 'btn-pub-text': 'btn_pub',
         
+        // MApeo Universal del Perfil y Billetera
         'prof-title': 'prof_title', 'prof-rank': 'rank_0', 'prof-alpha-title': 'prof_alpha_title', 'prof-alpha-desc': 'prof_alpha_desc', 'btn-recharge-text': 'btn_recharge', 'lbl-alias': 'lbl_alias', 'prof-growth-title': 'prof_growth', 'prof-next-rank': 'prof_next', 'lbl-bio': 'lbl_bio', 'btn-save-bio': 'btn_save_bio', 'btn-pub-content': 'btn_pub_content',
         'txt-kyc-title': 'prof_kyc_title', 'prof-kyc-desc': 'prof_kyc_desc',
         'txt-b2b-title': 'b2b_main_title', 'txt-b2b-free': 'b2b_free_month', 'txt-b2b-desc': 'b2b_desc',
