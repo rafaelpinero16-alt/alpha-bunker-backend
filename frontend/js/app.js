@@ -50,7 +50,7 @@ const app = {
             toast.classList.add('show'); 
             toast.onclick = () => toast.classList.remove('show');
             clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1500); 
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); 
         }
     },
 
@@ -1037,7 +1037,13 @@ const app = {
             } catch (e) {}
         };
 
-        this.chatSocket.onclose = () => {};
+        // Reconexión automática
+        this.chatSocket.onclose = () => {
+            setTimeout(() => this.initChatWebSocket(), 3000);
+        };
+        this.chatSocket.onerror = () => {
+            setTimeout(() => this.initChatWebSocket(), 3000);
+        };
     },
 
     // 💬 MODAL 2: CHAT GLOBAL INDEPENDIENTE
@@ -1079,6 +1085,7 @@ const app = {
         const wsUrl = `${wsProtocol}${cleanBaseUrl}/chat/global/ws/${this.userId}`;
 
         this.globalChatSocket = new WebSocket(wsUrl);
+        
         this.globalChatSocket.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
@@ -1089,6 +1096,14 @@ const app = {
                     this.scrollToBottom('global-chat-messages');
                 }
             } catch (e) {}
+        };
+
+        // 🛡️ Reconexión Automática del Global Chat
+        this.globalChatSocket.onclose = () => {
+            setTimeout(() => this.initGlobalChatWebSocket(), 3000);
+        };
+        this.globalChatSocket.onerror = () => {
+            setTimeout(() => this.initGlobalChatWebSocket(), 3000);
         };
     },
 
@@ -1265,6 +1280,36 @@ const app = {
 
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
+
+    // 🛡️ REGLA: Videollamada solo accesible para Icon Legend (T4)
+    joinVideoBunker() {
+        this.haptic('medium');
+        this.initUserId();
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
+        const userTier = this.userData?.access_tier || 0;
+
+        if (userTier < 4 && !isAdminUser) {
+            this.showToast('⚠️ Acceso denegado. Requiere rango ICON LEGEND (Niv.4) para la cámara.');
+            this.openCatalogPackages();
+            return;
+        }
+
+        document.getElementById('btn-join-video-global')?.classList.add('hidden');
+        document.getElementById('video-bunker-container')?.classList.remove('hidden');
+        this.showToast('Conectando a la transmisión... 📡');
+    },
+
+    leaveVideoBunker() {
+        this.haptic('light');
+        document.getElementById('video-bunker-container')?.classList.add('hidden');
+        document.getElementById('btn-join-video-global')?.classList.remove('hidden');
+        this.showToast('Has salido de la transmisión.');
+    },
+
+    startVideoCall() { 
+        this.haptic('light');
+        this.openGlobalChat();
+    },
 
     openUploadPanel() {
         this.initUserId();
@@ -1485,24 +1530,6 @@ const app = {
             this.closeModals();
             await this.refreshUserData();
         } catch (e) { this.showToast('⚠️ Saldo insuficiente'); }
-    },
-
-    // 🛡️ REGLA: Videollamada solo accesible para Icon Legend (T4)
-    startVideoCall() { 
-        this.haptic('medium');
-        this.initUserId();
-        
-        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
-        const userTier = this.userData?.access_tier || 0; 
-
-        if (userTier < 4 && !isAdminUser) {
-            this.showToast('⚠️ Acceso restringido. Requiere rango ICON LEGEND para entrar a la cámara.');
-            this.openCatalogPackages();
-            return;
-        }
-
-        this.showToast(this.getTrans('toast_video')); 
-        this.openGlobalChat();
     },
 
     selectCreatorRole() { this.showToast('Rol de Creador seleccionado'); this.closeModals(); },
