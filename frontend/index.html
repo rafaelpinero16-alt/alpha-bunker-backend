@@ -592,6 +592,17 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- VISTA PREVIA MULTIMEDIA CRM -->
+            <div id="crm-chat-preview-container" class="hidden px-4 pt-3 bg-[#050505] flex items-center gap-3">
+                <div class="relative inline-block">
+                    <img id="crm-chat-preview-img" src="" class="hidden h-14 w-14 object-cover rounded-xl border border-[#ff00ff] shadow-[0_0_10px_rgba(255,0,255,0.3)]">
+                    <video id="crm-chat-preview-video" src="" class="hidden h-14 w-14 object-cover rounded-xl border border-[#ff00ff] shadow-[0_0_10px_rgba(255,0,255,0.3)]" autoplay muted loop></video>
+                    <button onclick="app.clearChatMedia('crm')" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-lg hover:scale-110 transition"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <span class="text-[10px] text-[#ff00ff] font-bold" id="crm-chat-preview-name">Archivo listo</span>
+            </div>
+
             <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-2 pb-6">
                 <label for="crm-media-upload" class="text-[#00f3ff] text-2xl p-2 cursor-pointer hover:scale-110 transition active:scale-95">
                     <i class="fa-solid fa-paperclip"></i>
@@ -621,7 +632,6 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <!-- 📹 BOTÓN DE VIDEOLLAMADA CON VALIDACIÓN DE NIVEL 4 -->
                     <button id="btn-join-video-global" onclick="app.joinVideoBunker()" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white text-[10px] font-black px-3 py-2 rounded-lg shadow-[0_0_10px_rgba(255,0,255,0.5)] transition flex items-center gap-1 animate-pulse">
                         <i class="fa-solid fa-video"></i> ENTRAR
                     </button>
@@ -631,7 +641,7 @@
                 </div>
             </div>
             
-            <!-- 🖥️ CONTENEDOR DE LA VIDEOLLAMADA (OCULTO POR DEFECTO) -->
+            <!-- 🖥️ CONTENEDOR DE LA VIDEOLLAMADA -->
             <div id="video-bunker-container" class="hidden bg-[#050505] border-b border-[#ff00ff] p-3 flex flex-col items-center justify-center relative shadow-inner shrink-0">
                 <div class="w-full aspect-video bg-neutral-900 rounded-xl border border-neutral-700 flex flex-col items-center justify-center relative overflow-hidden shadow-[0_0_15px_rgba(0,0,0,0.8)]">
                     <div class="absolute top-2 left-2 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md">EN VIVO</div>
@@ -651,7 +661,16 @@
                 </div>
             </div>
             
-            <!-- ZONA DE ESCRITURA Y ADJUNTOS -->
+            <!-- VISTA PREVIA MULTIMEDIA GLOBAL -->
+            <div id="global-chat-preview-container" class="hidden px-4 pt-3 bg-[#050505] flex items-center gap-3">
+                <div class="relative inline-block">
+                    <img id="global-chat-preview-img" src="" class="hidden h-14 w-14 object-cover rounded-xl border border-[#00f3ff] shadow-[0_0_10px_rgba(0,243,255,0.3)]">
+                    <video id="global-chat-preview-video" src="" class="hidden h-14 w-14 object-cover rounded-xl border border-[#00f3ff] shadow-[0_0_10px_rgba(0,243,255,0.3)]" autoplay muted loop></video>
+                    <button onclick="app.clearChatMedia('global')" class="absolute -top-2 -right-2 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] shadow-lg hover:scale-110 transition"><i class="fa-solid fa-times"></i></button>
+                </div>
+                <span class="text-[10px] text-[#00f3ff] font-bold" id="global-chat-preview-name">Archivo listo</span>
+            </div>
+
             <div class="p-4 bg-[#050505] border-t border-gray-800 flex items-center gap-2 pb-6">
                 <label for="global-media-upload" class="text-[#ff00ff] text-2xl p-2 cursor-pointer hover:scale-110 transition active:scale-95">
                     <i class="fa-solid fa-paperclip"></i>
@@ -695,13 +714,13 @@
     <!-- CANVAS PARA FUEGOS ARTIFICIALES -->
     <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
 
-    <div id="toast" class="toast">¡Copiado! 📋</div>
+    <div id="toast" class="toast cursor-pointer hover:opacity-80 transition-opacity">¡Copiado! 📋</div>
     
-    <!-- 🛡️ SCRIPTS MAESTROS ACTUALIZADOS (VERSION 12) -->
-    <script src="js/security.js?v=12"></script>
-    <script src="js/translations.js?v=12"></script>
-    <script src="js/api.js?v=12"></script>
-    <script src="js/chat.js?v=12"></script>
-    <script src="js/app.js?v=12" defer></script>
+    <!-- 🛡️ SCRIPTS MAESTROS ACTUALIZADOS (VERSION 14) -->
+    <script src="js/security.js?v=14"></script>
+    <script src="js/translations.js?v=14"></script>
+    <script src="js/api.js?v=14"></script>
+    <script src="js/chat.js?v=14"></script>
+    <script src="js/app.js?v=14" defer></script>
 </body>
 </html>
