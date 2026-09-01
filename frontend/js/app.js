@@ -50,7 +50,7 @@ const app = {
             toast.classList.add('show'); 
             toast.onclick = () => toast.classList.remove('show');
             clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 2000); 
+            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1500); 
         }
     },
 
@@ -1037,13 +1037,7 @@ const app = {
             } catch (e) {}
         };
 
-        // Reconexión automática
-        this.chatSocket.onclose = () => {
-            setTimeout(() => this.initChatWebSocket(), 3000);
-        };
-        this.chatSocket.onerror = () => {
-            setTimeout(() => this.initChatWebSocket(), 3000);
-        };
+        this.chatSocket.onclose = () => {};
     },
 
     // 💬 MODAL 2: CHAT GLOBAL INDEPENDIENTE
@@ -1076,6 +1070,9 @@ const app = {
         if (!this.userId) return;
 
         if (this.globalChatSocket) {
+            if(this.globalChatSocket.readyState === WebSocket.OPEN || this.globalChatSocket.readyState === WebSocket.CONNECTING) {
+                return; 
+            }
             this.globalChatSocket.close();
             this.globalChatSocket = null;
         }
@@ -1098,16 +1095,12 @@ const app = {
             } catch (e) {}
         };
 
-        // 🛡️ Reconexión Automática del Global Chat
         this.globalChatSocket.onclose = () => {
-            setTimeout(() => this.initGlobalChatWebSocket(), 3000);
-        };
-        this.globalChatSocket.onerror = () => {
-            setTimeout(() => this.initGlobalChatWebSocket(), 3000);
+            if(this.globalChatReconnectTimer) clearTimeout(this.globalChatReconnectTimer);
+            this.globalChatReconnectTimer = setTimeout(() => this.initGlobalChatWebSocket(), 3000);
         };
     },
 
-    // 📎 Pre-carga de imágenes y videos para el chat con Reglas Militares (Frontend Validations)
     async handleChatMediaPreview(event, type) {
         const file = event.target.files[0];
         if (!file) return;
@@ -1118,7 +1111,6 @@ const app = {
         const userTier = this.userData?.access_tier || 0;
         const isVideo = file.type.startsWith('video/');
 
-        // 🛡️ REGLAS MILITARES DE MULTIMEDIA FRONTEND
         if (type === 'global' && !isAdminUser && !isCreator) {
             if (userTier < 2) {
                 this.showToast('⚠️ Requiere rango VETERAN (Niv.2) para enviar fotos al chat.');
@@ -1241,14 +1233,12 @@ const app = {
         
         if (!text && !this.tempChatMediaData) return;
 
-        // 🛡️ REGLA FRONTEND: Creadores sin KYC no pueden escribir
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) {
             this.showToast('⚠️ Identidad no confirmada. Requieres KYC para interactuar.');
             this.openKYCModal();
             return;
         }
 
-        // 🛡️ REGLA FRONTEND: Etiquetar requiere Soldier Creator
         if (text.includes('@') && !isAdminUser) {
             if (userRole !== 'creator') {
                 this.showToast('⚠️ Etiquetar usuarios es exclusivo para Creadores.');
@@ -1267,21 +1257,26 @@ const app = {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.tempChatMediaData = null;
         } else {
-            this.initGlobalChatWebSocket();
-            setTimeout(() => {
+            this.showToast('Reconectando al servidor... ⏳');
+            if(!this.globalChatSocket || this.globalChatSocket.readyState === WebSocket.CLOSED) {
+                 this.initGlobalChatWebSocket();
+            }
+            if(this.globalSendRetry) clearTimeout(this.globalSendRetry);
+            this.globalSendRetry = setTimeout(() => {
                 if (this.globalChatSocket && this.globalChatSocket.readyState === WebSocket.OPEN) {
                     this.globalChatSocket.send(payload);
                     if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
                     this.tempChatMediaData = null;
+                } else {
+                    this.showToast('⚠️ No se pudo enviar el mensaje. Intenta de nuevo.');
                 }
-            }, 500);
+            }, 1500);
         }
     },
 
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
-    // 🛡️ REGLA: Videollamada solo accesible para Icon Legend (T4)
     joinVideoBunker() {
         this.haptic('medium');
         this.initUserId();
