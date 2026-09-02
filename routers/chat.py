@@ -33,9 +33,12 @@ manager = ConnectionManager()
 global_manager = ConnectionManager()
 
 def clean_old_messages(db: Session):
-    time_threshold = datetime.utcnow() - timedelta(hours=24)
-    db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
-    db.commit()
+    try:
+        time_threshold = datetime.utcnow() - timedelta(hours=24)
+        db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
+        db.commit()
+    except Exception:
+        db.rollback()
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
@@ -51,7 +54,18 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
     try:
         while True:
             data = await websocket.receive_text()
-            db_content = json.dumps({"text": data, "media_url": None})
+            
+            # Descomprimir JSON del frontend para multimedia
+            text_val = data
+            media_val = None
+            try:
+                payload = json.loads(data)
+                text_val = payload.get("text", "")
+                media_val = payload.get("media_url", None)
+            except:
+                pass
+
+            db_content = json.dumps({"text": text_val, "media_url": media_val})
             
             new_msg = ChatMessage(
                 user_id=user.user_id,
@@ -117,12 +131,8 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
 
     await global_manager.connect(websocket)
 
-    # 🛡️ Regex Base para Enlaces
-    link_pattern = re.compile(
-        r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b'
-    )
+    link_pattern = re.compile(r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b')
 
-    # 🛡️ Matriz de Palabras Prohibidas (Blacklist Absoluta)
     banned_words = [
         "extasis", "cp", "c.p", "c-p", "cepe", "cheese", "pizza", "cheese pizza", "cheesepizza",
         "k9", "k-9zoo", "z00", "beast", "bestialismo", "zoofilia", "incest", "incesto", "tabu", "taboo", "tab00",
@@ -184,7 +194,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                 if current_warnings is None: current_warnings = 0
 
                 if not is_admin:
-                    # 1. Filtro Estricto: Links O Palabras/Emojis Prohibidos
                     if link_pattern.search(text_val) or spam_pattern.search(text_val) or emoji_pattern.search(text_val):
                         user.warnings_count = current_warnings + 1
                         penalty_amount = 5 
