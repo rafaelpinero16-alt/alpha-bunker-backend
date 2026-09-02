@@ -411,7 +411,7 @@ const app = {
     },
 
     formatCardNumber(input) {
-        input.value = input.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim();
+        input.value = input.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 '.trim());
         this.detectCardBrand(input.value);
     },
 
