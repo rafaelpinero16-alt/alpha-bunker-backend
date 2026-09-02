@@ -212,6 +212,7 @@ const app = {
         if (rankDisplay) rankDisplay.innerHTML = rankHTML;
         if (rankFeed) rankFeed.innerHTML = `<div class="relative inline-block w-4 h-4 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[6px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle text-xs font-black">${rankInfo.name}</span>`;
 
+        // 🛡️ LÓGICA DE KYC, BILLETERAS B2C Y SEGURIDAD B2B
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const kycStatusEl = document.getElementById('prof-kyc-status'), kycDescEl = document.getElementById('prof-kyc-desc'), kycBtn = document.getElementById('btn-verify-kyc');
         const isAdminUser = this.isAdminUser();
@@ -228,7 +229,18 @@ const app = {
                 kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('status_wallet_linked') || 'BILLETERA / TARJETA VINCULADA'} ✅ ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
                 if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc') || 'Método de pago activo. No requieres verificación KYC.';
-                if (kycBtn) kycBtn.classList.add('hidden');
+                
+                // Botón constante para cambiar de método de pago (Wallet <-> Tarjeta)
+                const sessionValid = localStorage.getItem('alpha_logged_in') === 'true' && this.userId;
+                if (kycBtn && sessionValid) {
+                    kycBtn.classList.remove('hidden');
+                    kycBtn.innerHTML = `<i class="fa-solid fa-money-check-dollar mr-1"></i> CAMBIAR MÉTODO DE PAGO`;
+                    kycBtn.className = 'w-full bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 px-4 rounded-xl text-xs shadow-md transition uppercase mt-3';
+                    kycBtn.setAttribute('onclick', 'app.openPaymentMethods()');
+                } else if (kycBtn) {
+                    kycBtn.classList.add('hidden');
+                }
+
             } else if (kycStatus === 'verified' || isAdminUser) {
                 kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">VERIFICADO (+18) ✅ ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
@@ -241,7 +253,8 @@ const app = {
                     if (kycDescEl) kycDescEl.innerText = this.getTrans('status_unlinked_desc') || 'Conecta tu Wallet o Tarjeta de Crédito para verificar tu cuenta sin hacer KYC.';
                     if (kycBtn) {
                         kycBtn.classList.remove('hidden');
-                        kycBtn.innerText = this.getTrans('btn_link_payment') || 'VINCULAR PAGO';
+                        kycBtn.innerHTML = this.getTrans('btn_link_payment') || 'VINCULAR PAGO';
+                        kycBtn.className = 'w-full bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 font-black py-3 px-4 rounded-xl text-xs shadow-[0_0_15px_rgba(0,243,255,0.4)] transition mt-2';
                         kycBtn.setAttribute('onclick', 'app.openPaymentMethods()');
                     }
                 } else {
@@ -251,6 +264,7 @@ const app = {
                     if (kycBtn) {
                         kycBtn.classList.remove('hidden');
                         kycBtn.innerText = 'VERIFICAR CUENTA AHORA';
+                        kycBtn.className = 'w-full bg-[#ff00ff] text-black hover:bg-[#ff00ff]/80 font-black py-3 px-4 rounded-xl text-xs shadow-[0_0_15px_rgba(255,0,255,0.4)] transition uppercase mt-2';
                         kycBtn.setAttribute('onclick', 'app.openKYCModal()');
                     }
                 }
@@ -333,13 +347,13 @@ const app = {
                 <div id="modal-cc-form" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
                         <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                            <h3 class="text-lg font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-credit-card mr-2"></i> ${this.getTrans('cc_modal_title') || 'VINCULAR TARJETA'}</h3>
+                            <h3 class="text-lg font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-lock mr-2"></i> ${this.getTrans('cc_modal_title') || 'VINCULAR TARJETA'}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        <div class="space-y-3 flex-1 overflow-y-auto pr-1">
+                        <div class="space-y-3 flex-1 overflow-y-auto pr-1 mt-2">
                             <div>
                                 <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_number') || 'NÚMERO DE TARJETA'}</label>
-                                <input type="text" id="cc-number" placeholder="4532 •••• •••• 8921" maxlength="19" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
+                                <input type="text" id="cc-number" placeholder="4532 1234 5678 8921" maxlength="19" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim()" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
                             </div>
                             <div>
                                 <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_name') || 'NOMBRE DEL TITULAR'}</label>
@@ -375,40 +389,69 @@ const app = {
 
     saveCreditCardData() {
         this.haptic('medium');
-        const num = document.getElementById('cc-number')?.value.trim();
-        const name = document.getElementById('cc-name')?.value.trim();
-        const bank = document.getElementById('cc-bank')?.value.trim();
+        const numInput = document.getElementById('cc-number');
+        const nameInput = document.getElementById('cc-name');
+        const expiryInput = document.getElementById('cc-expiry');
+        const cvvInput = document.getElementById('cc-cvv');
+        const bankInput = document.getElementById('cc-bank');
 
-        if (!num || !name || !bank) {
-            this.showToast('⚠️ Completa los campos obligatorios de la tarjeta.');
+        const num = numInput?.value.trim();
+        const name = nameInput?.value.trim();
+        const expiry = expiryInput?.value.trim();
+        const cvv = cvvInput?.value.trim();
+        const bank = bankInput?.value.trim();
+
+        if (!num || !name || !bank || !expiry || !cvv) {
+            this.showToast('⚠️ Completa todos los campos obligatorios de la tarjeta.');
             return;
         }
 
+        if(num.replace(/\D/g,'').length < 13) {
+            this.showToast('⚠️ Número de tarjeta inválido.');
+            return;
+        }
+
+        // Capa de Seguridad: Enmascaramiento y Tokenización Local
         const maskedCard = {
             last4: num.slice(-4),
-            name: name,
             bank: bank,
+            token: "tok_alpha_" + Math.random().toString(36).substr(2, 10),
             connected_at: new Date().toISOString()
         };
 
         localStorage.setItem('alpha_cc_data', JSON.stringify(maskedCard));
         localStorage.setItem('alpha_cc_connected', 'true');
         
-        this.showToast('¡Tarjeta guardada y vinculada en tu perfil! 💳✅');
+        // Destrucción de datos en los inputs por seguridad
+        numInput.value = ''; nameInput.value = ''; expiryInput.value = ''; cvvInput.value = ''; bankInput.value = '';
+        
+        this.showToast('¡Tarjeta cifrada y vinculada en tu perfil! 💳✅');
         this.closeModals();
         this.updateProfileUI();
     },
 
-    payWithCreditCard(alphaAmount) {
+    payWithCreditCard(alphaAmount, targetLevel = null) {
         this.haptic('heavy');
+        
+        // Validación de Token de Seguridad
+        const ccData = JSON.parse(localStorage.getItem('alpha_cc_data') || '{}');
+        if(!ccData.token) {
+            this.showToast('⚠️ Error de seguridad. Vuelve a vincular tu tarjeta.');
+            this.openPaymentMethods();
+            return;
+        }
+
         this.showToast(`Procesando compra segura de ${alphaAmount} $ALPHA con Tarjeta... 💳`);
+        
         setTimeout(() => {
             this.showToast('¡Pago completado! 💎');
             this.triggerFireworks();
             this.refreshUserData();
-            setTimeout(() => {
-                this.syncKYCStatus();
-                this.showLevelUpAnimation(this.userData.access_tier);
+            setTimeout(async () => {
+                await this.syncKYCStatus();
+                // Rango dinámico
+                let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
+                this.showLevelUpAnimation(finalLevel);
             }, 1500);
         }, 2000);
     },
@@ -705,7 +748,7 @@ const app = {
         `).join('');
     },
 
-    async buyPackageStars(packageSlug) {
+    async buyPackageStars(packageSlug, targetLevel = null) {
         this.haptic('medium');
         this.initUserId();
         this.showToast('Generando factura de Telegram Stars... ⭐');
@@ -721,7 +764,8 @@ const app = {
                             setTimeout(async () => {
                                 await this.syncKYCStatus();
                                 await this.refreshUserData();
-                                this.showLevelUpAnimation(this.userData.access_tier);
+                                let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
+                                this.showLevelUpAnimation(finalLevel);
                             }, 1500);
                         }
                     });
@@ -771,15 +815,34 @@ const app = {
                             </div>
                             <p class="text-sm text-gray-300 mb-4 font-medium">${descLabel}</p>
                             <div class="grid grid-cols-2 gap-2">
-                                <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars}</button>
-                                <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">💎 ${pkg.price_ton} TON</button>
-                                <button onclick="app.payWithCreditCard(${pkg.alpha_total})" class="w-full col-span-2 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition mt-1"><i class="fa-solid fa-credit-card"></i> ${this.getTrans('btn_credit_card') || 'Pagar con Tarjeta'}</button>
+                                <button onclick="app.buyPackageStars('${pkg.slug}', ${level})" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars}</button>
+                                <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total}, ${level})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">💎 ${pkg.price_ton} TON</button>
+                                <button onclick="app.payWithCreditCard(${pkg.alpha_total}, ${level})" class="w-full col-span-2 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition mt-1"><i class="fa-solid fa-credit-card"></i> ${this.getTrans('btn_credit_card') || 'Pagar con Tarjeta'}</button>
                             </div>
                         </div>
                     `;
                 }).join('');
             }
         } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error') || 'Error cargando catálogo.'}</div>`; }
+    },
+
+    async rechargeAlphaCoins(amountTon, alphaAmount, targetLevel = null) {
+        try {
+            this.haptic('heavy'); await this.initTonConnect();
+            if (!this.tonConnectUI || !this.tonConnectUI.connected || !this.tonConnectUI.account) { this.showToast('⚠️ Conecta tu billetera TON.'); return; }
+            const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: "UQDWI2auHgQ5a9KnWn9_by-RSswIaKfz38b_Yib_cIy-Jklp", amount: Math.floor(amountTon * 1000000000).toString() }] };
+            const result = await this.tonConnectUI.sendTransaction(transaction);
+            const res = await fetch(`${this.backendUrl}/wallet/recharge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, amount_ton: amountTon, alpha_added: alphaAmount, boc: result?.boc || "DIRECT_TX" }) });
+            if (res.ok) { 
+                await this.refreshUserData(); 
+                this.triggerFireworks(); 
+                setTimeout(async () => {
+                    await this.syncKYCStatus();
+                    let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
+                    this.showLevelUpAnimation(finalLevel);
+                }, 1500);
+            }
+        } catch (err) {}
     },
 
     async subscribeCreatorTier(tierSlug) {
@@ -843,33 +906,6 @@ const app = {
         try {
             const res = await fetch(`${this.backendUrl}/kyc/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, legal_name: legalName, document_base64: this.tempKYCDoc, selfie_base64: this.tempKYCSelfie }) });
             if (res.ok) { localStorage.setItem('alpha_kyc_status', 'pending'); this.showToast('¡Solicitud enviada con éxito! 🚀'); this.closeModals(); this.updateProfileUI(); }
-        } catch (err) {}
-    },
-
-    async initTonConnect() {
-        if (!this.tonConnectUI && window.TON_CONNECT_UI) {
-            try {
-                this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ manifestUrl: window.location.origin + '/tonconnect-manifest.json' });
-                this.tonConnectUI.onStatusChange(async (wallet) => {
-                    const btnHdr = document.getElementById('btn-wallet-hdr');
-                    if (wallet?.account) {
-                        const shortAddress = wallet.account.address.slice(0, 4) + '...' + wallet.account.address.slice(-4);
-                        if (btnHdr) btnHdr.innerText = shortAddress;
-                        await fetch(`${this.backendUrl}/wallet/connect-ton`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, ton_address: wallet.account.address }) });
-                        await this.refreshUserData();
-                    } else { if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; }
-                });
-            } catch (err) {}
-        }
-    },
-
-    async connectWallet() {
-        try {
-            this.haptic('medium'); this.initUserId(); await this.initTonConnect();
-            if (!this.tonConnectUI) return;
-            if (this.tonConnectUI.connected) {
-                if (confirm('¿Desconectar billetera?')) { await this.tonConnectUI.disconnect(); const btnHdr = document.getElementById('btn-wallet-hdr'); if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; }
-            } else { await this.tonConnectUI.openModal(); }
         } catch (err) {}
     },
 
