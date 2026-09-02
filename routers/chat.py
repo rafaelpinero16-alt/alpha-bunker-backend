@@ -94,7 +94,6 @@ def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await global_manager.connect(websocket)
     
-    # 🛡️ AUTO-MIGRACIÓN SILENCIOSA: Inyecta la columna de advertencias si no existe en Railway
     try:
         db.execute(text("SELECT warnings_count FROM users LIMIT 1"))
     except Exception:
@@ -113,9 +112,9 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         db.commit()
         db.refresh(user)
 
-    # 🛡️ Regex Perfeccionado: Solo detecta links reales, no palabras que contengan "com"
+    # 🛡️ Regex Blindado: Atrapa http, https, www, t.me, y terminaciones comerciales sin importar espacios
     link_pattern = re.compile(
-        r'(?i)\b(?:https?://|www\.)\S+\b|\b[a-zA-Z0-9-]+\.(?:com|net|org|me|io|tm|co|tv|app)\b'
+        r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b'
     )
 
     try:
@@ -133,14 +132,13 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
 
             is_admin = (user.role == "admin" or user.user_id == 8269470905)
 
-            # 🛡️ BLOQUE BLINDADO: Para evitar crasheos si falta algún dato
             try:
                 current_warnings = getattr(user, 'warnings_count', 0)
                 if current_warnings is None: current_warnings = 0
 
                 if not is_admin:
                     
-                    # 1. Filtro Anti-Spam
+                    # 1. Filtro Anti-Spam Estricto
                     if link_pattern.search(text_val):
                         user.warnings_count = current_warnings + 1
                         penalty_amount = 5 
@@ -152,7 +150,14 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             db.add(tx)
                         db.commit()
 
-                        warning_msg = f"⚠️ @{user.name}, los enlaces externos están prohibidos. Advertencia {user.warnings_count}/5. Penalización: -{penalty_amount} $ALPHA."
+                        # 🛡️ Código estructurado para traducción y auto-eliminación en el frontend
+                        sys_data = {
+                            "code": "SYS_WARN_SPAM",
+                            "user": user.name,
+                            "warnings": user.warnings_count,
+                            "penalty": penalty_amount
+                        }
+                        warning_msg = json.dumps(sys_data)
                         
                         sys_msg = ChatMessage(
                             user_id=user.user_id,
@@ -178,17 +183,14 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             await websocket.send_json({"is_error": True, "message": "🚫 Límite de advertencias superado. Envío restringido."})
                         continue
                     
-                    # 2. Control de Baneos
                     if current_warnings >= 5:
                         await websocket.send_json({"is_error": True, "message": "🚫 Cuenta restringida por exceso de spam (5/5)."})
                         continue
 
-                    # 3. Control de KYC para creadores
                     if user.role == "creator" and user.kyc_status != "verified":
                         await websocket.send_json({"is_error": True, "message": "⚠️ Identidad no confirmada. Requieres KYC para escribir."})
                         continue
 
-                    # 4. Control de Menciones
                     if "@" in text_val:
                         if user.role != "creator":
                             await websocket.send_json({"is_error": True, "message": "⚠️ Etiquetar usuarios es exclusivo para Creadores."})
@@ -197,7 +199,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             await websocket.send_json({"is_error": True, "message": "⚠️ Necesitas membresía Soldier Creator o superior para etiquetar."})
                             continue
 
-                    # 5. Control de Multimedia
                     if media_val:
                         if media_val.startswith("data:video") and user.access_level < 3:
                             await websocket.send_json({"is_error": True, "message": "⚠️ Requiere rango LEGEND para enviar videos."})
@@ -206,7 +207,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             await websocket.send_json({"is_error": True, "message": "⚠️ Requiere rango VETERAN para enviar fotos."})
                             continue
 
-                    # 6. Cobro de Espías (Tier 0)
                     if user.role == "fan" and user.access_level == 0:
                         wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
                         if not wallet or wallet.alpha_balance < 1:
@@ -221,7 +221,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
 
             except Exception as e:
                 print(f"[RULE CHECK ERROR]: {e}")
-                # Si falla una regla, permitimos que el mensaje siga en lugar de desconectar
 
             db_content = json.dumps({"text": text_val, "media_url": media_val})
 

@@ -46,7 +46,7 @@ const app = {
         } catch (e) {}
     },
 
-    // 🛡️ REGLA: Alertas Efímeras Obligatorias (Máx 2s)
+    // 🛡️ REGLA: Toasts efímeros, desaparecen en solo 1 segundo
     showToast(msg) {
         const toast = document.getElementById('toast');
         if (toast) { 
@@ -56,7 +56,7 @@ const app = {
             clearTimeout(this.toastTimer);
             this.toastTimer = setTimeout(() => {
                 toast.classList.remove('show');
-            }, 2000); 
+            }, 1000); 
             
             toast.onclick = () => {
                 toast.classList.remove('show');
@@ -1167,8 +1167,7 @@ const app = {
             if(parsed.text !== undefined) contentObj = parsed;
         } catch(e) {}
 
-        const safeText = this.escapeHtml(contentObj.text || '');
-        
+        let safeText = this.escapeHtml(contentObj.text || '');
         let safeMedia = '';
         if (contentObj.media_url) {
             const encodedUrl = encodeURI(contentObj.media_url);
@@ -1189,7 +1188,30 @@ const app = {
 
         let html = '';
         if (msg.is_system) {
-            html = `<div class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full font-bold text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
+            // 🛡️ REGLA: Traducción dinámica del SYS_WARN_SPAM y Auto-Destrucción Visual (1.5 segs)
+            let isSpamWarning = false;
+            try {
+                const sysData = JSON.parse(contentObj.text);
+                if (sysData.code === 'SYS_WARN_SPAM') {
+                    let template = this.getTrans('sys_warn_spam');
+                    safeText = template.replace('{user}', this.escapeHtml(sysData.user))
+                                       .replace('{warn}', sysData.warnings)
+                                       .replace('{penalty}', sysData.penalty);
+                    isSpamWarning = true;
+                }
+            } catch(e) {}
+
+            const msgId = `sys-msg-${msg.id || Date.now()}-${Math.random().toString(36).substr(2,9)}`;
+            html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-500"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full font-bold text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
+            
+            setTimeout(() => {
+                const el = document.getElementById(msgId);
+                if(el) {
+                    el.style.opacity = '0';
+                    setTimeout(() => el.remove(), 500);
+                }
+            }, 1500); 
+
         } else if (isMe) {
             html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         } else {
@@ -1256,7 +1278,6 @@ const app = {
         }
     },
 
-    // 🛡️ REGLA: Prevenir bucles de reconexión y fallos molestos
     sendGlobalChatMessage() {
         this.haptic('light');
         this.initUserId();
@@ -1290,12 +1311,10 @@ const app = {
 
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
         
-        // Verificación extra de estado de socket antes de enviar
         if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) {
             this.showToast('Reconectando al servidor... ⏳');
             BunkerChat.initGlobal(this.userId, this.backendUrl);
             
-            // Intento único limpio (sin bucles)
             setTimeout(() => {
                 if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) {
                     BunkerChat.sendGlobal(payload);
