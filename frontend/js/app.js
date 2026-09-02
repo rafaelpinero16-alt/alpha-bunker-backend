@@ -100,7 +100,6 @@ const app = {
         animate();
     },
 
-    // 🛡️ REGLA: Insignias con traducción universal dinámica
     getRankBadge(level) {
         const badges = {
             0: './assets/badge_0.png',
@@ -491,7 +490,7 @@ const app = {
                     const level = rankMapping[pkg.slug] !== undefined ? rankMapping[pkg.slug] : 0;
                     const badgeInfo = this.getRankBadge(level);
                     const tagLabel = this.getTrans('cat_official_rank') || 'RANGO OFICIAL';
-                    const descLabel = this.getTrans(`cat_desc_${level}`) || `Membresía oficial ${badgeInfo.name}. Acceso a beneficios tácticos en el Búnker.`;
+                    const descLabel = this.getTrans(`pkg_${pkg.slug}_desc`) || `Membresía oficial ${badgeInfo.name}. Acceso a beneficios tácticos en el Búnker.`;
                     
                     return `
                         <div class="bg-black border-2 ${level === 4 ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : level === 3 ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative mt-4">
@@ -1004,13 +1003,19 @@ const app = {
                         ` : (post.media_url ? `<img src="${this.escapeHtml(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
                         
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
-                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}"><i class="fa-solid fa-heart"></i> Like</button>
-                            ${showTipBtn ? `<button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">🪙 Dar Propina</button>` : ''}
+                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
+                                <i class="fa-solid fa-heart"></i> Like
+                            </button>
+                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
+                                🪙 Propina
+                            </button>
                         </div>
                     </div>
                 `;
             }).join('');
-        } catch (e) {}
+        } catch (e) {
+            container.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">Error cargando perfil.</div>`;
+        }
     },
 
     async openFanTipMenu(creatorId, postId, creatorName) {
