@@ -100,7 +100,7 @@ const app = {
         animate();
     },
 
-    // 🛡️ REGLA: Badges Nativos actualizados (Se añade badge_04.jpg)
+    // 🛡️ REGLA: Insignias con traducción universal dinámica
     getRankBadge(level) {
         const badges = {
             0: './assets/badge_0.png',
@@ -109,8 +109,9 @@ const app = {
             3: './assets/badge_3.png',
             4: './assets/badge_04.jpg'
         };
-        const names = ['SPY', 'SOLDIER', 'VETERAN', 'LEGEND', 'ICON LEGEND'];
-        return { img: badges[level] || badges[0], name: names[level] || names[0] };
+        const defaultNames = ['SPY', 'SOLDIER', 'VETERAN', 'LEGEND', 'ICON LEGEND'];
+        const transName = this.getTrans(`rank_name_${level}`) || defaultNames[level] || defaultNames[0];
+        return { img: badges[level] || badges[0], name: transName };
     },
 
     async refreshUserData() {
@@ -163,9 +164,9 @@ const app = {
         const rankDisplay = document.getElementById('prof-rank'), rankFeed = document.getElementById('rank-feed');
         const rankInfo = this.getRankBadge(this.userData?.access_tier || 0);
         
-        const rankHTML = `<img src="${rankInfo.img}" class="w-6 h-6 inline-block align-middle mr-1 rank-badge drop-shadow-[0_0_8px_rgba(0,243,255,0.6)]"> <span class="align-middle">${rankInfo.name}</span>`;
+        const rankHTML = `<img src="${rankInfo.img}" style="mix-blend-mode: screen; background-color: transparent;" class="w-6 h-6 inline-block align-middle mr-1 drop-shadow-[0_0_8px_rgba(0,243,255,0.6)]" onerror="this.src='./assets/badge_0.png'"> <span class="align-middle">${rankInfo.name}</span>`;
         if (rankDisplay) rankDisplay.innerHTML = rankHTML;
-        if (rankFeed) rankFeed.innerHTML = `<img src="${rankInfo.img}" class="w-4 h-4 inline-block align-middle mr-1 rank-badge"> <span class="align-middle text-xs">${rankInfo.name}</span>`;
+        if (rankFeed) rankFeed.innerHTML = `<img src="${rankInfo.img}" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.src='./assets/badge_0.png'"> <span class="align-middle text-xs">${rankInfo.name}</span>`;
 
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const kycStatusEl = document.getElementById('prof-kyc-status'), kycDescEl = document.getElementById('prof-kyc-desc'), kycBtn = document.getElementById('btn-verify-kyc');
@@ -176,7 +177,7 @@ const app = {
 
         if (kycStatusEl) {
             if (kycStatus === 'verified' || isAdminUser) {
-                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" class="w-4 h-4 inline-block align-middle mr-1 rank-badge"> <span class="align-middle">VERIFICADO (+18) ${warningText}</span>`; 
+                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">VERIFICADO (+18) ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
                 if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
                 if (kycBtn) kycBtn.classList.add('hidden');
@@ -375,7 +376,7 @@ const app = {
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-amber-400 text-sm">@${this.escapeHtml(post.author || 'mastertom')}</span>
                             <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
-                                <img src="${rankInfo.img}" class="w-4 h-4 inline-block rank-badge">
+                                <img src="${rankInfo.img}" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block" onerror="this.src='./assets/badge_0.png'">
                                 <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
                                 ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
@@ -465,7 +466,7 @@ const app = {
         } catch (err) {}
     },
 
-    // 🛡️ REGLA: Catálogo optimizado (Nombres limpios, botones TON restaurados, fondo insignia blend mode)
+    // 🛡️ REGLA: Catálogo Full Traducción + Nombres Limpios + Imágenes a prueba de fallos
     async openCatalogPackages() {
         this.closeModals();
         const modal = document.getElementById('modal-catalog');
@@ -473,28 +474,36 @@ const app = {
         modal.classList.remove('hidden');
         const container = document.getElementById('catalog-packages-list');
         if (!container) return;
-        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">Cargando catálogo... ⏳</div>`;
+        
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('cat_loading') || 'Cargando catálogo... ⏳'}</div>`;
         try {
             const res = await fetch(`${this.backendUrl}/payments/packages`);
             if (res.ok) {
                 const data = await res.json();
                 let packages = data.packages || [];
                 const order = ['spy', 'soldier', 'veteran', 'legend', 'icon-legend'];
+                packages.forEach(p => p.slug = p.slug.replace('_', '-'));
                 packages.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug));
                 
-                const rankMapping = { 'spy': {n: 'SPY', l: 0}, 'soldier': {n: 'SOLDIER', l: 1}, 'veteran': {n: 'VETERAN', l: 2}, 'legend': {n: 'LEGEND', l: 3}, 'icon-legend': {n: 'ICON LEGEND', l: 4} };
+                const rankMapping = { 'spy': 0, 'soldier': 1, 'veteran': 2, 'legend': 3, 'icon-legend': 4 };
 
                 container.innerHTML = packages.map(pkg => {
-                    const rData = rankMapping[pkg.slug] || {n: pkg.slug.toUpperCase(), l: 0};
-                    const badgeInfo = this.getRankBadge(rData.l);
+                    const level = rankMapping[pkg.slug] !== undefined ? rankMapping[pkg.slug] : 0;
+                    const badgeInfo = this.getRankBadge(level);
+                    const tagLabel = this.getTrans('cat_official_rank') || 'RANGO OFICIAL';
+                    const descLabel = this.getTrans(`cat_desc_${level}`) || `Membresía oficial ${badgeInfo.name}. Acceso a beneficios tácticos en el Búnker.`;
+                    
                     return `
-                        <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative mt-4">
-                            <div class="absolute -top-4 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-4 py-1 rounded-full text-xs font-black uppercase shadow-lg tracking-widest">NIVEL ${rData.l}</div>
+                        <div class="bg-black border-2 ${level === 4 ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : level === 3 ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative mt-4">
+                            <div class="absolute -top-4 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-4 py-1 rounded-full text-xs font-black uppercase shadow-lg tracking-widest">${tagLabel}</div>
                             <div class="flex justify-between items-center mb-2 mt-2">
-                                <h3 class="text-xl font-black text-white flex items-center gap-2"><img src="${badgeInfo.img}" class="w-8 h-8 rank-badge drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]"> ${badgeInfo.name}</h3>
+                                <h3 class="text-xl font-black text-white flex items-center gap-2">
+                                    <img src="${badgeInfo.img}" style="mix-blend-mode: screen; background-color: transparent;" class="w-8 h-8 drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]" onerror="this.src='./assets/badge_0.png'"> 
+                                    ${badgeInfo.name}
+                                </h3>
                                 <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
                             </div>
-                            <p class="text-sm text-gray-300 mb-4 font-medium">Membresía oficial ${badgeInfo.name}. Acceso a beneficios tácticos en el Búnker.</p>
+                            <p class="text-sm text-gray-300 mb-4 font-medium">${descLabel}</p>
                             <div class="grid grid-cols-2 gap-2">
                                 <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars}</button>
                                 <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">💎 ${pkg.price_ton} TON</button>
@@ -503,7 +512,7 @@ const app = {
                     `;
                 }).join('');
             }
-        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">Error cargando catálogo.</div>`; }
+        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error') || 'Error cargando catálogo.'}</div>`; }
     },
 
     async subscribeCreatorTier(tierSlug) {
@@ -767,9 +776,9 @@ const app = {
             html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             setTimeout(() => { const el = document.getElementById(msgId); if(el) { el.style.transition = 'all 0.4s ease'; el.style.opacity = '0'; el.style.height = '0px'; el.style.margin = '0px'; setTimeout(() => el.remove(), 400); } }, 1500); 
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">TÚ • <img src="${rankInfo.img}" class="w-3 h-3 rank-badge"> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">TÚ • <img src="${rankInfo.img}" style="mix-blend-mode: screen; background-color: transparent;" class="w-3 h-3" onerror="this.style.display='none'"> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         } else {
-            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <img src="${rankInfo.img}" class="w-3 h-3 rank-badge"> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <img src="${rankInfo.img}" style="mix-blend-mode: screen; background-color: transparent;" class="w-3 h-3" onerror="this.style.display='none'"> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
     },
@@ -978,12 +987,12 @@ const app = {
                                 <span class="font-bold text-amber-400 text-sm">@${safeAuthor}</span>
                             </div>
                             <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
-                                <img src="${rankInfo.img}" class="w-4 h-4 inline-block rank-badge">
+                                <img src="${rankInfo.img}" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block" onerror="this.src='./assets/badge_0.png'">
                                 <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
                                 ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
-                        ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${safeContent}</p>` : ''}
+                        ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${this.escapeHtml(post.content)}</p>` : ''}
                         ${post.is_locked ? `
                             <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
                                 <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
@@ -1002,6 +1011,47 @@ const app = {
                 `;
             }).join('');
         } catch (e) {}
+    },
+
+    async openFanTipMenu(creatorId, postId, creatorName) {
+        this.closeModals();
+        this.initUserId();
+        
+        let modal = document.getElementById('modal-fan-tip-menu');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-fan-tip-menu" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#ffb703] rounded-3xl p-6 w-11/12 max-w-lg max-h-[85vh] flex flex-col shadow-[0_0_20px_rgba(255,183,3,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ffb703]/30">
+                            <h3 class="text-xl font-black text-[#ffb703] uppercase tracking-wider"><i class="fa-solid fa-coins mr-2"></i> TIP MENU</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        </div>
+                        <p class="text-center font-bold text-white mb-4 uppercase tracking-widest text-sm">Apoya a <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
+                        <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-4"></div>
+                        
+                        <div class="mt-4 pt-4 border-t border-[#ffb703]/30 flex justify-between gap-2 shrink-0">
+                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase">Regresar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-fan-tip-menu');
+        }
+
+        document.getElementById('fan-tip-creator-name').innerText = `@${creatorName}`;
+        modal.classList.remove('hidden');
+
+        const container = document.getElementById('fan-tip-slots-container');
+        container.innerHTML = '<div class="text-center text-neutral-400 mt-4 font-bold">Desplegando menú... ⏳</div>';
+        
+        const slots = await this.loadTipMenu(creatorId);
+        container.innerHTML = slots.length === 0 ? '<div class="text-center text-neutral-500 mt-10 font-bold bg-black/50 p-4 rounded-xl">El creador aún no configura su Tip Menu.</div>' : slots.map(s => `
+            <button onclick="app.sendTipFromPost(${creatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-4 flex justify-between items-center text-white transition active:scale-95 shadow-md">
+                <span class="font-bold text-sm text-left truncate pr-2">${this.escapeHtml(s.title)}</span>
+                <span class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-xs font-black px-3 py-1.5 rounded-xl shadow-md whitespace-nowrap">${s.price_alpha} $ALPHA</span>
+            </button>
+        `).join('');
     },
 
     selectCreatorRole() { this.closeModals(); },
