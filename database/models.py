@@ -17,6 +17,9 @@ class User(Base):
     legal_name = Column(String(150), nullable=True)
     is_adult = Column(Boolean, default=False)
     
+    # 🛡️ Sistema de Sanciones
+    warnings_count = Column(Integer, default=0)          # Control de faltas en el chat (Max 5)
+
     # 🛡️ Controles de Membresía y Creadores (Suscripciones B2B)
     is_creator = Column(Boolean, default=False)
     creator_tier = Column(String(30), default="none")            # none, soldier_creator, icon_creator

@@ -5,7 +5,7 @@ const app = {
     currentCaptcha: '',
     isAdmin: false,
     userAccessLevel: 0,
-    userData: { name: 'USER', access_tier: 0, role: 'fan' },
+    userData: { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 },
     lastView: 'consent',
     tempPostMedia: null,
     registerRoleSelected: 'fan',
@@ -187,6 +187,10 @@ const app = {
                     if (data.access_level !== undefined) {
                         this.userData.access_tier = data.access_level;
                     }
+                    // 🛡️ Extraemos el conteo de advertencias
+                    if (data.warnings_count !== undefined) {
+                        this.userData.warnings = data.warnings_count;
+                    }
                     this.updateProfileUI();
                 }
             }
@@ -232,15 +236,26 @@ const app = {
 
         const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin' || localStorage.getItem('alpha_user_role') === 'admin');
 
+        // 🛡️ REGLA: Advertencias visibles en la UI
+        let warningText = "";
+        let warningClass = "text-amber-400";
+        if(this.userData.warnings > 0) {
+            warningText = ` - ⚠️ ADVERTENCIAS: ${this.userData.warnings}/5`;
+            if (this.userData.warnings >= 5) {
+                warningText = ` - 🚫 CUENTA RESTRINGIDA (5/5)`;
+                warningClass = "text-red-500";
+            }
+        }
+
         if (kycStatusEl) {
             if (kycStatus === 'verified' || isAdminUser) {
-                kycStatusEl.innerText = 'VERIFICADO (+18) ✅';
-                kycStatusEl.className = 'text-xs font-black uppercase text-green-400';
+                kycStatusEl.innerText = `VERIFICADO (+18) ✅${warningText}`;
+                kycStatusEl.className = `text-xs font-black uppercase ${this.userData.warnings >= 5 ? 'text-red-500' : 'text-green-400'}`;
                 if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else if (kycStatus === 'pending') {
-                kycStatusEl.innerText = 'EN REVISIÓN ⏳';
-                kycStatusEl.className = 'text-xs font-black uppercase text-amber-400';
+                kycStatusEl.innerText = `EN REVISIÓN ⏳${warningText}`;
+                kycStatusEl.className = `text-xs font-black uppercase ${warningClass}`;
                 if (kycDescEl) kycDescEl.innerText = 'Tus documentos están siendo auditados por el Búnker Admin.';
                 if (kycBtn) {
                     kycBtn.classList.remove('hidden');
@@ -248,8 +263,8 @@ const app = {
                     kycBtn.disabled = true;
                 }
             } else {
-                kycStatusEl.innerText = 'NO VERIFICADO ⚠️';
-                kycStatusEl.className = 'text-xs font-black uppercase text-neutral-400';
+                kycStatusEl.innerText = `NO VERIFICADO ⚠️${warningText}`;
+                kycStatusEl.className = `text-xs font-black uppercase ${this.userData.warnings >= 5 ? 'text-red-500' : 'text-neutral-400'}`;
                 if (kycDescEl) kycDescEl.innerText = 'Verifica tu documento oficial y selfie para publicar y monetizar.';
                 if (kycBtn) {
                     kycBtn.classList.remove('hidden');
@@ -1547,7 +1562,6 @@ const app = {
             bunker.classList.remove('inset-0');
             controls.classList.add('hidden');
             icon.className = 'fa-solid fa-expand';
-            // 🛡️ REGLA: Eliminado el Toast obstructivo al minimizar. Transición limpia.
         } else {
             bunker.classList.remove('pip-mode');
             bunker.classList.add('inset-0');
@@ -1560,12 +1574,14 @@ const app = {
         this.haptic('heavy');
         const badge = document.getElementById('video-badge');
         const btnGoLive = document.getElementById('btn-go-live');
+        const btnCancel = document.getElementById('btn-cancel-stream');
         
         if(badge) {
             badge.className = 'absolute top-2 left-2 z-20 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md';
             badge.innerText = 'EN VIVO';
         }
         if(btnGoLive) btnGoLive.classList.add('hidden');
+        if(btnCancel) btnCancel.classList.remove('hidden');
         
         const announceMsg = this.getTrans('stream_announce');
         const payload = JSON.stringify({ text: announceMsg, media_url: null });
@@ -1575,7 +1591,20 @@ const app = {
         }
     },
 
-    // 🛡️ REGLA: SOLO EL BOTÓN ROJO MATA LA CÁMARA
+    cancelLiveTransmission() {
+        this.haptic('medium');
+        const badge = document.getElementById('video-badge');
+        const btnGoLive = document.getElementById('btn-go-live');
+        const btnCancel = document.getElementById('btn-cancel-stream');
+        
+        if(badge) {
+            badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md';
+            badge.innerText = 'PREVISUALIZACIÓN';
+        }
+        if(btnCancel) btnCancel.classList.add('hidden');
+        if(btnGoLive) btnGoLive.classList.remove('hidden');
+    },
+
     leaveVideoBunker() {
         this.haptic('light');
         if (this.activeWebcamStream) {
