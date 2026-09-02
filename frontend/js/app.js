@@ -298,7 +298,7 @@ const app = {
                     btn.innerHTML = `<i class="fa-solid fa-star"></i> ${this.getTrans('btn_my_favorites') || 'MIS CREADORES FAVORITOS'}`;
                     btn.setAttribute('onclick', 'app.openFavoritesModal()');
                     btn.classList.replace('bg-[#ff00ff]', 'bg-[#00f3ff]'); 
-                    btn.classList.replace('text-[#ff00ff]', 'text-[#00f3ff]');
+                    btn.classList.replace('text-[#ff00ff]', 'text-[#ff00ff]');
                 });
             }
         }
@@ -410,6 +410,11 @@ const app = {
         }
     },
 
+    formatCardNumber(input) {
+        input.value = input.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim();
+        this.detectCardBrand(input.value);
+    },
+
     connectCreditCard() {
         this.haptic('medium');
         this.closeModals();
@@ -429,7 +434,7 @@ const app = {
                         <div class="space-y-3 flex-1 overflow-y-auto pr-1 mt-1">
                             <div>
                                 <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_number') || 'NÚMERO DE TARJETA'}</label>
-                                <input type="text" id="cc-number" placeholder="4532 1234 5678 8921" maxlength="19" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '\\$1 ').trim(); app.detectCardBrand(this.value);" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
+                                <input type="text" id="cc-number" placeholder="4532 1234 5678 8921" maxlength="19" oninput="app.formatCardNumber(this)" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
                             </div>
                             <div>
                                 <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_name') || 'NOMBRE DEL TITULAR'}</label>
