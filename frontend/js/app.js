@@ -14,7 +14,6 @@ const app = {
     tempKYCSelfie: null,
     tempChatMediaData: null, 
     
-    // 🛡️ Estado WebRTC y PIP
     activeWebcamStream: null, 
     isMicMuted: false,
     isCamOff: false,
@@ -46,23 +45,30 @@ const app = {
         } catch (e) {}
     },
 
-    // 🛡️ REGLA: Toasts efímeros, desaparecen en exactamente 1 segundo
+    // 🛡️ REGLA ABSOLUTA: Toasts dinámicos que no bloquean clics y mueren en 1.5s
     showToast(msg) {
-        const toast = document.getElementById('toast');
-        if (toast) { 
-            toast.innerText = msg; 
-            toast.classList.add('show'); 
-            
-            clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => {
-                toast.classList.remove('show');
-            }, 1000); 
-            
-            toast.onclick = () => {
-                toast.classList.remove('show');
-                clearTimeout(this.toastTimer);
-            };
-        }
+        let oldToast = document.getElementById('alpha-dynamic-toast');
+        if (oldToast) oldToast.remove();
+
+        const toast = document.createElement('div');
+        toast.id = 'alpha-dynamic-toast';
+        toast.className = 'fixed top-6 left-1/2 transform -translate-x-1/2 scale-95 opacity-0 bg-black/95 border-2 border-amber-500 text-amber-400 text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.6)] z-[9999] pointer-events-none flex items-center gap-2 max-w-[90%] text-center transition-all duration-300';
+        toast.innerHTML = `<i class="fa-solid fa-triangle-exclamation animate-pulse"></i> <span>${this.escapeHtml(msg)}</span>`;
+        
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.remove('scale-95', 'opacity-0');
+            toast.classList.add('scale-100', 'opacity-100');
+        }, 10);
+
+        setTimeout(() => {
+            if (document.body.contains(toast)) {
+                toast.classList.remove('scale-100', 'opacity-100');
+                toast.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => { if (document.body.contains(toast)) toast.remove(); }, 300);
+            }
+        }, 1500);
     },
 
     copyText(text) { 
@@ -802,7 +808,6 @@ const app = {
         }
     },
 
-    // 🛡️ REGLA: Forzar limpieza de cache para cuentas nuevas
     registerWithData() {
         this.haptic('medium');
         const email = document.getElementById('reg-email-input')?.value.trim();
@@ -947,7 +952,6 @@ const app = {
 
     exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
 
-    // 🛡️ REGLA: Purga total de caché al cerrar sesión
     logout() { 
         this.haptic('medium'); 
         ['alpha_logged_in', 'alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
@@ -1033,10 +1037,39 @@ const app = {
     },
     openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); },
+
+    // 🛡️ REGLA: Observer agresivo para asesinar mensajes huérfanos de sistema
+    setupSystemMessageObserver(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container || container.dataset.observed === 'true') return;
+        container.dataset.observed = 'true';
+        
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (!node.innerHTML.includes('bg-[#00f3ff]/20') && !node.innerHTML.includes('bg-neutral-800')) {
+                            setTimeout(() => {
+                                node.style.transition = 'all 0.4s ease';
+                                node.style.opacity = '0';
+                                node.style.height = '0px';
+                                node.style.margin = '0px';
+                                node.style.padding = '0px';
+                                node.style.overflow = 'hidden';
+                                setTimeout(() => node.remove(), 400);
+                            }, 1500); 
+                        }
+                    }
+                });
+            });
+        });
+        observer.observe(container, { childList: true });
+    },
     
     async openSupport() { 
         this.closeModals(); 
         document.getElementById('modal-chat')?.classList.remove('hidden'); 
+        this.setupSystemMessageObserver('chat-messages');
         await this.loadChatHistory();
         BunkerChat.initCRM(this.userId, this.backendUrl);
     },
@@ -1051,13 +1084,6 @@ const app = {
                 if (data.messages && data.messages.length > 0) {
                     data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages'));
                     this.scrollToBottom('chat-messages');
-                } else {
-                    // 🛡️ REGLA: Auto-destrucción a 1 segundo del placeholder
-                    container.innerHTML = `<div id="welcome-crm-msg" class="text-center text-neutral-500 mt-4 text-[10px] font-semibold uppercase tracking-widest transition-opacity duration-300">Soporte Búnker CRM iniciado. 🛡️</div>`;
-                    setTimeout(() => {
-                        const el = document.getElementById('welcome-crm-msg');
-                        if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
-                    }, 1000);
                 }
             }
         } catch (err) {}
@@ -1066,6 +1092,7 @@ const app = {
     async openGlobalChat() {
         this.closeModals();
         document.getElementById('modal-global-chat')?.classList.remove('hidden');
+        this.setupSystemMessageObserver('global-chat-messages');
         await this.loadGlobalChatHistory();
         BunkerChat.initGlobal(this.userId, this.backendUrl);
     },
@@ -1080,13 +1107,6 @@ const app = {
                 if (data.messages && data.messages.length > 0) {
                     data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages'));
                     this.scrollToBottom('global-chat-messages');
-                } else {
-                    // 🛡️ REGLA: Auto-destrucción a 1 segundo del placeholder
-                    container.innerHTML = `<div id="welcome-global-msg" class="text-center text-neutral-500 mt-4 text-[10px] font-semibold uppercase tracking-widest transition-opacity duration-300">Chat Global Búnker activo. 🌐</div>`;
-                    setTimeout(() => {
-                        const el = document.getElementById('welcome-global-msg');
-                        if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
-                    }, 1000);
                 }
             }
         } catch (e) {}
@@ -1226,14 +1246,17 @@ const app = {
             const msgId = `sys-msg-${msg.id || Date.now()}-${Math.random().toString(36).substr(2,9)}`;
             html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             
-            // 🛡️ REGLA: Auto-destrucción estricta de mensajes de servicio en el chat a 1 segundo
+            // Auto-Destrucción si se salta el observer
             setTimeout(() => {
                 const el = document.getElementById(msgId);
                 if(el) {
+                    el.style.transition = 'all 0.4s ease';
                     el.style.opacity = '0';
-                    setTimeout(() => el.remove(), 300);
+                    el.style.height = '0px';
+                    el.style.margin = '0px';
+                    setTimeout(() => el.remove(), 400);
                 }
-            }, 1000); 
+            }, 1500); 
 
         } else if (isMe) {
             html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
@@ -1335,7 +1358,6 @@ const app = {
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
         
         if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) {
-            this.showToast('Reconectando al servidor... ⏳');
             BunkerChat.initGlobal(this.userId, this.backendUrl);
             
             setTimeout(() => {
@@ -1343,8 +1365,6 @@ const app = {
                     BunkerChat.sendGlobal(payload);
                     if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
                     this.clearChatMedia('global');
-                } else {
-                    this.showToast('⚠️ Red inestable. Mensaje no enviado.');
                 }
             }, 1500);
             return;
@@ -1355,8 +1375,6 @@ const app = {
         if (success) {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.clearChatMedia('global');
-        } else {
-            this.showToast('⚠️ Error al enviar. Intenta novamente.');
         }
     },
 
@@ -1395,11 +1413,10 @@ const app = {
         if(btnGoLive) btnGoLive.classList.remove('hidden');
 
         if(placeholder) {
-            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i><p class="text-xs text-[#00f3ff] font-bold tracking-widest text-center mt-2">SOLICITANDO PERMISOS<br>EN NAVEGADOR...</p>`;
+            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`;
             placeholder.classList.remove('hidden');
         }
 
-        this.showToast('Acepta los permisos de cámara y micrófono... 📡');
         await this.requestAndLoadMedia();
     },
 
@@ -1429,14 +1446,12 @@ const app = {
                 placeholder.classList.add('hidden');
             }
 
-            this.showToast('✅ Cámara local activada.');
             await this.populateMediaDevices(stream);
 
         } catch (err) {
-            console.error(err);
             const placeholder = document.getElementById('cam-loading-placeholder');
             if(placeholder) {
-                placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i><p class="text-xs text-red-500 font-bold tracking-widest text-center mt-2">PERMISO DENEGADO<br>Habilita la cámara en tu navegador</p>`;
+                placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i>`;
             }
         }
     },
@@ -1518,8 +1533,6 @@ const app = {
             this.isMicMuted = !this.isMicMuted;
             this.activeWebcamStream.getAudioTracks()[0].enabled = !this.isMicMuted;
             this.updateMediaTogglesUI();
-        } else {
-            this.showToast('⚠️ No hay micrófono conectado.');
         }
     },
 
@@ -1594,9 +1607,7 @@ const app = {
             this.isCamOff = false;
             this.updateMediaTogglesUI();
             this.closeAVSettings();
-        } catch(e) {
-            this.showToast('⚠️ Error al aplicar dispositivos.');
-        }
+        } catch(e) { }
     },
 
     toggleMinimizeVideo() {
@@ -1719,7 +1730,6 @@ const app = {
         const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
         if (isAdminUser) {
             this.isAdmin = !this.isAdmin; 
-            this.showToast(this.isAdmin ? 'Admin Mode ON 👑' : 'Admin Mode OFF');
         }
     },
     
@@ -1736,7 +1746,6 @@ const app = {
         const tierRequired = parseInt(document.getElementById('admin-level')?.value || '0');
 
         if (!content && !this.tempPostMedia) {
-            this.showToast('⚠️ Ingresa una descripción o imagen.');
             return;
         }
 
@@ -1757,15 +1766,12 @@ const app = {
             });
             const data = await res.json();
             if (res.ok && data.status === "success") {
-                this.showToast('¡Publicación guardada en el Búnker! 🛡️');
                 this.switchView('feed');
                 await this.renderFeed();
             } else {
                 throw new Error(data.detail || 'Error al guardar publicación');
             }
-        } catch (err) {
-            this.showToast('⚠️ Error al publicar contenido');
-        }
+        } catch (err) { }
     },
 
     async deletePost(postId) {
@@ -1788,7 +1794,6 @@ const app = {
                 body: JSON.stringify({ user_id: this.userId || 0, post_id: postId })
             });
             if (res.ok) {
-                this.showToast('¡Contenido desbloqueado! 🔓');
                 await this.refreshUserData();
                 await this.renderFeed();
             }
@@ -1892,15 +1897,14 @@ const app = {
     async sendTipFromPost(creatorId, amount, postId) {
         try {
             await sendAlphaTip(this.userId, creatorId, amount, postId);
-            this.showToast(`¡Propina de ${amount} $ALPHA enviada! 🚀`);
             this.triggerFireworks(); 
             this.closeModals();
             await this.refreshUserData();
-        } catch (e) { this.showToast('⚠️ Saldo insuficiente'); }
+        } catch (e) { }
     },
 
-    selectCreatorRole() { this.showToast('Rol de Creador seleccionado'); this.closeModals(); },
-    selectFanRole() { this.showToast('Rol de Fan seleccionado'); this.closeModals(); }
+    selectCreatorRole() { this.closeModals(); },
+    selectFanRole() { this.closeModals(); }
 };
 
 window.app = app;

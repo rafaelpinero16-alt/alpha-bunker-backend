@@ -111,15 +111,25 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
 
     if not is_admin and user.role == "creator" and user.kyc_status != "verified":
         await websocket.accept()
-        await websocket.send_json({"is_error": True, "message": "🚫 ACCESO DENEGADO: Los creadores requieren KYC (+18) aprobado para ingresar al Chat Global."})
+        await websocket.send_json({"is_error": True, "message": "🚫 ACCESO DENEGADO: Creadores requieren KYC (+18) aprobado para el Chat Global."})
         await websocket.close(code=1008)
         return
 
     await global_manager.connect(websocket)
 
+    # 🛡️ Regex para Enlaces
     link_pattern = re.compile(
         r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b'
     )
+
+    # 🛡️ Matriz de Palabras Prohibidas (Scam, Spam, Competencia)
+    blacklist_words = [
+        "whatsapp", "wa.me", "telegram", "binance", "inversión", "inversiones", 
+        "crypto", "cripto", "criptomonedas", "ganancias", "rentabilidad", 
+        "ponzi", "scam", "dinero gratis", "free money", "onlyfans", 
+        "patreon", "promo", "promoción", "descuento", "escríbeme", "dm me", "inbox"
+    ]
+    spam_pattern = re.compile(r'(?i)\b(?:' + '|'.join(blacklist_words) + r')\b')
 
     try:
         while True:
@@ -138,7 +148,9 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                 if current_warnings is None: current_warnings = 0
 
                 if not is_admin:
-                    if link_pattern.search(text_val):
+                    
+                    # 1. Filtro Estricto: Links O Palabras de la Blacklist
+                    if link_pattern.search(text_val) or spam_pattern.search(text_val):
                         user.warnings_count = current_warnings + 1
                         penalty_amount = 5 
                         
@@ -149,7 +161,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             db.add(tx)
                         db.commit()
 
-                        warning_msg = f"⚠️ @{user.name}, los enlaces externos están terminantemente prohibidos. Llevas {user.warnings_count} de 4 advertencias. A la 5ta falta serás BANEADO. Penalización aplicada: -{penalty_amount} $ALPHA."
+                        warning_msg = f"⚠️ @{user.name}, política de tolerancia cero (Scam/Links). Llevas {user.warnings_count} de 4 advertencias. A la 5ta serás BANEADO. Multa: -{penalty_amount} $ALPHA."
                         
                         sys_msg = ChatMessage(
                             user_id=8269470905, 
@@ -172,34 +184,34 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         await global_manager.broadcast(sys_payload)
                         
                         if user.warnings_count >= 5:
-                            await websocket.send_json({"is_error": True, "message": "🚫 Límite de advertencias superado. Envío restringido."})
+                            await websocket.send_json({"is_error": True, "message": "🚫 Límite de advertencias superado."})
                             await websocket.close(code=1008)
                         continue
                     
                     if current_warnings >= 5:
-                        await websocket.send_json({"is_error": True, "message": "🚫 Cuenta restringida por exceso de spam (5/5)."})
+                        await websocket.send_json({"is_error": True, "message": "🚫 Cuenta restringida por scam (5/5)."})
                         continue
 
                     if "@" in text_val:
                         if user.role != "creator":
-                            await websocket.send_json({"is_error": True, "message": "⚠️ Etiquetar usuarios es exclusivo para Creadores."})
+                            await websocket.send_json({"is_error": True, "message": "Etiquetar es exclusivo para Creadores."})
                             continue
                         if user.role == "creator" and user.access_level < 1:
-                            await websocket.send_json({"is_error": True, "message": "⚠️ Necesitas membresía Soldier Creator o superior para etiquetar."})
+                            await websocket.send_json({"is_error": True, "message": "Requieres Soldier Creator para etiquetar."})
                             continue
 
                     if media_val:
                         if media_val.startswith("data:video") and user.access_level < 3:
-                            await websocket.send_json({"is_error": True, "message": "⚠️ Requiere rango LEGEND para enviar videos."})
+                            await websocket.send_json({"is_error": True, "message": "Requiere LEGEND para enviar videos."})
                             continue
                         if media_val.startswith("data:image") and user.access_level < 2:
-                            await websocket.send_json({"is_error": True, "message": "⚠️ Requiere rango VETERAN para enviar fotos."})
+                            await websocket.send_json({"is_error": True, "message": "Requiere VETERAN para enviar fotos."})
                             continue
 
                     if user.role == "fan" and user.access_level == 0:
                         wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
                         if not wallet or wallet.alpha_balance < 1:
-                            await websocket.send_json({"is_error": True, "message": "⚠️ Saldo insuficiente. Espías pagan 1 $ALPHA por mensaje."})
+                            await websocket.send_json({"is_error": True, "message": "Saldo insuficiente (Costo: 1 $ALPHA)."})
                             continue 
                         
                         wallet.alpha_balance -= 1
