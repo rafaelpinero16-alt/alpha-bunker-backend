@@ -100,6 +100,22 @@ const app = {
         animate();
     },
 
+    // 🛡️ REGLA: Motor de Badges Nativos
+    getRankBadge(level) {
+        const badges = {
+            0: './assets/badges/badge_0.png',
+            1: './assets/badges/badge_1.png',
+            2: './assets/badges/badge_2.png',
+            3: './assets/badges/badge_3.png',
+            4: './assets/badges/badge_4.png'
+        };
+        const names = ['SPY', 'SOLDIER', 'VETERAN', 'LEGEND', 'ICON LEGEND'];
+        return {
+            img: badges[level] || badges[0],
+            name: names[level] || names[0]
+        };
+    },
+
     async refreshUserData() {
         if (!this.userId) this.initUserId();
         if (!this.userId) return;
@@ -148,10 +164,11 @@ const app = {
         }
 
         const rankDisplay = document.getElementById('prof-rank'), rankFeed = document.getElementById('rank-feed');
-        const ranks = ['SPY 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
-        const currentRank = ranks[this.userData?.access_tier || 0] || ranks[0];
-        if (rankDisplay) rankDisplay.innerText = currentRank;
-        if (rankFeed) rankFeed.innerText = currentRank;
+        const rankInfo = this.getRankBadge(this.userData?.access_tier || 0);
+        
+        const rankHTML = `<img src="${rankInfo.img}" class="w-6 h-6 inline-block align-middle mr-1 drop-shadow-[0_0_8px_rgba(0,243,255,0.6)]"> <span class="align-middle">${rankInfo.name}</span>`;
+        if (rankDisplay) rankDisplay.innerHTML = rankHTML;
+        if (rankFeed) rankFeed.innerHTML = `<img src="${rankInfo.img}" class="w-4 h-4 inline-block align-middle mr-1"> <span class="align-middle text-xs">${rankInfo.name}</span>`;
 
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const kycStatusEl = document.getElementById('prof-kyc-status'), kycDescEl = document.getElementById('prof-kyc-desc'), kycBtn = document.getElementById('btn-verify-kyc');
@@ -162,7 +179,8 @@ const app = {
 
         if (kycStatusEl) {
             if (kycStatus === 'verified' || isAdminUser) {
-                kycStatusEl.innerText = `VERIFICADO (+18) ✅${warningText}`; kycStatusEl.className = `text-xs font-black uppercase text-green-400`;
+                kycStatusEl.innerHTML = `<img src="./assets/badges/badge_verified.png" class="w-4 h-4 inline-block align-middle mr-1"> <span class="align-middle">VERIFICADO (+18) ${warningText}</span>`; 
+                kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
                 if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else {
@@ -353,14 +371,16 @@ const app = {
                 const isLiked = likedPosts.includes(post.id);
                 const isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
                 const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
+                const rankInfo = this.getRankBadge(post.levelRequired);
                 
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-amber-400 text-sm">@${this.escapeHtml(post.author || 'mastertom')}</span>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-neutral-500">Tier: Niv.${post.levelRequired}</span>
-                                ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
+                            <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
+                                <img src="${rankInfo.img}" class="w-4 h-4 inline-block">
+                                <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
+                                ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
                         ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${this.escapeHtml(post.content)}</p>` : ''}
@@ -728,8 +748,7 @@ const app = {
     appendChatMessage(msg, containerId) {
         const container = document.getElementById(containerId); if (!container) return;
         const isMe = msg.user_id == this.userId;
-        const ranks = ['SPY 🕵️', 'SOLDIER 🎖️', 'VETERAN ⚔️', 'LEGEND 👑', 'ICON LEGEND 💎'];
-        const rankName = ranks[msg.access_level] || ranks[0];
+        const rankInfo = this.getRankBadge(msg.access_level);
         let contentObj = { text: msg.content, media_url: null };
         try { const parsed = JSON.parse(msg.content); if(parsed.text !== undefined) contentObj = parsed; } catch(e) {}
         let safeText = this.escapeHtml(contentObj.text || ''), safeMedia = '';
@@ -746,9 +765,9 @@ const app = {
             html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             setTimeout(() => { const el = document.getElementById(msgId); if(el) { el.style.transition = 'all 0.4s ease'; el.style.opacity = '0'; el.style.height = '0px'; el.style.margin = '0px'; setTimeout(() => el.remove(), 400); } }, 1500); 
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">TÚ • <img src="${rankInfo.img}" class="w-3 h-3"> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         } else {
-            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • ${rankName}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <img src="${rankInfo.img}" class="w-3 h-3"> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
     },
@@ -939,6 +958,7 @@ const app = {
                 const isLiked = likedPosts.includes(post.id), isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'), isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
                 const safeAuthor = this.escapeHtml(post.author || 'mastertom'), safeContent = this.escapeHtml(post.content), safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
                 const showTipBtn = (post.author_role === 'creator' || post.author_role === 'admin');
+                const rankInfo = this.getRankBadge(post.levelRequired);
 
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
@@ -949,9 +969,10 @@ const app = {
                                 </div>
                                 <span class="font-bold text-amber-400 text-sm">@${safeAuthor}</span>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-neutral-500">Tier: Niv.${post.levelRequired}</span>
-                                ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
+                            <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
+                                <img src="${rankInfo.img}" class="w-4 h-4 inline-block">
+                                <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
+                                ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
                         ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${safeContent}</p>` : ''}
@@ -1034,16 +1055,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof app === 'undefined') return;
     app.checkSession(); app.generateCaptcha();
     
-    // 🛡️ REGLA: Sensor de Privacidad y Anti-Screen Record (Telón Negro)
     const applyPrivacyBlackout = () => document.body.classList.add('privacy-blur');
     const removePrivacyBlackout = () => document.body.classList.remove('privacy-blur');
 
-    document.addEventListener('visibilitychange', () => {
-        if (document.hidden) applyPrivacyBlackout();
-        else removePrivacyBlackout();
-    });
-
-    // Detectar cuando el SO superpone menús (como herramientas de captura o notificaciones)
+    document.addEventListener('visibilitychange', () => { if (document.hidden) applyPrivacyBlackout(); else removePrivacyBlackout(); });
     window.addEventListener('blur', applyPrivacyBlackout);
     window.addEventListener('focus', removePrivacyBlackout);
 
