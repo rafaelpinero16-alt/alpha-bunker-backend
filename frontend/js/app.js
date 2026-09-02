@@ -100,20 +100,16 @@ const app = {
         animate();
     },
 
-    // 🛡️ REGLA: Motor de Badges Nativos
     getRankBadge(level) {
         const badges = {
-            0: './assets/badges/badge_0.png',
-            1: './assets/badges/badge_1.png',
-            2: './assets/badges/badge_2.png',
-            3: './assets/badges/badge_3.png',
-            4: './assets/badges/badge_4.png'
+            0: './assets/badge_0.png',
+            1: './assets/badge_1.png',
+            2: './assets/badge_2.png',
+            3: './assets/badge_3.png',
+            4: './assets/badge_4.png'
         };
         const names = ['SPY', 'SOLDIER', 'VETERAN', 'LEGEND', 'ICON LEGEND'];
-        return {
-            img: badges[level] || badges[0],
-            name: names[level] || names[0]
-        };
+        return { img: badges[level] || badges[0], name: names[level] || names[0] };
     },
 
     async refreshUserData() {
@@ -179,7 +175,7 @@ const app = {
 
         if (kycStatusEl) {
             if (kycStatus === 'verified' || isAdminUser) {
-                kycStatusEl.innerHTML = `<img src="./assets/badges/badge_verified.png" class="w-4 h-4 inline-block align-middle mr-1"> <span class="align-middle">VERIFICADO (+18) ${warningText}</span>`; 
+                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" class="w-4 h-4 inline-block align-middle mr-1"> <span class="align-middle">VERIFICADO (+18) ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
                 if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
                 if (kycBtn) kycBtn.classList.add('hidden');
@@ -475,7 +471,7 @@ const app = {
         modal.classList.remove('hidden');
         const container = document.getElementById('catalog-packages-list');
         if (!container) return;
-        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('cat_loading')}</div>`;
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">Cargando catálogo... ⏳</div>`;
         try {
             const res = await fetch(`${this.backendUrl}/payments/packages`);
             if (res.ok) {
@@ -483,25 +479,1206 @@ const app = {
                 let packages = data.packages || [];
                 const order = ['spy', 'soldier', 'veteran', 'legend', 'icon-legend'];
                 packages.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug));
+                
+                const rankMapping = { 'spy': {n: 'SPY', l: 0}, 'soldier': {n: 'SOLDIER', l: 1}, 'veteran': {n: 'VETERAN', l: 2}, 'legend': {n: 'LEGEND', l: 3}, 'icon-legend': {n: 'ICON LEGEND', l: 4} };
+
                 container.innerHTML = packages.map(pkg => {
-                    const translatedName = this.getTrans(`pkg_${pkg.slug}_name`) || pkg.name;
-                    const translatedDesc = this.getTrans(`pkg_${pkg.slug}_desc`) || pkg.description;
+                    const rData = rankMapping[pkg.slug] || {n: 'RANGO', l: 0};
+                    const badgeInfo = this.getRankBadge(rData.l);
                     return `
                         <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative">
-                            <div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-3 py-0.5 rounded-full text-[10px] font-black uppercase shadow">${this.escapeHtml(pkg.badge || 'TÁCTICO')}</div>
+                            <div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-3 py-0.5 rounded-full text-[10px] font-black uppercase shadow">RANGO OFICIAL</div>
                             <div class="flex justify-between items-center mb-2 mt-1">
-                                <h3 class="text-lg font-black text-white"><i class="fa-solid fa-shield-halved text-[#00f3ff] mr-1.5"></i> ${this.escapeHtml(translatedName)}</h3>
+                                <h3 class="text-lg font-black text-white flex items-center gap-2"><img src="${badgeInfo.img}" class="w-6 h-6 drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]"> ${rData.n}</h3>
                                 <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
                             </div>
-                            <p class="text-xs text-gray-300 mb-4 font-medium">${this.escapeHtml(translatedDesc)}</p>
-                            <div class="grid grid-cols-2 gap-2">
+                            <p class="text-xs text-gray-300 mb-4 font-medium">Membresía oficial ${rData.n}. Acceso a beneficios tácticos en el Búnker.</p>
+                            <div class="grid grid-cols-1 gap-2">
                                 <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars} Stars</button>
                             </div>
                         </div>
                     `;
                 }).join('');
             }
-        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`; }
+        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">Error cargando catálogo.</div>`; }
+    },
+
+    async subscribeCreatorTier(tierSlug) {
+        this.haptic('medium'); this.initUserId();
+        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin' || localStorage.getItem('alpha_user_role') === 'admin');
+        if (kycStatus !== 'verified' && !isAdminUser) { this.showToast('⚠️ Debes verificar tu identidad (KYC +18) para activar tu suscripción de creador.'); this.openKYCModal(); return; }
+        const planName = tierSlug === 'soldier_creator' ? 'Soldier Creator ($4.99/mes)' : 'Icon Creator ($7.99/mes)';
+        if (!confirm(`¿Activar tu membresía B2B: ${planName}?\nDisfrutarás tu primer mes totalmente gratis.`)) return;
+        this.showToast('Activando suscripción de creador... ⚡');
+        try {
+            const res = await fetch(`${this.backendUrl}/creators/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, tier: tierSlug }) });
+            if (res.ok) { this.haptic('heavy'); this.showToast('¡Membresía B2B activada con éxito! 1er mes gratis 🎁'); this.triggerFireworks(); this.updateProfileUI(); }
+        } catch (err) {}
+    },
+
+    triggerAvatarInput() { this.haptic('light'); const input = document.getElementById('avatar-file-input'); if (input) input.click(); },
+    async handleAvatarChange(event) {
+        const file = event.target.files[0]; if (!file) return;
+        this.haptic('light'); this.showToast('Optimizando foto... 📸');
+        const avatarUrl = await this.compressImage(file, 400, 0.8);
+        localStorage.setItem('alpha_user_avatar', avatarUrl);
+        const avatarImg = document.getElementById('prof-avatar-img'), avatarFeed = document.getElementById('avatar-feed');
+        if (avatarImg) { avatarImg.src = avatarUrl; avatarImg.classList.remove('hidden'); }
+        if (avatarFeed) avatarFeed.src = avatarUrl;
+        this.showToast('¡Foto de perfil actualizada! 📸');
+    },
+
+    saveProfile() {
+        this.haptic('medium');
+        const aliasInput = document.getElementById('prof-alias'), bioInput = document.getElementById('prof-bio');
+        const newName = aliasInput ? aliasInput.value.trim() : '', newBio = bioInput ? bioInput.value.trim() : '';
+        if (newName) { this.userData.name = newName; localStorage.setItem('alpha_user_name', newName); }
+        if (newBio) { localStorage.setItem('alpha_user_bio', newBio); }
+        this.showToast('¡Perfil guardado correctamente! 🛡️'); this.updateProfileUI();
+    },
+
+    openKYCModal() { this.closeModals(); document.getElementById('modal-kyc')?.classList.remove('hidden'); },
+    async handleKYCDocPreview(event) {
+        const file = event.target.files[0]; if (!file) return;
+        this.tempKYCDoc = await this.compressImage(file, 1200, 0.75);
+        const label = document.getElementById('kyc-doc-label'); if (label) label.innerText = `✅ Documento listo`;
+    },
+    async handleKYCSelfiePreview(event) {
+        const file = event.target.files[0]; if (!file) return;
+        this.tempKYCSelfie = await this.compressImage(file, 1024, 0.75);
+        const label = document.getElementById('kyc-selfie-label'); if (label) label.innerText = `✅ Selfie lista`;
+    },
+
+    async submitKYC() {
+        this.haptic('medium');
+        const legalName = document.getElementById('kyc-legal-name')?.value.trim();
+        if (!legalName || !this.tempKYCDoc || !this.tempKYCSelfie) { this.showToast('⚠️ Completa tu nombre legal, documento y selfie.'); return; }
+        this.initUserId(); this.showToast('Enviando solicitud al Búnker Admin... 🛡️');
+        try {
+            const res = await fetch(`${this.backendUrl}/kyc/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, legal_name: legalName, document_base64: this.tempKYCDoc, selfie_base64: this.tempKYCSelfie }) });
+            if (res.ok) { localStorage.setItem('alpha_kyc_status', 'pending'); this.showToast('¡Solicitud enviada con éxito! 🚀'); this.closeModals(); this.updateProfileUI(); }
+        } catch (err) {}
+    },
+
+    async initTonConnect() {
+        if (!this.tonConnectUI && window.TON_CONNECT_UI) {
+            try {
+                this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ manifestUrl: window.location.origin + '/tonconnect-manifest.json' });
+                this.tonConnectUI.onStatusChange(async (wallet) => {
+                    const btnHdr = document.getElementById('btn-wallet-hdr');
+                    if (wallet?.account) {
+                        const shortAddress = wallet.account.address.slice(0, 4) + '...' + wallet.account.address.slice(-4);
+                        if (btnHdr) btnHdr.innerText = shortAddress;
+                        await fetch(`${this.backendUrl}/wallet/connect-ton`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, ton_address: wallet.account.address }) });
+                        await this.refreshUserData();
+                    } else { if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; }
+                });
+            } catch (err) {}
+        }
+    },
+
+    async connectWallet() {
+        try {
+            this.haptic('medium'); this.initUserId(); await this.initTonConnect();
+            if (!this.tonConnectUI) return;
+            if (this.tonConnectUI.connected) {
+                if (confirm('¿Desconectar billetera?')) { await this.tonConnectUI.disconnect(); const btnHdr = document.getElementById('btn-wallet-hdr'); if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; }
+            } else { await this.tonConnectUI.openModal(); }
+        } catch (err) {}
+    },
+
+    async rechargeAlphaCoins(amountTon, alphaAmount) {
+        try {
+            this.haptic('heavy'); await this.initTonConnect();
+            if (!this.tonConnectUI || !this.tonConnectUI.connected || !this.tonConnectUI.account) { this.showToast('⚠️ Conecta tu billetera TON.'); return; }
+            const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: "UQDWI2auHgQ5a9KnWn9_by-RSswIaKfz38b_Yib_cIy-Jklp", amount: Math.floor(amountTon * 1000000000).toString() }] };
+            const result = await this.tonConnectUI.sendTransaction(transaction);
+            const res = await fetch(`${this.backendUrl}/wallet/recharge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, amount_ton: amountTon, alpha_added: alphaAmount, boc: result?.boc || "DIRECT_TX" }) });
+            if (res.ok) { await this.refreshUserData(); this.triggerFireworks(); }
+        } catch (err) {}
+    },
+
+    setRegisterRole(role) {
+        this.haptic('light'); this.registerRoleSelected = role;
+        const btnFan = document.getElementById('reg-role-fan'), btnCreator = document.getElementById('reg-role-creator');
+        if (role === 'fan') {
+            btnFan?.classList.replace('border-neutral-700', 'border-[#ff00ff]'); btnFan?.classList.replace('bg-black', 'bg-[#ff00ff]/20'); btnFan?.classList.replace('text-neutral-400', 'text-white');
+            btnCreator?.classList.replace('border-[#00f3ff]', 'border-neutral-700'); btnCreator?.classList.replace('bg-[#00f3ff]/20', 'bg-black'); btnCreator?.classList.replace('text-white', 'text-neutral-400');
+        } else {
+            btnCreator?.classList.replace('border-neutral-700', 'border-[#00f3ff]'); btnCreator?.classList.replace('bg-black', 'bg-[#00f3ff]/20'); btnCreator?.classList.replace('text-white', 'text-neutral-400');
+            btnFan?.classList.replace('border-[#ff00ff]', 'border-neutral-700'); btnFan?.classList.replace('bg-[#ff00ff]/20', 'bg-black'); btnFan?.classList.replace('text-white', 'text-neutral-400');
+        }
+    },
+
+    registerWithData() {
+        this.haptic('medium');
+        const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
+        if (!phone && !email) { this.showToast('⚠️ Ingresa al menos un número o correo.'); return; }
+        ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.initUserId();
+        const isCreator = this.registerRoleSelected === 'creator';
+        this.userData.role = this.registerRoleSelected; this.userData.name = phone || email.split('@')[0] || (isCreator ? "mastertom" : "VIP Fan");
+        localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_user_name', this.userData.name); localStorage.setItem('alpha_user_role', this.registerRoleSelected);
+        this.switchView('feed'); this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
+    },
+
+    async loginWithPhone() {
+        this.haptic('medium'); const phone = document.getElementById('phone-input')?.value.trim();
+        if (!phone) { this.showToast('⚠️ Ingresa tu número de teléfono.'); return; }
+        ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.initUserId();
+        localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
+        this.switchView('feed'); await this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
+    },
+
+    async loginWithTelegram() { 
+        this.haptic('medium'); this.initUserId(); localStorage.setItem('alpha_logged_in', 'true'); 
+        try { await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || "Agente Búnker", bio: "Operativo autenticado vía Telegram WebApp" }) }); } catch (e) {}
+        this.switchView('feed'); this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); this.refreshUserData(); this.renderFeed();
+    },
+
+    async checkSession() {
+        try {
+            this.initUserId(); this.initTonConnect();
+            const savedLang = localStorage.getItem('alpha_lang') || 'es'; this.currentLang = savedLang;
+            const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = savedLang.toUpperCase();
+            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
+            const activeLogin = localStorage.getItem('alpha_logged_in'), hasConsent = localStorage.getItem('alpha_consent'), tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+            if (tgUser && tgUser.id) { localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_consent', 'true'); if (!localStorage.getItem('alpha_user_name')) { localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User'); } }
+            if (activeLogin === 'true' || (tgUser && tgUser.id)) { 
+                this.switchView('feed'); 
+                try { await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || "Agente Búnker", bio: "Sincronizado al iniciar app" }) }); } catch(e) {}
+                this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
+            } else if (hasConsent === 'true') { this.switchView('login'); } else { this.switchView('consent'); }
+        } catch (e) {}
+    },
+
+    exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
+
+    logout() { 
+        this.haptic('medium'); 
+        ['alpha_logged_in', 'alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.userId = null; this.switchView('consent'); 
+    },
+
+    switchView(viewName) {
+        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
+        const targetView = document.getElementById(`view-${viewName}`);
+        if (targetView) { targetView.classList.remove('hidden'); window.scrollTo(0, 0); if (viewName !== 'lang') this.lastView = viewName; }
+    },
+
+    goHome() { this.haptic('light'); this.closeModals(); this.switchView('feed'); this.renderFeed(); },
+    acceptConsent() { this.haptic('medium'); localStorage.setItem('alpha_consent', 'true'); this.switchView('captcha'); this.generateCaptcha(); },
+
+    generateCaptcha() {
+        this.haptic('light'); const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
+        for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        this.currentCaptcha = code; const display = document.getElementById('captcha-display'); if (display) display.innerText = code;
+    },
+
+    verifyCaptcha() {
+        this.haptic('medium'); const input = document.getElementById('captcha-input'); const userValue = input ? input.value.trim().toUpperCase() : '';
+        if (userValue === this.currentCaptcha && userValue !== '') { this.switchView('login'); } else { this.showToast('⚠️ Código incorrecto.'); this.generateCaptcha(); }
+    },
+
+    closeModals() {
+        this.haptic('light');
+        if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
+        if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
+        ['modal-profile', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
+            document.getElementById(m)?.classList.add('hidden');
+        });
+    },
+
+    openProfile() { this.closeModals(); document.getElementById('modal-profile')?.classList.remove('hidden'); this.syncKYCStatus(); this.updateProfileUI(); this.refreshUserData(); },
+    openMenuModal() { this.openCatalogPackages(); },
+    openCommunitiesModal() { this.closeModals(); },
+
+    setupSystemMessageObserver(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container || container.dataset.observed === 'true') return;
+        container.dataset.observed = 'true';
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (!node.innerHTML.includes('bg-[#00f3ff]/20') && !node.innerHTML.includes('bg-neutral-800')) {
+                            setTimeout(() => { node.style.transition = 'all 0.4s ease'; node.style.opacity = '0'; node.style.height = '0px'; node.style.margin = '0px'; node.style.padding = '0px'; node.style.overflow = 'hidden'; setTimeout(() => node.remove(), 400); }, 1500); 
+                        }
+                    }
+                });
+            });
+        });
+        observer.observe(container, { childList: true });
+    },
+    
+    async openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('chat-messages'); await this.loadChatHistory(); BunkerChat.initCRM(this.userId, this.backendUrl); },
+    async loadChatHistory() { const container = document.getElementById('chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); this.scrollToBottom('chat-messages'); } } } catch (err) {} },
+    
+    async openGlobalChat() { this.closeModals(); document.getElementById('modal-global-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('global-chat-messages'); await this.loadGlobalChatHistory(); BunkerChat.initGlobal(this.userId, this.backendUrl); },
+    async loadGlobalChatHistory() { const container = document.getElementById('global-chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); this.scrollToBottom('global-chat-messages'); } } } catch (e) {} },
+
+    async handleChatMediaPreview(event, type) {
+        const file = event.target.files[0]; if (!file) return;
+        this.initUserId();
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'), isCreator = this.userData?.role === 'creator', userTier = this.userData?.access_tier || 0, isVideo = file.type.startsWith('video/');
+        if (type === 'global' && !isAdminUser && !isCreator) {
+            if (userTier < 2) { this.showToast('⚠️ Requiere VETERAN para enviar fotos.'); return; }
+            if (isVideo && userTier < 3) { this.showToast('⚠️ Requiere LEGEND para videos cortos.'); return; }
+        }
+        this.haptic('light'); const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input'), previewContainer = document.getElementById(`${type}-chat-preview-container`), previewImg = document.getElementById(`${type}-chat-preview-img`), previewVideo = document.getElementById(`${type}-chat-preview-video`), previewName = document.getElementById(`${type}-chat-preview-name`);
+        if (isVideo) {
+            if (file.size > 5 * 1024 * 1024) { this.showToast('⚠️ Máx 5MB por video.'); this.clearChatMedia(type); return; }
+            const reader = new FileReader(); reader.onload = (e) => { this.tempChatMediaData = e.target.result; if (previewContainer) { previewContainer.classList.remove('hidden'); previewImg.classList.add('hidden'); previewVideo.src = e.target.result; previewVideo.classList.remove('hidden'); previewName.innerText = `Video: ${file.name.substring(0,12)}...`; } if (inputEl) inputEl.focus(); this.showToast('✅ Video adjunto.'); }; reader.readAsDataURL(file);
+        } else {
+            this.tempChatMediaData = await this.compressImage(file, 800, 0.7); 
+            if (previewContainer) { previewContainer.classList.remove('hidden'); previewVideo.classList.add('hidden'); previewVideo.src = ""; previewImg.src = this.tempChatMediaData; previewImg.classList.remove('hidden'); previewName.innerText = `Foto: ${file.name.substring(0,12)}...`; }
+            if (inputEl) inputEl.focus(); this.showToast('✅ Foto adjunta.');
+        }
+    },
+
+    clearChatMedia(type) {
+        this.haptic('light'); this.tempChatMediaData = null;
+        const uploadInput = document.getElementById(`${type}-media-upload`), previewContainer = document.getElementById(`${type}-chat-preview-container`), previewImg = document.getElementById(`${type}-chat-preview-img`), previewVideo = document.getElementById(`${type}-chat-preview-video`);
+        if (uploadInput) uploadInput.value = ''; if (previewContainer) previewContainer.classList.add('hidden'); if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); } if (previewVideo) { previewVideo.src = ''; previewVideo.classList.add('hidden'); }
+    },
+
+    appendChatMessage(msg, containerId) {
+        const container = document.getElementById(containerId); if (!container) return;
+        const isMe = msg.user_id == this.userId;
+        const rankInfo = this.getRankBadge(msg.access_level);
+        let contentObj = { text: msg.content, media_url: null };
+        try { const parsed = JSON.parse(msg.content); if(parsed.text !== undefined) contentObj = parsed; } catch(e) {}
+        let safeText = this.escapeHtml(contentObj.text || ''), safeMedia = '';
+        if (contentObj.media_url) {
+            const encodedUrl = encodeURI(contentObj.media_url);
+            if (contentObj.media_url.startsWith('data:video')) { safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" controlsList="nodownload noremoteplayback" disablePictureInPicture></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl"><i class="fa-solid fa-expand text-white text-xl drop-shadow-[0_0_5px_black]"></i></div></div>`; } 
+            else { safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" /><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl"><i class="fa-solid fa-magnifying-glass-plus text-white text-xl drop-shadow-[0_0_5px_black]"></i></div></div>`; }
+        }
+        const safeAuthorName = this.escapeHtml(msg.author_name);
+        let html = '';
+        if (msg.is_system) {
+            try { const sysData = JSON.parse(contentObj.text); if (sysData.code === 'SYS_WARN_SPAM') { let template = this.getTrans('sys_warn_spam'); safeText = template.replace('{user}', this.escapeHtml(sysData.user)).replace('{warn}', sysData.warnings).replace('{penalty}', sysData.penalty); } } catch(e) {}
+            const msgId = `sys-msg-${msg.id || Date.now()}-${Math.random().toString(36).substr(2,9)}`;
+            html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
+            setTimeout(() => { const el = document.getElementById(msgId); if(el) { el.style.transition = 'all 0.4s ease'; el.style.opacity = '0'; el.style.height = '0px'; el.style.margin = '0px'; setTimeout(() => el.remove(), 400); } }, 1500); 
+        } else if (isMe) {
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">TÚ • <img src="${rankInfo.img}" class="w-3 h-3"> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+        } else {
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <img src="${rankInfo.img}" class="w-3 h-3"> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+        }
+        container.insertAdjacentHTML('beforeend', html);
+    },
+
+    openLightbox(mediaUrl, type) {
+        this.haptic('light'); const modal = document.getElementById('media-lightbox-modal'), imgEl = document.getElementById('lightbox-img'), videoEl = document.getElementById('lightbox-video');
+        if (!modal) return; modal.classList.remove('hidden');
+        if (type === 'image') { videoEl.classList.add('hidden'); videoEl.pause(); imgEl.src = mediaUrl; imgEl.classList.remove('hidden'); } else { imgEl.classList.add('hidden'); videoEl.src = mediaUrl; videoEl.classList.remove('hidden'); videoEl.play(); }
+    },
+    closeLightbox() { this.haptic('light'); const modal = document.getElementById('media-lightbox-modal'), videoEl = document.getElementById('lightbox-video'); if (videoEl) videoEl.pause(); if (modal) modal.classList.add('hidden'); },
+    scrollToBottom(containerId) { const container = document.getElementById(containerId); if (container) container.scrollTop = container.scrollHeight; },
+
+    sendChatMessage() { 
+        this.haptic('light'); const input = document.getElementById('chat-input'); const text = input ? input.value.trim() : '';
+        if (!text && !this.tempChatMediaData) return;
+        const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
+        if (BunkerChat.sendCRM(payload)) { if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('crm'); } else { BunkerChat.initCRM(this.userId, this.backendUrl); setTimeout(() => { BunkerChat.sendCRM(payload); if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('crm'); }, 500); }
+    },
+
+    sendGlobalChatMessage() {
+        this.haptic('light'); this.initUserId();
+        const userRole = this.userData?.role || 'fan', kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified', isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin');
+        const input = document.getElementById('global-chat-input'); const text = input ? input.value.trim() : '';
+        if (!text && !this.tempChatMediaData) return;
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast('⚠️ Requiere KYC para interactuar.'); this.openKYCModal(); return; }
+        const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
+        if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { BunkerChat.initGlobal(this.userId, this.backendUrl); setTimeout(() => { if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { BunkerChat.sendGlobal(payload); if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('global'); } }, 1500); return; }
+        if (BunkerChat.sendGlobal(payload)) { if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('global'); }
+    },
+
+    handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
+    handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
+
+    async joinVideoBunker() {
+        this.haptic('medium'); this.initUserId();
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'), userTier = this.userData?.access_tier || 0;
+        if (userTier < 4 && !isAdminUser) { this.showToast('⚠️ Acceso denegado. Requiere rango ICON LEGEND.'); this.openCatalogPackages(); return; }
+        const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
+        if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
+        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if(btnGoLive) btnGoLive.classList.remove('hidden');
+        if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
+        await this.requestAndLoadMedia();
+    },
+
+    async requestAndLoadMedia() {
+        try {
+            let stream; try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); } catch (e) { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+            this.activeWebcamStream = stream; this.isMicMuted = false; this.isCamOff = false; this.updateMediaTogglesUI();
+            const videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
+            if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); videoElem.classList.remove('hidden'); }
+            if (placeholder) { placeholder.classList.add('hidden'); }
+            await this.populateMediaDevices(stream);
+        } catch (err) { const placeholder = document.getElementById('cam-loading-placeholder'); if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i>`; } }
+    },
+
+    async populateMediaDevices(currentStream) {
+        if (!navigator.mediaDevices.enumerateDevices) return;
+        const devices = await navigator.mediaDevices.enumerateDevices(), videoDevices = devices.filter(d => d.kind === 'videoinput'), audioDevices = devices.filter(d => d.kind === 'audioinput');
+        const selectCam = document.getElementById('setting-cam-source'), selectMic = document.getElementById('setting-mic-source');
+        if (selectCam) {
+            selectCam.innerHTML = ''; let seen = new Set(), obsFound = false;
+            videoDevices.forEach((device, index) => {
+                let original = device.label.toLowerCase(), cleanLabel = `Cámara #${index + 1}`;
+                if (original.includes('obs') || original.includes('virtual')) { cleanLabel = '🎥 OBS Virtual Camera'; obsFound = true; } else if (original.includes('front')) { cleanLabel = '📱 Cámara Frontal'; } else if (original.includes('back')) { cleanLabel = '📱 Cámara Trasera'; } else if (device.label) { cleanLabel = device.label; }
+                if (!seen.has(cleanLabel)) { seen.add(cleanLabel); const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = cleanLabel; selectCam.appendChild(opt); }
+            });
+            if(!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = "🎥 Forzar Capturadora OBS / USB"; selectCam.appendChild(optObs); }
+            if (currentStream) { const currentTrack = currentStream.getVideoTracks()[0]; if (currentTrack) { const currentSettings = currentTrack.getSettings(); if (currentSettings.deviceId) selectCam.value = currentSettings.deviceId; } }
+        }
+        if (selectMic) {
+            selectMic.innerHTML = '<option value="none">🔇 Sin Micrófono</option>';
+            audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `Micrófono #${index + 1}`; selectMic.appendChild(opt); });
+            if (currentStream && currentStream.getAudioTracks().length > 0) { const currentTrack = currentStream.getAudioTracks()[0]; const currentSettings = currentTrack.getSettings(); if (currentSettings.deviceId) selectMic.value = currentSettings.deviceId; }
+        }
+    },
+
+    toggleMic() { this.haptic('light'); if (this.activeWebcamStream && this.activeWebcamStream.getAudioTracks().length > 0) { this.isMicMuted = !this.isMicMuted; this.activeWebcamStream.getAudioTracks()[0].enabled = !this.isMicMuted; this.updateMediaTogglesUI(); } },
+    toggleCam() { this.haptic('light'); if (this.activeWebcamStream && this.activeWebcamStream.getVideoTracks().length > 0) { this.isCamOff = !this.isCamOff; this.activeWebcamStream.getVideoTracks()[0].enabled = !this.isCamOff; this.updateMediaTogglesUI(); } },
+
+    updateMediaTogglesUI() {
+        const btnMic = document.getElementById('btn-toggle-mic'), btnCam = document.getElementById('btn-toggle-cam');
+        if(btnMic) { if(this.isMicMuted) { btnMic.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>'; btnMic.className = 'w-12 h-12 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-xl'; } else { btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i>'; btnMic.className = 'w-12 h-12 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-xl'; } }
+        if(btnCam) { if(this.isCamOff) { btnCam.innerHTML = '<i class="fa-solid fa-video-slash"></i>'; btnCam.className = 'w-12 h-12 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-xl'; } else { btnCam.innerHTML = '<i class="fa-solid fa-video"></i>'; btnCam.className = 'w-12 h-12 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-xl'; } }
+    },
+
+    openAVSettings() { this.haptic('light'); document.getElementById('modal-av-settings')?.classList.remove('hidden'); },
+    closeAVSettings() { this.haptic('light'); document.getElementById('modal-av-settings')?.classList.add('hidden'); },
+
+    async applyAVSettings() {
+        this.haptic('heavy');
+        const camId = document.getElementById('setting-cam-source')?.value, micId = document.getElementById('setting-mic-source')?.value;
+        if (this.activeWebcamStream) { this.activeWebcamStream.getTracks().forEach(track => track.stop()); }
+        let constraints = { video: true, audio: false };
+        if (camId === 'obs-fallback') constraints.video = true; else if (camId) constraints.video = { deviceId: { exact: camId } };
+        if (micId && micId !== 'none') constraints.audio = { deviceId: { exact: micId } }; else if (micId === 'none') constraints.audio = false;
+        try { this.activeWebcamStream = await navigator.mediaDevices.getUserMedia(constraints); const videoElem = document.getElementById('bunker-webcam-feed'); if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); } this.isMicMuted = false; this.isCamOff = false; this.updateMediaTogglesUI(); this.closeAVSettings(); } catch(e) { }
+    },
+
+    toggleMinimizeVideo() {
+        this.haptic('light');
+        const bunker = document.getElementById('floating-video-bunker'), controls = document.getElementById('video-controls-bar'), icon = document.getElementById('icon-minimize');
+        this.isVideoMinimized = !this.isVideoMinimized;
+        if (this.isVideoMinimized) { bunker.classList.add('pip-mode'); bunker.classList.remove('inset-0'); controls.classList.add('hidden'); icon.className = 'fa-solid fa-expand'; } else { bunker.classList.remove('pip-mode'); bunker.classList.add('inset-0'); controls.classList.remove('hidden'); icon.className = 'fa-solid fa-compress'; }
+    },
+
+    startLiveTransmission() {
+        this.haptic('heavy');
+        const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
+        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md'; badge.innerText = 'EN VIVO'; }
+        if(btnGoLive) btnGoLive.classList.add('hidden'); if(btnCancel) btnCancel.classList.remove('hidden');
+        if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: this.getTrans('stream_announce'), media_url: null })); }
+    },
+
+    cancelLiveTransmission() {
+        this.haptic('medium');
+        const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
+        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if(btnCancel) btnCancel.classList.add('hidden'); if(btnGoLive) btnGoLive.classList.remove('hidden');
+    },
+
+    leaveVideoBunker() {
+        this.haptic('light');
+        if (this.activeWebcamStream) { this.activeWebcamStream.getTracks().forEach(track => track.stop()); this.activeWebcamStream = null; }
+        const bunker = document.getElementById('floating-video-bunker'), videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
+        if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
+        if (placeholder) placeholder.classList.remove('hidden'); if (bunker) bunker.classList.add('hidden');
+        this.isVideoMinimized = false;
+    },
+
+    startVideoCall() { this.haptic('light'); this.openGlobalChat(); },
+
+    openUploadPanel() {
+        this.initUserId();
+        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified', userRole = localStorage.getItem('alpha_user_role') || this.userData?.role, isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin' || this.userData?.role === 'admin');
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar como creador.'); this.openKYCModal(); return; }
+        this.closeModals(); this.switchView('upload'); 
+    },
+
+    openRoleModal() { this.closeModals(); document.getElementById('modal-role')?.classList.remove('hidden'); },
+    
+    toggleLanguage() { 
+        this.haptic('medium');
+        const languages = ['es', 'en', 'it', 'pt', 'de', 'fr'], currentLang = localStorage.getItem('alpha_lang') || 'es', nextLang = languages[(languages.indexOf(currentLang) + 1) % languages.length];
+        this.setLanguage(nextLang);
+    },
+
+    setLanguage(lang) { 
+        this.haptic('light'); localStorage.setItem('alpha_lang', lang); this.currentLang = lang;
+        const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = lang.toUpperCase();
+        if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
+    },
+
+    toggleAdminSecret() { this.haptic('light'); this.initUserId(); const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'); if (isAdminUser) { this.isAdmin = !this.isAdmin; } },
+    
+    async previewImage(event) { const file = event.target.files[0]; if (!file) return; this.tempPostMedia = await this.compressImage(file, 1200, 0.75); document.getElementById('txt-upload').innerText = `¡Imagen cargada! 📸 (${file.name})`; },
+
+    async publishPost() {
+        this.haptic('medium');
+        const content = document.getElementById('admin-text-es')?.value.trim() || '', tierRequired = parseInt(document.getElementById('admin-level')?.value || '0');
+        if (!content && !this.tempPostMedia) return;
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/posts/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, author: this.userData?.name || "mastertom", text_es: content, image_url: this.tempPostMedia, levelRequired: tierRequired, is_ppv: false, price_alpha: 0 }) });
+            const data = await res.json(); if (res.ok && data.status === "success") { this.switchView('feed'); await this.renderFeed(); }
+        } catch (err) { }
+    },
+
+    async deletePost(postId) { if (!confirm('¿Eliminar publicación?')) return; try { await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); this.renderFeed(); } catch (e) {} },
+    async unlockPostContent(postId, priceAlpha) { try { const res = await fetch(`${this.backendUrl}/posts/unlock`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); if (res.ok) { await this.refreshUserData(); await this.renderFeed(); } } catch (e) {} },
+    
+    toggleLike(postId) {
+        let liked = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
+        if (liked.includes(postId)) liked = liked.filter(id => id !== postId); else liked.push(postId);
+        localStorage.setItem('alpha_user_liked_posts', JSON.stringify(liked)); this.renderFeed();
+    },
+
+    async renderFeed() {
+        const feedContainer = document.getElementById('feed-container'); if (!feedContainer) return;
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
+            const data = res.ok ? await res.json() : {}; const posts = data.posts || [];
+            const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
+            if (posts.length === 0) { feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">Aún no hay publicaciones en el Búnker.</div>`; return; }
+
+            feedContainer.innerHTML = posts.map(post => {
+                const isLiked = likedPosts.includes(post.id), isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'), isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
+                const safeAuthor = this.escapeHtml(post.author || 'mastertom'), safeContent = this.escapeHtml(post.content), safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
+                const showTipBtn = (post.author_role === 'creator' || post.author_role === 'admin');
+                const rankInfo = this.getRankBadge(post.levelRequired);
+
+                return `
+                    <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2 cursor-pointer" onclick="app.viewCreatorProfile(${post.creator_id || 99999}, '${safeAuthorAttr}')">
+                                <div class="w-9 h-9 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center">
+                                    <i class="fa-solid fa-user text-xs text-[#00f3ff]"></i>
+                                </div>
+                                <span class="font-bold text-amber-400 text-sm">@${safeAuthor}</span>
+                            </div>
+                            <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
+                                <img src="${rankInfo.img}" class="w-4 h-4 inline-block">
+                                <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
+                                ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
+                            </div>
+                        </div>
+                        ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${safeContent}</p>` : ''}
+                        ${post.is_locked ? `
+                            <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
+                                <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
+                                <p class="text-sm font-bold text-amber-300">CONTENIDO EXCLUSIVO BLOQUEADO</p>
+                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">
+                                    🔓 DESBLOQUEAR (${post.price_alpha || 20} $ALPHA)
+                                </button>
+                            </div>
+                        ` : (post.media_url ? `<img src="${this.escapeHtml(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
+                        
+                        <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
+                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}"><i class="fa-solid fa-heart"></i> Like</button>
+                            ${showTipBtn ? `<button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">🪙 Dar Propina</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {}
+    },
+
+    async openFanTipMenu(creatorId, postId, creatorName) {
+        this.closeModals();
+        this.initUserId();
+        
+        let modal = document.getElementById('modal-fan-tip-menu');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-fan-tip-menu" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#ffb703] rounded-3xl p-6 w-11/12 max-w-lg max-h-[85vh] flex flex-col shadow-[0_0_20px_rgba(255,183,3,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ffb703]/30">
+                            <h3 class="text-xl font-black text-[#ffb703] uppercase tracking-wider"><i class="fa-solid fa-coins mr-2"></i> TIP MENU</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        </div>
+                        <p class="text-center font-bold text-white mb-4 uppercase tracking-widest text-sm">Apoya a <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
+                        <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-4"></div>
+                        
+                        <div class="mt-4 pt-4 border-t border-[#ffb703]/30 flex justify-between gap-2 shrink-0">
+                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase">Regresar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-fan-tip-menu');
+        }
+
+        document.getElementById('fan-tip-creator-name').innerText = `@${creatorName}`;
+        modal.classList.remove('hidden');
+
+        const container = document.getElementById('fan-tip-slots-container');
+        container.innerHTML = '<div class="text-center text-neutral-400 mt-4 font-bold">Desplegando menú... ⏳</div>';
+        
+        const slots = await this.loadTipMenu(creatorId);
+        container.innerHTML = slots.length === 0 ? '<div class="text-center text-neutral-500 mt-10 font-bold bg-black/50 p-4 rounded-xl">El creador aún no configura su Tip Menu.</div>' : slots.map(s => `
+            <button onclick="app.sendTipFromPost(${creatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-4 flex justify-between items-center text-white transition active:scale-95 shadow-md">
+                <span class="font-bold text-sm text-left truncate pr-2">${this.escapeHtml(s.title)}</span>
+                <span class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-xs font-black px-3 py-1.5 rounded-xl shadow-md whitespace-nowrap">${s.price_alpha} $ALPHA</span>
+            </button>
+        `).join('');
+    },
+
+    async buyPackageStars(packageSlug) {
+        this.haptic('medium');
+        this.initUserId();
+        this.showToast('Generando factura de Telegram Stars... ⭐');
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/create-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug }) });
+            const data = await res.json();
+            if (res.ok && data.status === 'success' && data.invoice_link) {
+                if (window.Telegram?.WebApp?.openInvoice) {
+                    window.Telegram.WebApp.openInvoice(data.invoice_link, async (status) => {
+                        if (status === 'paid') { this.haptic('heavy'); this.showToast('¡Pago completado! Acreditando tokens... 💎'); this.triggerFireworks(); await this.refreshUserData(); }
+                    });
+                } else { window.open(data.invoice_link, '_blank'); }
+            } else { throw new Error(data.detail || 'Error al generar la factura'); }
+        } catch (err) {}
+    },
+
+    async openCatalogPackages() {
+        this.closeModals();
+        const modal = document.getElementById('modal-catalog');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        const container = document.getElementById('catalog-packages-list');
+        if (!container) return;
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">Cargando catálogo... ⏳</div>`;
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/packages`);
+            if (res.ok) {
+                const data = await res.json();
+                let packages = data.packages || [];
+                const order = ['spy', 'soldier', 'veteran', 'legend', 'icon-legend'];
+                packages.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug));
+                
+                const rankMapping = { 'spy': {n: 'SPY', l: 0}, 'soldier': {n: 'SOLDIER', l: 1}, 'veteran': {n: 'VETERAN', l: 2}, 'legend': {n: 'LEGEND', l: 3}, 'icon-legend': {n: 'ICON LEGEND', l: 4} };
+
+                container.innerHTML = packages.map(pkg => {
+                    const rData = rankMapping[pkg.slug] || {n: 'RANGO', l: 0};
+                    const badgeInfo = this.getRankBadge(rData.l);
+                    return `
+                        <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative">
+                            <div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-3 py-0.5 rounded-full text-[10px] font-black uppercase shadow">RANGO OFICIAL</div>
+                            <div class="flex justify-between items-center mb-2 mt-1">
+                                <h3 class="text-lg font-black text-white flex items-center gap-2"><img src="${badgeInfo.img}" class="w-6 h-6 drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]"> ${rData.n}</h3>
+                                <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
+                            </div>
+                            <p class="text-xs text-gray-300 mb-4 font-medium">Membresía oficial ${rData.n}. Acceso a beneficios tácticos en el Búnker.</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars} Stars</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">Error cargando catálogo.</div>`; }
+    },
+
+    async subscribeCreatorTier(tierSlug) {
+        this.haptic('medium'); this.initUserId();
+        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin' || localStorage.getItem('alpha_user_role') === 'admin');
+        if (kycStatus !== 'verified' && !isAdminUser) { this.showToast('⚠️ Debes verificar tu identidad (KYC +18) para activar tu suscripción de creador.'); this.openKYCModal(); return; }
+        const planName = tierSlug === 'soldier_creator' ? 'Soldier Creator ($4.99/mes)' : 'Icon Creator ($7.99/mes)';
+        if (!confirm(`¿Activar tu membresía B2B: ${planName}?\nDisfrutarás tu primer mes totalmente gratis.`)) return;
+        this.showToast('Activando suscripción de creador... ⚡');
+        try {
+            const res = await fetch(`${this.backendUrl}/creators/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, tier: tierSlug }) });
+            if (res.ok) { this.haptic('heavy'); this.showToast('¡Membresía B2B activada con éxito! 1er mes gratis 🎁'); this.triggerFireworks(); this.updateProfileUI(); }
+        } catch (err) {}
+    },
+
+    triggerAvatarInput() { this.haptic('light'); const input = document.getElementById('avatar-file-input'); if (input) input.click(); },
+    async handleAvatarChange(event) {
+        const file = event.target.files[0]; if (!file) return;
+        this.haptic('light'); this.showToast('Optimizando foto... 📸');
+        const avatarUrl = await this.compressImage(file, 400, 0.8);
+        localStorage.setItem('alpha_user_avatar', avatarUrl);
+        const avatarImg = document.getElementById('prof-avatar-img'), avatarFeed = document.getElementById('avatar-feed');
+        if (avatarImg) { avatarImg.src = avatarUrl; avatarImg.classList.remove('hidden'); }
+        if (avatarFeed) avatarFeed.src = avatarUrl;
+        this.showToast('¡Foto de perfil actualizada! 📸');
+    },
+
+    saveProfile() {
+        this.haptic('medium');
+        const aliasInput = document.getElementById('prof-alias'), bioInput = document.getElementById('prof-bio');
+        const newName = aliasInput ? aliasInput.value.trim() : '', newBio = bioInput ? bioInput.value.trim() : '';
+        if (newName) { this.userData.name = newName; localStorage.setItem('alpha_user_name', newName); }
+        if (newBio) { localStorage.setItem('alpha_user_bio', newBio); }
+        this.showToast('¡Perfil guardado correctamente! 🛡️'); this.updateProfileUI();
+    },
+
+    openKYCModal() { this.closeModals(); document.getElementById('modal-kyc')?.classList.remove('hidden'); },
+    async handleKYCDocPreview(event) {
+        const file = event.target.files[0]; if (!file) return;
+        this.tempKYCDoc = await this.compressImage(file, 1200, 0.75);
+        const label = document.getElementById('kyc-doc-label'); if (label) label.innerText = `✅ Documento listo`;
+    },
+    async handleKYCSelfiePreview(event) {
+        const file = event.target.files[0]; if (!file) return;
+        this.tempKYCSelfie = await this.compressImage(file, 1024, 0.75);
+        const label = document.getElementById('kyc-selfie-label'); if (label) label.innerText = `✅ Selfie lista`;
+    },
+
+    async submitKYC() {
+        this.haptic('medium');
+        const legalName = document.getElementById('kyc-legal-name')?.value.trim();
+        if (!legalName || !this.tempKYCDoc || !this.tempKYCSelfie) { this.showToast('⚠️ Completa tu nombre legal, documento y selfie.'); return; }
+        this.initUserId(); this.showToast('Enviando solicitud al Búnker Admin... 🛡️');
+        try {
+            const res = await fetch(`${this.backendUrl}/kyc/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, legal_name: legalName, document_base64: this.tempKYCDoc, selfie_base64: this.tempKYCSelfie }) });
+            if (res.ok) { localStorage.setItem('alpha_kyc_status', 'pending'); this.showToast('¡Solicitud enviada con éxito! 🚀'); this.closeModals(); this.updateProfileUI(); }
+        } catch (err) {}
+    },
+
+    async initTonConnect() {
+        if (!this.tonConnectUI && window.TON_CONNECT_UI) {
+            try {
+                this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ manifestUrl: window.location.origin + '/tonconnect-manifest.json' });
+                this.tonConnectUI.onStatusChange(async (wallet) => {
+                    const btnHdr = document.getElementById('btn-wallet-hdr');
+                    if (wallet?.account) {
+                        const shortAddress = wallet.account.address.slice(0, 4) + '...' + wallet.account.address.slice(-4);
+                        if (btnHdr) btnHdr.innerText = shortAddress;
+                        await fetch(`${this.backendUrl}/wallet/connect-ton`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, ton_address: wallet.account.address }) });
+                        await this.refreshUserData();
+                    } else { if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; }
+                });
+            } catch (err) {}
+        }
+    },
+
+    async connectWallet() {
+        try {
+            this.haptic('medium'); this.initUserId(); await this.initTonConnect();
+            if (!this.tonConnectUI) return;
+            if (this.tonConnectUI.connected) {
+                if (confirm('¿Desconectar billetera?')) { await this.tonConnectUI.disconnect(); const btnHdr = document.getElementById('btn-wallet-hdr'); if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; }
+            } else { await this.tonConnectUI.openModal(); }
+        } catch (err) {}
+    },
+
+    async rechargeAlphaCoins(amountTon, alphaAmount) {
+        try {
+            this.haptic('heavy'); await this.initTonConnect();
+            if (!this.tonConnectUI || !this.tonConnectUI.connected || !this.tonConnectUI.account) { this.showToast('⚠️ Conecta tu billetera TON.'); return; }
+            const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: "UQDWI2auHgQ5a9KnWn9_by-RSswIaKfz38b_Yib_cIy-Jklp", amount: Math.floor(amountTon * 1000000000).toString() }] };
+            const result = await this.tonConnectUI.sendTransaction(transaction);
+            const res = await fetch(`${this.backendUrl}/wallet/recharge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, amount_ton: amountTon, alpha_added: alphaAmount, boc: result?.boc || "DIRECT_TX" }) });
+            if (res.ok) { await this.refreshUserData(); this.triggerFireworks(); }
+        } catch (err) {}
+    },
+
+    setRegisterRole(role) {
+        this.haptic('light'); this.registerRoleSelected = role;
+        const btnFan = document.getElementById('reg-role-fan'), btnCreator = document.getElementById('reg-role-creator');
+        if (role === 'fan') {
+            btnFan?.classList.replace('border-neutral-700', 'border-[#ff00ff]'); btnFan?.classList.replace('bg-black', 'bg-[#ff00ff]/20'); btnFan?.classList.replace('text-neutral-400', 'text-white');
+            btnCreator?.classList.replace('border-[#00f3ff]', 'border-neutral-700'); btnCreator?.classList.replace('bg-[#00f3ff]/20', 'bg-black'); btnCreator?.classList.replace('text-white', 'text-neutral-400');
+        } else {
+            btnCreator?.classList.replace('border-neutral-700', 'border-[#00f3ff]'); btnCreator?.classList.replace('bg-black', 'bg-[#00f3ff]/20'); btnCreator?.classList.replace('text-white', 'text-neutral-400');
+            btnFan?.classList.replace('border-[#ff00ff]', 'border-neutral-700'); btnFan?.classList.replace('bg-[#ff00ff]/20', 'bg-black'); btnFan?.classList.replace('text-white', 'text-neutral-400');
+        }
+    },
+
+    registerWithData() {
+        this.haptic('medium');
+        const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
+        if (!phone && !email) { this.showToast('⚠️ Ingresa al menos un número o correo.'); return; }
+        ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.initUserId();
+        const isCreator = this.registerRoleSelected === 'creator';
+        this.userData.role = this.registerRoleSelected; this.userData.name = phone || email.split('@')[0] || (isCreator ? "mastertom" : "VIP Fan");
+        localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_user_name', this.userData.name); localStorage.setItem('alpha_user_role', this.registerRoleSelected);
+        this.switchView('feed'); this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
+    },
+
+    async loginWithPhone() {
+        this.haptic('medium'); const phone = document.getElementById('phone-input')?.value.trim();
+        if (!phone) { this.showToast('⚠️ Ingresa tu número de teléfono.'); return; }
+        ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.initUserId();
+        localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
+        this.switchView('feed'); await this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
+    },
+
+    async loginWithTelegram() { 
+        this.haptic('medium'); this.initUserId(); localStorage.setItem('alpha_logged_in', 'true'); 
+        try { await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || "Agente Búnker", bio: "Operativo autenticado vía Telegram WebApp" }) }); } catch (e) {}
+        this.switchView('feed'); this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); this.refreshUserData(); this.renderFeed();
+    },
+
+    async checkSession() {
+        try {
+            this.initUserId(); this.initTonConnect();
+            const savedLang = localStorage.getItem('alpha_lang') || 'es'; this.currentLang = savedLang;
+            const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = savedLang.toUpperCase();
+            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
+            const activeLogin = localStorage.getItem('alpha_logged_in'), hasConsent = localStorage.getItem('alpha_consent'), tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+            if (tgUser && tgUser.id) { localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_consent', 'true'); if (!localStorage.getItem('alpha_user_name')) { localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User'); } }
+            if (activeLogin === 'true' || (tgUser && tgUser.id)) { 
+                this.switchView('feed'); 
+                try { await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || "Agente Búnker", bio: "Sincronizado al iniciar app" }) }); } catch(e) {}
+                this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
+            } else if (hasConsent === 'true') { this.switchView('login'); } else { this.switchView('consent'); }
+        } catch (e) {}
+    },
+
+    exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
+
+    logout() { 
+        this.haptic('medium'); 
+        ['alpha_logged_in', 'alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.userId = null; this.switchView('consent'); 
+    },
+
+    switchView(viewName) {
+        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
+        const targetView = document.getElementById(`view-${viewName}`);
+        if (targetView) { targetView.classList.remove('hidden'); window.scrollTo(0, 0); if (viewName !== 'lang') this.lastView = viewName; }
+    },
+
+    goHome() { this.haptic('light'); this.closeModals(); this.switchView('feed'); this.renderFeed(); },
+    acceptConsent() { this.haptic('medium'); localStorage.setItem('alpha_consent', 'true'); this.switchView('captcha'); this.generateCaptcha(); },
+
+    generateCaptcha() {
+        this.haptic('light'); const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
+        for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        this.currentCaptcha = code; const display = document.getElementById('captcha-display'); if (display) display.innerText = code;
+    },
+
+    verifyCaptcha() {
+        this.haptic('medium'); const input = document.getElementById('captcha-input'); const userValue = input ? input.value.trim().toUpperCase() : '';
+        if (userValue === this.currentCaptcha && userValue !== '') { this.switchView('login'); } else { this.showToast('⚠️ Código incorrecto.'); this.generateCaptcha(); }
+    },
+
+    closeModals() {
+        this.haptic('light');
+        if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
+        if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
+        ['modal-profile', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
+            document.getElementById(m)?.classList.add('hidden');
+        });
+    },
+
+    openProfile() { this.closeModals(); document.getElementById('modal-profile')?.classList.remove('hidden'); this.syncKYCStatus(); this.updateProfileUI(); this.refreshUserData(); },
+    openMenuModal() { this.openCatalogPackages(); },
+    openCommunitiesModal() { this.closeModals(); },
+
+    setupSystemMessageObserver(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container || container.dataset.observed === 'true') return;
+        container.dataset.observed = 'true';
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (!node.innerHTML.includes('bg-[#00f3ff]/20') && !node.innerHTML.includes('bg-neutral-800')) {
+                            setTimeout(() => { node.style.transition = 'all 0.4s ease'; node.style.opacity = '0'; node.style.height = '0px'; node.style.margin = '0px'; node.style.padding = '0px'; node.style.overflow = 'hidden'; setTimeout(() => node.remove(), 400); }, 1500); 
+                        }
+                    }
+                });
+            });
+        });
+        observer.observe(container, { childList: true });
+    },
+    
+    async openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('chat-messages'); await this.loadChatHistory(); BunkerChat.initCRM(this.userId, this.backendUrl); },
+    async loadChatHistory() { const container = document.getElementById('chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); this.scrollToBottom('chat-messages'); } } } catch (err) {} },
+    
+    async openGlobalChat() { this.closeModals(); document.getElementById('modal-global-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('global-chat-messages'); await this.loadGlobalChatHistory(); BunkerChat.initGlobal(this.userId, this.backendUrl); },
+    async loadGlobalChatHistory() { const container = document.getElementById('global-chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); this.scrollToBottom('global-chat-messages'); } } } catch (e) {} },
+
+    async handleChatMediaPreview(event, type) {
+        const file = event.target.files[0]; if (!file) return;
+        this.initUserId();
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'), isCreator = this.userData?.role === 'creator', userTier = this.userData?.access_tier || 0, isVideo = file.type.startsWith('video/');
+        if (type === 'global' && !isAdminUser && !isCreator) {
+            if (userTier < 2) { this.showToast('⚠️ Requiere VETERAN para enviar fotos.'); return; }
+            if (isVideo && userTier < 3) { this.showToast('⚠️ Requiere LEGEND para videos cortos.'); return; }
+        }
+        this.haptic('light'); const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input'), previewContainer = document.getElementById(`${type}-chat-preview-container`), previewImg = document.getElementById(`${type}-chat-preview-img`), previewVideo = document.getElementById(`${type}-chat-preview-video`), previewName = document.getElementById(`${type}-chat-preview-name`);
+        if (isVideo) {
+            if (file.size > 5 * 1024 * 1024) { this.showToast('⚠️ Máx 5MB por video.'); this.clearChatMedia(type); return; }
+            const reader = new FileReader(); reader.onload = (e) => { this.tempChatMediaData = e.target.result; if (previewContainer) { previewContainer.classList.remove('hidden'); previewImg.classList.add('hidden'); previewVideo.src = e.target.result; previewVideo.classList.remove('hidden'); previewName.innerText = `Video: ${file.name.substring(0,12)}...`; } if (inputEl) inputEl.focus(); this.showToast('✅ Video adjunto.'); }; reader.readAsDataURL(file);
+        } else {
+            this.tempChatMediaData = await this.compressImage(file, 800, 0.7); 
+            if (previewContainer) { previewContainer.classList.remove('hidden'); previewVideo.classList.add('hidden'); previewVideo.src = ""; previewImg.src = this.tempChatMediaData; previewImg.classList.remove('hidden'); previewName.innerText = `Foto: ${file.name.substring(0,12)}...`; }
+            if (inputEl) inputEl.focus(); this.showToast('✅ Foto adjunta.');
+        }
+    },
+
+    clearChatMedia(type) {
+        this.haptic('light'); this.tempChatMediaData = null;
+        const uploadInput = document.getElementById(`${type}-media-upload`), previewContainer = document.getElementById(`${type}-chat-preview-container`), previewImg = document.getElementById(`${type}-chat-preview-img`), previewVideo = document.getElementById(`${type}-chat-preview-video`);
+        if (uploadInput) uploadInput.value = ''; if (previewContainer) previewContainer.classList.add('hidden'); if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); } if (previewVideo) { previewVideo.src = ''; previewVideo.classList.add('hidden'); }
+    },
+
+    appendChatMessage(msg, containerId) {
+        const container = document.getElementById(containerId); if (!container) return;
+        const isMe = msg.user_id == this.userId;
+        const rankInfo = this.getRankBadge(msg.access_level);
+        let contentObj = { text: msg.content, media_url: null };
+        try { const parsed = JSON.parse(msg.content); if(parsed.text !== undefined) contentObj = parsed; } catch(e) {}
+        let safeText = this.escapeHtml(contentObj.text || ''), safeMedia = '';
+        if (contentObj.media_url) {
+            const encodedUrl = encodeURI(contentObj.media_url);
+            if (contentObj.media_url.startsWith('data:video')) { safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" controlsList="nodownload noremoteplayback" disablePictureInPicture></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl"><i class="fa-solid fa-expand text-white text-xl drop-shadow-[0_0_5px_black]"></i></div></div>`; } 
+            else { safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" /><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl"><i class="fa-solid fa-magnifying-glass-plus text-white text-xl drop-shadow-[0_0_5px_black]"></i></div></div>`; }
+        }
+        const safeAuthorName = this.escapeHtml(msg.author_name);
+        let html = '';
+        if (msg.is_system) {
+            try { const sysData = JSON.parse(contentObj.text); if (sysData.code === 'SYS_WARN_SPAM') { let template = this.getTrans('sys_warn_spam'); safeText = template.replace('{user}', this.escapeHtml(sysData.user)).replace('{warn}', sysData.warnings).replace('{penalty}', sysData.penalty); } } catch(e) {}
+            const msgId = `sys-msg-${msg.id || Date.now()}-${Math.random().toString(36).substr(2,9)}`;
+            html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
+            setTimeout(() => { const el = document.getElementById(msgId); if(el) { el.style.transition = 'all 0.4s ease'; el.style.opacity = '0'; el.style.height = '0px'; el.style.margin = '0px'; setTimeout(() => el.remove(), 400); } }, 1500); 
+        } else if (isMe) {
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">TÚ • <img src="${rankInfo.img}" class="w-3 h-3"> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+        } else {
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <img src="${rankInfo.img}" class="w-3 h-3"> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+        }
+        container.insertAdjacentHTML('beforeend', html);
+    },
+
+    openLightbox(mediaUrl, type) {
+        this.haptic('light'); const modal = document.getElementById('media-lightbox-modal'), imgEl = document.getElementById('lightbox-img'), videoEl = document.getElementById('lightbox-video');
+        if (!modal) return; modal.classList.remove('hidden');
+        if (type === 'image') { videoEl.classList.add('hidden'); videoEl.pause(); imgEl.src = mediaUrl; imgEl.classList.remove('hidden'); } else { imgEl.classList.add('hidden'); videoEl.src = mediaUrl; videoEl.classList.remove('hidden'); videoEl.play(); }
+    },
+    closeLightbox() { this.haptic('light'); const modal = document.getElementById('media-lightbox-modal'), videoEl = document.getElementById('lightbox-video'); if (videoEl) videoEl.pause(); if (modal) modal.classList.add('hidden'); },
+    scrollToBottom(containerId) { const container = document.getElementById(containerId); if (container) container.scrollTop = container.scrollHeight; },
+
+    sendChatMessage() { 
+        this.haptic('light'); const input = document.getElementById('chat-input'); const text = input ? input.value.trim() : '';
+        if (!text && !this.tempChatMediaData) return;
+        const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
+        if (BunkerChat.sendCRM(payload)) { if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('crm'); } else { BunkerChat.initCRM(this.userId, this.backendUrl); setTimeout(() => { BunkerChat.sendCRM(payload); if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('crm'); }, 500); }
+    },
+
+    sendGlobalChatMessage() {
+        this.haptic('light'); this.initUserId();
+        const userRole = this.userData?.role || 'fan', kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified', isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin');
+        const input = document.getElementById('global-chat-input'); const text = input ? input.value.trim() : '';
+        if (!text && !this.tempChatMediaData) return;
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast('⚠️ Requiere KYC para interactuar.'); this.openKYCModal(); return; }
+        const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
+        if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { BunkerChat.initGlobal(this.userId, this.backendUrl); setTimeout(() => { if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { BunkerChat.sendGlobal(payload); if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('global'); } }, 1500); return; }
+        if (BunkerChat.sendGlobal(payload)) { if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('global'); }
+    },
+
+    handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
+    handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
+
+    async joinVideoBunker() {
+        this.haptic('medium'); this.initUserId();
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'), userTier = this.userData?.access_tier || 0;
+        if (userTier < 4 && !isAdminUser) { this.showToast('⚠️ Acceso denegado. Requiere rango ICON LEGEND.'); this.openCatalogPackages(); return; }
+        const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
+        if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
+        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if(btnGoLive) btnGoLive.classList.remove('hidden');
+        if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
+        await this.requestAndLoadMedia();
+    },
+
+    async requestAndLoadMedia() {
+        try {
+            let stream; try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); } catch (e) { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+            this.activeWebcamStream = stream; this.isMicMuted = false; this.isCamOff = false; this.updateMediaTogglesUI();
+            const videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
+            if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); videoElem.classList.remove('hidden'); }
+            if (placeholder) { placeholder.classList.add('hidden'); }
+            await this.populateMediaDevices(stream);
+        } catch (err) { const placeholder = document.getElementById('cam-loading-placeholder'); if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i>`; } }
+    },
+
+    async populateMediaDevices(currentStream) {
+        if (!navigator.mediaDevices.enumerateDevices) return;
+        const devices = await navigator.mediaDevices.enumerateDevices(), videoDevices = devices.filter(d => d.kind === 'videoinput'), audioDevices = devices.filter(d => d.kind === 'audioinput');
+        const selectCam = document.getElementById('setting-cam-source'), selectMic = document.getElementById('setting-mic-source');
+        if (selectCam) {
+            selectCam.innerHTML = ''; let seen = new Set(), obsFound = false;
+            videoDevices.forEach((device, index) => {
+                let original = device.label.toLowerCase(), cleanLabel = `Cámara #${index + 1}`;
+                if (original.includes('obs') || original.includes('virtual')) { cleanLabel = '🎥 OBS Virtual Camera'; obsFound = true; } else if (original.includes('front')) { cleanLabel = '📱 Cámara Frontal'; } else if (original.includes('back')) { cleanLabel = '📱 Cámara Trasera'; } else if (device.label) { cleanLabel = device.label; }
+                if (!seen.has(cleanLabel)) { seen.add(cleanLabel); const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = cleanLabel; selectCam.appendChild(opt); }
+            });
+            if(!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = "🎥 Forzar Capturadora OBS / USB"; selectCam.appendChild(optObs); }
+            if (currentStream) { const currentTrack = currentStream.getVideoTracks()[0]; if (currentTrack) { const currentSettings = currentTrack.getSettings(); if (currentSettings.deviceId) selectCam.value = currentSettings.deviceId; } }
+        }
+        if (selectMic) {
+            selectMic.innerHTML = '<option value="none">🔇 Sin Micrófono</option>';
+            audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `Micrófono #${index + 1}`; selectMic.appendChild(opt); });
+            if (currentStream && currentStream.getAudioTracks().length > 0) { const currentTrack = currentStream.getAudioTracks()[0]; const currentSettings = currentTrack.getSettings(); if (currentSettings.deviceId) selectMic.value = currentSettings.deviceId; }
+        }
+    },
+
+    toggleMic() { this.haptic('light'); if (this.activeWebcamStream && this.activeWebcamStream.getAudioTracks().length > 0) { this.isMicMuted = !this.isMicMuted; this.activeWebcamStream.getAudioTracks()[0].enabled = !this.isMicMuted; this.updateMediaTogglesUI(); } },
+    toggleCam() { this.haptic('light'); if (this.activeWebcamStream && this.activeWebcamStream.getVideoTracks().length > 0) { this.isCamOff = !this.isCamOff; this.activeWebcamStream.getVideoTracks()[0].enabled = !this.isCamOff; this.updateMediaTogglesUI(); } },
+
+    updateMediaTogglesUI() {
+        const btnMic = document.getElementById('btn-toggle-mic'), btnCam = document.getElementById('btn-toggle-cam');
+        if(btnMic) { if(this.isMicMuted) { btnMic.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>'; btnMic.className = 'w-12 h-12 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-xl'; } else { btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i>'; btnMic.className = 'w-12 h-12 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-xl'; } }
+        if(btnCam) { if(this.isCamOff) { btnCam.innerHTML = '<i class="fa-solid fa-video-slash"></i>'; btnCam.className = 'w-12 h-12 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-xl'; } else { btnCam.innerHTML = '<i class="fa-solid fa-video"></i>'; btnCam.className = 'w-12 h-12 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-xl'; } }
+    },
+
+    openAVSettings() { this.haptic('light'); document.getElementById('modal-av-settings')?.classList.remove('hidden'); },
+    closeAVSettings() { this.haptic('light'); document.getElementById('modal-av-settings')?.classList.add('hidden'); },
+
+    async applyAVSettings() {
+        this.haptic('heavy');
+        const camId = document.getElementById('setting-cam-source')?.value, micId = document.getElementById('setting-mic-source')?.value;
+        if (this.activeWebcamStream) { this.activeWebcamStream.getTracks().forEach(track => track.stop()); }
+        let constraints = { video: true, audio: false };
+        if (camId === 'obs-fallback') constraints.video = true; else if (camId) constraints.video = { deviceId: { exact: camId } };
+        if (micId && micId !== 'none') constraints.audio = { deviceId: { exact: micId } }; else if (micId === 'none') constraints.audio = false;
+        try { this.activeWebcamStream = await navigator.mediaDevices.getUserMedia(constraints); const videoElem = document.getElementById('bunker-webcam-feed'); if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); } this.isMicMuted = false; this.isCamOff = false; this.updateMediaTogglesUI(); this.closeAVSettings(); } catch(e) { }
+    },
+
+    toggleMinimizeVideo() {
+        this.haptic('light');
+        const bunker = document.getElementById('floating-video-bunker'), controls = document.getElementById('video-controls-bar'), icon = document.getElementById('icon-minimize');
+        this.isVideoMinimized = !this.isVideoMinimized;
+        if (this.isVideoMinimized) { bunker.classList.add('pip-mode'); bunker.classList.remove('inset-0'); controls.classList.add('hidden'); icon.className = 'fa-solid fa-expand'; } else { bunker.classList.remove('pip-mode'); bunker.classList.add('inset-0'); controls.classList.remove('hidden'); icon.className = 'fa-solid fa-compress'; }
+    },
+
+    startLiveTransmission() {
+        this.haptic('heavy');
+        const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
+        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md'; badge.innerText = 'EN VIVO'; }
+        if(btnGoLive) btnGoLive.classList.add('hidden'); if(btnCancel) btnCancel.classList.remove('hidden');
+        if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: this.getTrans('stream_announce'), media_url: null })); }
+    },
+
+    cancelLiveTransmission() {
+        this.haptic('medium');
+        const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
+        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if(btnCancel) btnCancel.classList.add('hidden'); if(btnGoLive) btnGoLive.classList.remove('hidden');
+    },
+
+    leaveVideoBunker() {
+        this.haptic('light');
+        if (this.activeWebcamStream) { this.activeWebcamStream.getTracks().forEach(track => track.stop()); this.activeWebcamStream = null; }
+        const bunker = document.getElementById('floating-video-bunker'), videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
+        if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
+        if (placeholder) placeholder.classList.remove('hidden'); if (bunker) bunker.classList.add('hidden');
+        this.isVideoMinimized = false;
+    },
+
+    startVideoCall() { this.haptic('light'); this.openGlobalChat(); },
+
+    openUploadPanel() {
+        this.initUserId();
+        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified', userRole = localStorage.getItem('alpha_user_role') || this.userData?.role, isAdminUser = (String(this.userId) === '8269470905' || userRole === 'admin' || this.userData?.role === 'admin');
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar como creador.'); this.openKYCModal(); return; }
+        this.closeModals(); this.switchView('upload'); 
+    },
+
+    openRoleModal() { this.closeModals(); document.getElementById('modal-role')?.classList.remove('hidden'); },
+    
+    toggleLanguage() { 
+        this.haptic('medium');
+        const languages = ['es', 'en', 'it', 'pt', 'de', 'fr'], currentLang = localStorage.getItem('alpha_lang') || 'es', nextLang = languages[(languages.indexOf(currentLang) + 1) % languages.length];
+        this.setLanguage(nextLang);
+    },
+
+    setLanguage(lang) { 
+        this.haptic('light'); localStorage.setItem('alpha_lang', lang); this.currentLang = lang;
+        const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = lang.toUpperCase();
+        if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
+    },
+
+    toggleAdminSecret() { this.haptic('light'); this.initUserId(); const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'); if (isAdminUser) { this.isAdmin = !this.isAdmin; } },
+    
+    async previewImage(event) { const file = event.target.files[0]; if (!file) return; this.tempPostMedia = await this.compressImage(file, 1200, 0.75); document.getElementById('txt-upload').innerText = `¡Imagen cargada! 📸 (${file.name})`; },
+
+    async publishPost() {
+        this.haptic('medium');
+        const content = document.getElementById('admin-text-es')?.value.trim() || '', tierRequired = parseInt(document.getElementById('admin-level')?.value || '0');
+        if (!content && !this.tempPostMedia) return;
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/posts/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, author: this.userData?.name || "mastertom", text_es: content, image_url: this.tempPostMedia, levelRequired: tierRequired, is_ppv: false, price_alpha: 0 }) });
+            const data = await res.json(); if (res.ok && data.status === "success") { this.switchView('feed'); await this.renderFeed(); }
+        } catch (err) { }
+    },
+
+    async deletePost(postId) { if (!confirm('¿Eliminar publicación?')) return; try { await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); this.renderFeed(); } catch (e) {} },
+    async unlockPostContent(postId, priceAlpha) { try { const res = await fetch(`${this.backendUrl}/posts/unlock`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); if (res.ok) { await this.refreshUserData(); await this.renderFeed(); } } catch (e) {} },
+    
+    toggleLike(postId) {
+        let liked = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
+        if (liked.includes(postId)) liked = liked.filter(id => id !== postId); else liked.push(postId);
+        localStorage.setItem('alpha_user_liked_posts', JSON.stringify(liked)); this.renderFeed();
+    },
+
+    async renderFeed() {
+        const feedContainer = document.getElementById('feed-container'); if (!feedContainer) return;
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
+            const data = res.ok ? await res.json() : {}; const posts = data.posts || [];
+            const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
+            if (posts.length === 0) { feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">Aún no hay publicaciones en el Búnker.</div>`; return; }
+
+            feedContainer.innerHTML = posts.map(post => {
+                const isLiked = likedPosts.includes(post.id), isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin'), isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
+                const safeAuthor = this.escapeHtml(post.author || 'mastertom'), safeContent = this.escapeHtml(post.content), safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
+                const showTipBtn = (post.author_role === 'creator' || post.author_role === 'admin');
+                const rankInfo = this.getRankBadge(post.levelRequired);
+
+                return `
+                    <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2 cursor-pointer" onclick="app.viewCreatorProfile(${post.creator_id || 99999}, '${safeAuthorAttr}')">
+                                <div class="w-9 h-9 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center">
+                                    <i class="fa-solid fa-user text-xs text-[#00f3ff]"></i>
+                                </div>
+                                <span class="font-bold text-amber-400 text-sm">@${safeAuthor}</span>
+                            </div>
+                            <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
+                                <img src="${rankInfo.img}" class="w-4 h-4 inline-block">
+                                <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
+                                ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
+                            </div>
+                        </div>
+                        ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${safeContent}</p>` : ''}
+                        ${post.is_locked ? `
+                            <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
+                                <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
+                                <p class="text-sm font-bold text-amber-300">CONTENIDO EXCLUSIVO BLOQUEADO</p>
+                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">
+                                    🔓 DESBLOQUEAR (${post.price_alpha || 20} $ALPHA)
+                                </button>
+                            </div>
+                        ` : (post.media_url ? `<img src="${this.escapeHtml(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
+                        
+                        <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
+                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}"><i class="fa-solid fa-heart"></i> Like</button>
+                            ${showTipBtn ? `<button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">🪙 Dar Propina</button>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        } catch (e) {}
+    },
+
+    async openFanTipMenu(creatorId, postId, creatorName) {
+        this.closeModals();
+        this.initUserId();
+        
+        let modal = document.getElementById('modal-fan-tip-menu');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-fan-tip-menu" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#ffb703] rounded-3xl p-6 w-11/12 max-w-lg max-h-[85vh] flex flex-col shadow-[0_0_20px_rgba(255,183,3,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ffb703]/30">
+                            <h3 class="text-xl font-black text-[#ffb703] uppercase tracking-wider"><i class="fa-solid fa-coins mr-2"></i> TIP MENU</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        </div>
+                        <p class="text-center font-bold text-white mb-4 uppercase tracking-widest text-sm">Apoya a <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
+                        <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-4"></div>
+                        
+                        <div class="mt-4 pt-4 border-t border-[#ffb703]/30 flex justify-between gap-2 shrink-0">
+                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase">Regresar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-fan-tip-menu');
+        }
+
+        document.getElementById('fan-tip-creator-name').innerText = `@${creatorName}`;
+        modal.classList.remove('hidden');
+
+        const container = document.getElementById('fan-tip-slots-container');
+        container.innerHTML = '<div class="text-center text-neutral-400 mt-4 font-bold">Desplegando menú... ⏳</div>';
+        
+        const slots = await this.loadTipMenu(creatorId);
+        container.innerHTML = slots.length === 0 ? '<div class="text-center text-neutral-500 mt-10 font-bold bg-black/50 p-4 rounded-xl">El creador aún no configura su Tip Menu.</div>' : slots.map(s => `
+            <button onclick="app.sendTipFromPost(${creatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-4 flex justify-between items-center text-white transition active:scale-95 shadow-md">
+                <span class="font-bold text-sm text-left truncate pr-2">${this.escapeHtml(s.title)}</span>
+                <span class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-xs font-black px-3 py-1.5 rounded-xl shadow-md whitespace-nowrap">${s.price_alpha} $ALPHA</span>
+            </button>
+        `).join('');
+    },
+
+    async buyPackageStars(packageSlug) {
+        this.haptic('medium');
+        this.initUserId();
+        this.showToast('Generando factura de Telegram Stars... ⭐');
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/create-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug }) });
+            const data = await res.json();
+            if (res.ok && data.status === 'success' && data.invoice_link) {
+                if (window.Telegram?.WebApp?.openInvoice) {
+                    window.Telegram.WebApp.openInvoice(data.invoice_link, async (status) => {
+                        if (status === 'paid') { this.haptic('heavy'); this.showToast('¡Pago completado! Acreditando tokens... 💎'); this.triggerFireworks(); await this.refreshUserData(); }
+                    });
+                } else { window.open(data.invoice_link, '_blank'); }
+            } else { throw new Error(data.detail || 'Error al generar la factura'); }
+        } catch (err) {}
+    },
+
+    async openCatalogPackages() {
+        this.closeModals();
+        const modal = document.getElementById('modal-catalog');
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        const container = document.getElementById('catalog-packages-list');
+        if (!container) return;
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">Cargando catálogo... ⏳</div>`;
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/packages`);
+            if (res.ok) {
+                const data = await res.json();
+                let packages = data.packages || [];
+                const order = ['spy', 'soldier', 'veteran', 'legend', 'icon-legend'];
+                packages.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug));
+                
+                const rankMapping = { 'spy': {n: 'SPY', l: 0}, 'soldier': {n: 'SOLDIER', l: 1}, 'veteran': {n: 'VETERAN', l: 2}, 'legend': {n: 'LEGEND', l: 3}, 'icon-legend': {n: 'ICON LEGEND', l: 4} };
+
+                container.innerHTML = packages.map(pkg => {
+                    const rData = rankMapping[pkg.slug] || {n: 'RANGO', l: 0};
+                    const badgeInfo = this.getRankBadge(rData.l);
+                    return `
+                        <div class="bg-black border-2 ${pkg.slug === 'icon-legend' ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : pkg.slug === 'legend' ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative">
+                            <div class="absolute -top-3 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-3 py-0.5 rounded-full text-[10px] font-black uppercase shadow">RANGO OFICIAL</div>
+                            <div class="flex justify-between items-center mb-2 mt-1">
+                                <h3 class="text-lg font-black text-white flex items-center gap-2"><img src="${badgeInfo.img}" class="w-6 h-6 drop-shadow-[0_0_8px_rgba(0,243,255,0.8)]"> ${rData.n}</h3>
+                                <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
+                            </div>
+                            <p class="text-xs text-gray-300 mb-4 font-medium">Membresía oficial ${rData.n}. Acceso a beneficios tácticos en el Búnker.</p>
+                            <div class="grid grid-cols-1 gap-2">
+                                <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars} Stars</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">Error cargando catálogo.</div>`; }
     },
 
     async subscribeCreatorTier(tierSlug) {
