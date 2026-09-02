@@ -12,7 +12,6 @@ body {
     font-family: 'Rajdhani', sans-serif;
     font-size: 1.15rem;
     overflow-x: hidden;
-    /* 🛡️ CSS HARDENING: Bloqueo táctil y anti-selección */
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -21,7 +20,6 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 🛡️ SENSOR DE PRIVACIDAD (APAGÓN NEGRO TOTAL) */
 .privacy-blur > * {
     opacity: 0 !important;
     pointer-events: none !important;
@@ -32,7 +30,6 @@ body {
     background-image: none !important;
 }
 
-/* TRON GRID BACKGROUND */
 .tron-grid {
     position: fixed;
     top: 0; left: 0; width: 100vw; height: 100vh;
@@ -58,7 +55,6 @@ body {
     100% { background-position: 0 400px; }
 }
 
-/* WATERMARK SIGNATURE */
 .watermark-footer {
     position: fixed;
     bottom: 4px;
@@ -79,7 +75,6 @@ body {
     pointer-events: auto;
 }
 
-/* 3D TEXT EFFECTS */
 .text-3d-cyan {
     font-family: 'Orbitron', sans-serif;
     color: #fff;
@@ -108,7 +103,6 @@ body {
         0 0 10px var(--neon-red), 0 0 20px var(--neon-red), 0 0 40px var(--neon-red);
 }
 
-/* BUTTONS & CARDS */
 .glass-panel {
     background: rgba(10, 10, 15, 0.85);
     backdrop-filter: blur(10px);
@@ -143,7 +137,6 @@ body {
     transform: scale(0.95) translateY(2px);
 }
 
-/* TELEGRAM CHANNEL FEED STYLES */
 .feed-container {
     height: calc(100vh - 120px);
     overflow-y: auto;
@@ -170,7 +163,6 @@ body {
     border-left: 3px solid var(--neon-magenta);
 }
 
-/* 🛡️ GRID UI MULTIPANTALLA & MODO PIP FLOTANTE */
 .video-grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -205,7 +197,6 @@ body {
     cursor: move;
 }
 
-/* LOCK/BLUR SYSTEM FOR PREMIUM CONTENT */
 .content-locked .media-container {
     filter: blur(15px) grayscale(50%);
     transition: filter 0.3s ease;
@@ -238,7 +229,6 @@ body {
     50% { transform: translateY(-8px); }
 }
 
-/* FLOATING LANGUAGE BUTTON (GLOBAL) */
 .fab-lang {
     position: fixed;
     bottom: 95px;
@@ -263,7 +253,6 @@ body {
     box-shadow: 0 0 25px var(--neon-cyan);
 }
 
-/* TOAST NOTIFICATION */
 .toast {
     position: fixed;
     bottom: -100px;
@@ -282,7 +271,6 @@ body {
 }
 .toast.show { bottom: 25px; }
 
-/* CUSTOM INPUT */
 .cyber-input {
     width: 100%;
     background: rgba(0, 0, 0, 0.5);
@@ -306,4 +294,10 @@ body {
 }
 .animate-fade-in {
     animation: fadeInMsg 0.3s ease-out forwards;
+}
+
+/* 🛡️ BLEND MODE MAGICO PARA INSIGNIAS (Elimina fondos negros de los JPGs/PNGs) */
+.rank-badge {
+    mix-blend-mode: screen;
+    background-color: transparent !important;
 }
