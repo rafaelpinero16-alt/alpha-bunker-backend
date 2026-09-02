@@ -212,12 +212,12 @@ const app = {
         if (rankDisplay) rankDisplay.innerHTML = rankHTML;
         if (rankFeed) rankFeed.innerHTML = `<div class="relative inline-block w-4 h-4 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[6px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle text-xs font-black">${rankInfo.name}</span>`;
 
-        // 🛡️ LÓGICA DE KYC, BILLETERAS B2C Y SEGURIDAD B2B
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const kycStatusEl = document.getElementById('prof-kyc-status'), kycDescEl = document.getElementById('prof-kyc-desc'), kycBtn = document.getElementById('btn-verify-kyc');
         const isAdminUser = this.isAdminUser();
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
-        const walletConnected = this.tonConnectUI?.connected || false;
+        
+        const walletConnected = (this.tonConnectUI && this.tonConnectUI.connected) || localStorage.getItem('alpha_ton_connected') === 'true';
         const ccConnected = localStorage.getItem('alpha_cc_connected') === 'true';
         const hasPaymentMethod = walletConnected || ccConnected;
 
@@ -230,7 +230,7 @@ const app = {
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
                 if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc') || 'Método de pago activo. No requieres verificación KYC.';
                 
-                // Botón constante para cambiar de método de pago (Wallet <-> Tarjeta)
+                // Botón constante para cambiar método de pago en cualquier momento
                 const sessionValid = localStorage.getItem('alpha_logged_in') === 'true' && this.userId;
                 if (kycBtn && sessionValid) {
                     kycBtn.classList.remove('hidden');
@@ -291,7 +291,7 @@ const app = {
                     btn.innerHTML = `<i class="fa-solid fa-star"></i> ${this.getTrans('btn_my_favorites') || 'MIS CREADORES FAVORITOS'}`;
                     btn.setAttribute('onclick', 'app.openFavoritesModal()');
                     btn.classList.replace('bg-[#ff00ff]', 'bg-[#00f3ff]'); 
-                    btn.classList.replace('text-[#ff00ff]', 'text-[#00f3ff]');
+                    btn.classList.replace('text-[#ff00ff]', 'text-[#ff00ff]');
                 });
             }
         }
@@ -314,6 +314,57 @@ const app = {
             let localId = localStorage.getItem("alpha_user_id");
             if (!localId) { localId = "99" + Math.floor(100000 + Math.random() * 900000); localStorage.setItem("alpha_user_id", localId); }
             this.userId = parseInt(localId);
+        }
+    },
+
+    async initTonConnect() {
+        if (!this.tonConnectUI && window.TON_CONNECT_UI) {
+            try {
+                this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
+                    manifestUrl: window.location.origin + '/tonconnect-manifest.json',
+                    uiPreferences: { theme: 'DARK' }
+                });
+                this.tonConnectUI.onStatusChange(async (wallet) => {
+                    const btnHdr = document.getElementById('btn-wallet-hdr');
+                    if (wallet?.account) {
+                        localStorage.setItem('alpha_ton_connected', 'true');
+                        const shortAddress = wallet.account.address.slice(0, 4) + '...' + wallet.account.address.slice(-4);
+                        if (btnHdr) btnHdr.innerText = shortAddress;
+                        await fetch(`${this.backendUrl}/wallet/connect-ton`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, ton_address: wallet.account.address }) });
+                        await this.refreshUserData();
+                        this.updateProfileUI();
+                    } else { 
+                        localStorage.removeItem('alpha_ton_connected');
+                        if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; 
+                        this.updateProfileUI();
+                    }
+                });
+            } catch (err) {}
+        }
+    },
+
+    async connectWallet() {
+        try {
+            this.haptic('medium'); 
+            this.initUserId(); 
+            await this.initTonConnect();
+            if (!this.tonConnectUI) {
+                this.showToast('⚠️ TON Connect UI no disponible.');
+                return;
+            }
+            if (this.tonConnectUI.connected) {
+                if (confirm('¿Desconectar billetera?')) { 
+                    await this.tonConnectUI.disconnect(); 
+                    const btnHdr = document.getElementById('btn-wallet-hdr'); 
+                    if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; 
+                    localStorage.removeItem('alpha_ton_connected');
+                    this.updateProfileUI();
+                }
+            } else { 
+                await this.tonConnectUI.openModal(); 
+            }
+        } catch (err) {
+            this.showToast('⚠️ Error al abrir TON Connect.');
         }
     },
 
@@ -371,7 +422,21 @@ const app = {
                             </div>
                             <div>
                                 <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_bank') || 'BANCO EMISOR'}</label>
-                                <input type="text" id="cc-bank" placeholder="Bancolombia / NeoBanco" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
+                                <select id="cc-bank" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium">
+                                    <option value="" disabled selected>Selecciona un banco internacional</option>
+                                    <option value="JPMorgan Chase">JPMorgan Chase</option>
+                                    <option value="Bank of America">Bank of America</option>
+                                    <option value="Citibank">Citibank</option>
+                                    <option value="HSBC">HSBC</option>
+                                    <option value="Santander">Santander</option>
+                                    <option value="BBVA">BBVA</option>
+                                    <option value="Bancolombia">Bancolombia</option>
+                                    <option value="Nubank">Nubank</option>
+                                    <option value="Revolut">Revolut</option>
+                                    <option value="Wise">Wise</option>
+                                    <option value="N26">N26</option>
+                                    <option value="Other International Bank">Otro Banco Internacional</option>
+                                </select>
                             </div>
                         </div>
                         <div class="mt-5 pt-3 border-t border-[#00f3ff]/30 flex gap-2">
@@ -393,16 +458,16 @@ const app = {
         const nameInput = document.getElementById('cc-name');
         const expiryInput = document.getElementById('cc-expiry');
         const cvvInput = document.getElementById('cc-cvv');
-        const bankInput = document.getElementById('cc-bank');
+        const bankSelect = document.getElementById('cc-bank');
 
         const num = numInput?.value.trim();
         const name = nameInput?.value.trim();
         const expiry = expiryInput?.value.trim();
         const cvv = cvvInput?.value.trim();
-        const bank = bankInput?.value.trim();
+        const bank = bankSelect?.value;
 
         if (!num || !name || !bank || !expiry || !cvv) {
-            this.showToast('⚠️ Completa todos los campos obligatorios de la tarjeta.');
+            this.showToast('⚠️ Completa todos los campos obligatorios y selecciona tu banco.');
             return;
         }
 
@@ -411,7 +476,6 @@ const app = {
             return;
         }
 
-        // Capa de Seguridad: Enmascaramiento y Tokenización Local
         const maskedCard = {
             last4: num.slice(-4),
             bank: bank,
@@ -422,8 +486,7 @@ const app = {
         localStorage.setItem('alpha_cc_data', JSON.stringify(maskedCard));
         localStorage.setItem('alpha_cc_connected', 'true');
         
-        // Destrucción de datos en los inputs por seguridad
-        numInput.value = ''; nameInput.value = ''; expiryInput.value = ''; cvvInput.value = ''; bankInput.value = '';
+        numInput.value = ''; nameInput.value = ''; expiryInput.value = ''; cvvInput.value = ''; bankSelect.selectedIndex = 0;
         
         this.showToast('¡Tarjeta cifrada y vinculada en tu perfil! 💳✅');
         this.closeModals();
@@ -433,7 +496,6 @@ const app = {
     payWithCreditCard(alphaAmount, targetLevel = null) {
         this.haptic('heavy');
         
-        // Validación de Token de Seguridad
         const ccData = JSON.parse(localStorage.getItem('alpha_cc_data') || '{}');
         if(!ccData.token) {
             this.showToast('⚠️ Error de seguridad. Vuelve a vincular tu tarjeta.');
@@ -449,7 +511,6 @@ const app = {
             this.refreshUserData();
             setTimeout(async () => {
                 await this.syncKYCStatus();
-                // Rango dinámico
                 let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
                 this.showLevelUpAnimation(finalLevel);
             }, 1500);
