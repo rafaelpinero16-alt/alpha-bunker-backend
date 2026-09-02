@@ -465,7 +465,6 @@ const app = {
         } catch (err) {}
     },
 
-    // 🛡️ REGLA: Catálogo Full Traducción + Aura Neón Cian + Blend Mode
     async openCatalogPackages() {
         this.closeModals();
         const modal = document.getElementById('modal-catalog');
@@ -758,18 +757,60 @@ const app = {
         if (uploadInput) uploadInput.value = ''; if (previewContainer) previewContainer.classList.add('hidden'); if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); } if (previewVideo) { previewVideo.src = ''; previewVideo.classList.add('hidden'); }
     },
 
+    deleteChatMessage(msgId, btnElement) {
+        this.haptic('medium');
+        if(confirm('¿Eliminar este contenido del chat?')) {
+            const bubble = btnElement.closest('.flex-col');
+            if(bubble) {
+                bubble.style.transition = 'all 0.3s ease';
+                bubble.style.opacity = '0';
+                bubble.style.height = '0px';
+                setTimeout(() => bubble.remove(), 300);
+            }
+            this.showToast('🗑️ Contenido eliminado.');
+        }
+    },
+
+    reportChatMessage(msgId, btnElement) {
+        this.haptic('light');
+        const menu = document.getElementById(`media-menu-${msgId}`);
+        if(menu) menu.classList.add('hidden');
+        this.showToast('🚨 Contenido reportado al Búnker Admin.');
+    },
+
     appendChatMessage(msg, containerId) {
         const container = document.getElementById(containerId); if (!container) return;
         const isMe = msg.user_id == this.userId;
+        const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin');
         const rankInfo = this.getRankBadge(msg.access_level);
         let contentObj = { text: msg.content, media_url: null };
         try { const parsed = JSON.parse(msg.content); if(parsed.text !== undefined) contentObj = parsed; } catch(e) {}
         let safeText = this.escapeHtml(contentObj.text || ''), safeMedia = '';
+        
         if (contentObj.media_url) {
             const encodedUrl = encodeURI(contentObj.media_url);
-            if (contentObj.media_url.startsWith('data:video')) { safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" controlsList="nodownload noremoteplayback" disablePictureInPicture></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl"><i class="fa-solid fa-expand text-white text-xl drop-shadow-[0_0_5px_black]"></i></div></div>`; } 
-            else { safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" /><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl"><i class="fa-solid fa-magnifying-glass-plus text-white text-xl drop-shadow-[0_0_5px_black]"></i></div></div>`; }
+            const uniqueId = msg.id || Math.random().toString(36).substr(2,9);
+            const isOwner = msg.user_id == this.userId;
+            
+            let menuHtml = `
+                <div class="absolute top-2 right-2 z-10" onclick="event.stopPropagation();">
+                    <button onclick="document.getElementById('media-menu-${uniqueId}').classList.toggle('hidden')" class="bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#00f3ff]/40 border border-transparent hover:border-[#00f3ff] backdrop-blur-md transition shadow-[0_0_10px_rgba(0,0,0,0.8)]">
+                        <i class="fa-solid fa-ellipsis-vertical"></i>
+                    </button>
+                    <div id="media-menu-${uniqueId}" class="hidden absolute right-0 mt-2 w-36 bg-neutral-900 border border-neutral-700 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col z-20">
+                        ${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this)" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800 transition flex items-center"><i class="fa-solid fa-trash-can mr-2"></i> ELIMINAR</button>` : ''}
+                        <button onclick="app.reportChatMessage('${uniqueId}', this)" class="px-4 py-3 text-xs font-black text-amber-400 hover:bg-neutral-800 text-left w-full transition flex items-center"><i class="fa-solid fa-flag mr-2"></i> REPORTAR</button>
+                    </div>
+                </div>
+            `;
+
+            if (contentObj.media_url.startsWith('data:video')) { 
+                safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" controlsList="nodownload noremoteplayback" disablePictureInPicture></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none"><i class="fa-solid fa-expand text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>${menuHtml}</div>`; 
+            } else { 
+                safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" /><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>${menuHtml}</div>`; 
+            }
         }
+
         const safeAuthorName = this.escapeHtml(msg.author_name);
         let html = '';
         if (msg.is_system) {
