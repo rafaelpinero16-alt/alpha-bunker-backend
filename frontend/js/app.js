@@ -46,18 +46,22 @@ const app = {
         } catch (e) {}
     },
 
-    // 🛡️ Alertas Efímeras: Desaparecen con 1 toque al instante
+    // 🛡️ REGLA: Alertas Efímeras Obligatorias (Máx 2s)
     showToast(msg) {
         const toast = document.getElementById('toast');
         if (toast) { 
             toast.innerText = msg; 
             toast.classList.add('show'); 
+            
+            clearTimeout(this.toastTimer);
+            this.toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2000); 
+            
             toast.onclick = () => {
                 toast.classList.remove('show');
                 clearTimeout(this.toastTimer);
             };
-            clearTimeout(this.toastTimer);
-            this.toastTimer = setTimeout(() => toast.classList.remove('show'), 1500); 
         }
     },
 
@@ -187,7 +191,6 @@ const app = {
                     if (data.access_level !== undefined) {
                         this.userData.access_tier = data.access_level;
                     }
-                    // 🛡️ Extraemos el conteo de advertencias
                     if (data.warnings_count !== undefined) {
                         this.userData.warnings = data.warnings_count;
                     }
@@ -236,7 +239,6 @@ const app = {
 
         const isAdminUser = (String(this.userId) === '8269470905' || this.userData?.role === 'admin' || localStorage.getItem('alpha_user_role') === 'admin');
 
-        // 🛡️ REGLA: Advertencias visibles en la UI
         let warningText = "";
         let warningClass = "text-amber-400";
         if(this.userData.warnings > 0) {
@@ -992,7 +994,6 @@ const app = {
         }
     },
 
-    // 🛡️ REGLA: NO CERRAR LA CÁMARA (MULTITAREA)
     closeModals() {
         this.haptic('light');
         if (this.chatSocket) {
@@ -1255,6 +1256,7 @@ const app = {
         }
     },
 
+    // 🛡️ REGLA: Prevenir bucles de reconexión y fallos molestos
     sendGlobalChatMessage() {
         this.haptic('light');
         this.initUserId();
@@ -1287,26 +1289,32 @@ const app = {
         }
 
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
+        
+        // Verificación extra de estado de socket antes de enviar
+        if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) {
+            this.showToast('Reconectando al servidor... ⏳');
+            BunkerChat.initGlobal(this.userId, this.backendUrl);
+            
+            // Intento único limpio (sin bucles)
+            setTimeout(() => {
+                if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) {
+                    BunkerChat.sendGlobal(payload);
+                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
+                    this.clearChatMedia('global');
+                } else {
+                    this.showToast('⚠️ Red inestable. Mensaje no enviado.');
+                }
+            }, 1500);
+            return;
+        }
+
         const success = BunkerChat.sendGlobal(payload);
 
         if (success) {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.clearChatMedia('global');
         } else {
-            this.showToast('Reconectando al servidor... ⏳');
-            if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState === WebSocket.CLOSED) {
-                 BunkerChat.initGlobal(this.userId, this.backendUrl);
-            }
-            if(this.globalSendRetry) clearTimeout(this.globalSendRetry);
-            this.globalSendRetry = setTimeout(() => {
-                if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) {
-                    BunkerChat.sendGlobal(payload);
-                    if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
-                    this.clearChatMedia('global');
-                } else {
-                    this.showToast('⚠️ No se pudo enviar el mensaje. Intenta de nuevo.');
-                }
-            }, 2000);
+            this.showToast('⚠️ Error al enviar. Intenta nuevamente.');
         }
     },
 
