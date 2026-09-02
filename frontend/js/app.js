@@ -46,7 +46,7 @@ const app = {
         } catch (e) {}
     },
 
-    // 🛡️ REGLA: Toasts efímeros, desaparecen en solo 1 segundo
+    // 🛡️ REGLA: Toasts efímeros, desaparecen en exactamente 1 segundo
     showToast(msg) {
         const toast = document.getElementById('toast');
         if (toast) { 
@@ -304,7 +304,7 @@ const app = {
         if (tgUser && tgUser.id) {
             const savedId = localStorage.getItem("alpha_user_id");
             if (savedId && savedId != tgUser.id) {
-                ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role'].forEach(k => localStorage.removeItem(k));
+                ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
             }
             this.userId = tgUser.id;
             localStorage.setItem("alpha_user_id", this.userId);
@@ -666,7 +666,7 @@ const app = {
                 throw new Error(data.detail || 'Error al procesar KYC');
             }
         } catch (err) {
-            this.showToast(`⚠️ Error: ${err.message || 'No se pudo conectar al backend'}`);
+            this.showToast(`⚠️ Error: ${err.message || 'No se pudo conectar ao backend'}`);
         }
     },
 
@@ -802,16 +802,20 @@ const app = {
         }
     },
 
+    // 🛡️ REGLA: Forzar limpieza de cache para cuentas nuevas
     registerWithData() {
         this.haptic('medium');
         const email = document.getElementById('reg-email-input')?.value.trim();
         const phone = document.getElementById('reg-phone-input')?.value.trim();
-        const pass = document.getElementById('reg-password-input')?.value.trim();
-
+        
         if (!phone && !email) {
             this.showToast('⚠️ Ingresa al menos un número o correo.');
             return;
         }
+
+        ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 };
+        this.initUserId();
 
         const isCreator = this.registerRoleSelected === 'creator';
         this.userData.role = this.registerRoleSelected;
@@ -823,6 +827,7 @@ const app = {
 
         this.showToast(`¡Cuenta creada como ${isCreator ? 'CREADOR 👑' : 'FAN 💎'}!`);
         this.switchView('feed');
+        this.syncKYCStatus();
         this.updateProfileUI();
         this.updateViewsCounter();
         this.refreshUserData();
@@ -837,12 +842,17 @@ const app = {
             return;
         }
 
+        ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 };
         this.initUserId();
+        
         localStorage.setItem('alpha_logged_in', 'true');
         localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
         
         this.showToast('¡Acceso concedido al Búnker! 🛡️');
         this.switchView('feed');
+        
+        await this.syncKYCStatus();
         this.updateProfileUI();
         this.updateViewsCounter();
         this.refreshUserData();
@@ -936,9 +946,13 @@ const app = {
     },
 
     exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
+
+    // 🛡️ REGLA: Purga total de caché al cerrar sesión
     logout() { 
         this.haptic('medium'); 
-        localStorage.removeItem('alpha_logged_in'); 
+        ['alpha_logged_in', 'alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 };
+        this.userId = null;
         this.switchView('consent'); 
     },
 
@@ -1005,7 +1019,6 @@ const app = {
             this.globalChatSocket = null;
         }
 
-        // Cierra los modales comunes SIN APAGAR LA CÁMARA NI EL VIDEO FLOTANTE
         ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
@@ -1039,7 +1052,12 @@ const app = {
                     data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages'));
                     this.scrollToBottom('chat-messages');
                 } else {
-                    container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-semibold">Soporte Búnker CRM iniciado. 🛡️</div>';
+                    // 🛡️ REGLA: Auto-destrucción a 1 segundo del placeholder
+                    container.innerHTML = `<div id="welcome-crm-msg" class="text-center text-neutral-500 mt-4 text-[10px] font-semibold uppercase tracking-widest transition-opacity duration-300">Soporte Búnker CRM iniciado. 🛡️</div>`;
+                    setTimeout(() => {
+                        const el = document.getElementById('welcome-crm-msg');
+                        if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
+                    }, 1000);
                 }
             }
         } catch (err) {}
@@ -1063,7 +1081,12 @@ const app = {
                     data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages'));
                     this.scrollToBottom('global-chat-messages');
                 } else {
-                    container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-semibold">Chat Global Búnker activo. 🌐</div>';
+                    // 🛡️ REGLA: Auto-destrucción a 1 segundo del placeholder
+                    container.innerHTML = `<div id="welcome-global-msg" class="text-center text-neutral-500 mt-4 text-[10px] font-semibold uppercase tracking-widest transition-opacity duration-300">Chat Global Búnker activo. 🌐</div>`;
+                    setTimeout(() => {
+                        const el = document.getElementById('welcome-global-msg');
+                        if (el) { el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }
+                    }, 1000);
                 }
             }
         } catch (e) {}
@@ -1188,7 +1211,6 @@ const app = {
 
         let html = '';
         if (msg.is_system) {
-            // 🛡️ REGLA: Traducción dinámica del SYS_WARN_SPAM y Auto-Destrucción Visual (1.5 segs)
             let isSpamWarning = false;
             try {
                 const sysData = JSON.parse(contentObj.text);
@@ -1202,15 +1224,16 @@ const app = {
             } catch(e) {}
 
             const msgId = `sys-msg-${msg.id || Date.now()}-${Math.random().toString(36).substr(2,9)}`;
-            html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-500"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-xs px-4 py-2 rounded-full font-bold text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
+            html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             
+            // 🛡️ REGLA: Auto-destrucción estricta de mensajes de servicio en el chat a 1 segundo
             setTimeout(() => {
                 const el = document.getElementById(msgId);
                 if(el) {
                     el.style.opacity = '0';
-                    setTimeout(() => el.remove(), 500);
+                    setTimeout(() => el.remove(), 300);
                 }
-            }, 1500); 
+            }, 1000); 
 
         } else if (isMe) {
             html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">TÚ • ${rankName}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
@@ -1333,7 +1356,7 @@ const app = {
             if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); }
             this.clearChatMedia('global');
         } else {
-            this.showToast('⚠️ Error al enviar. Intenta nuevamente.');
+            this.showToast('⚠️ Error al enviar. Intenta novamente.');
         }
     },
 
