@@ -46,6 +46,7 @@ const app = {
         } catch (e) {}
     },
 
+    // 🛡️ Alertas Efímeras: Desaparecen con 1 toque al instante
     showToast(msg) {
         const toast = document.getElementById('toast');
         if (toast) { 
@@ -692,7 +693,7 @@ const app = {
             await this.initTonConnect();
 
             if (!this.tonConnectUI) {
-                this.showToast('⚠️ Módulo TON no disponible.');
+                this.showToast('⚠️ Módulo TON no disponível.');
                 return;
             }
 
@@ -976,6 +977,7 @@ const app = {
         }
     },
 
+    // 🛡️ REGLA: NO CERRAR LA CÁMARA (MULTITAREA)
     closeModals() {
         this.haptic('light');
         if (this.chatSocket) {
@@ -987,6 +989,7 @@ const app = {
             this.globalChatSocket = null;
         }
 
+        // Cierra los modales comunes SIN APAGAR LA CÁMARA NI EL VIDEO FLOTANTE
         ['modal-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
@@ -1295,7 +1298,6 @@ const app = {
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
-    // 🛡️ REGLA: VENTANA FLOTANTE DE VIDEO INDEPENDIENTE + AUDIO + OBS
     async joinVideoBunker() {
         this.haptic('medium');
         this.initUserId();
@@ -1312,7 +1314,6 @@ const app = {
         const placeholder = document.getElementById('cam-loading-placeholder');
         const badge = document.getElementById('video-badge');
         const btnGoLive = document.getElementById('btn-go-live');
-        const btnCancel = document.getElementById('btn-cancel-stream');
 
         if(bunker) {
             bunker.classList.remove('hidden');
@@ -1327,25 +1328,22 @@ const app = {
             badge.innerText = 'PREVISUALIZACIÓN';
         }
         if(btnGoLive) btnGoLive.classList.remove('hidden');
-        if(btnCancel) btnCancel.classList.add('hidden');
 
         if(placeholder) {
             placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i><p class="text-xs text-[#00f3ff] font-bold tracking-widest text-center mt-2">SOLICITANDO PERMISOS<br>EN NAVEGADOR...</p>`;
             placeholder.classList.remove('hidden');
         }
 
-        this.showToast('Acepta los permisos de micrófono y cámara... 📡');
+        this.showToast('Acepta los permisos de cámara y micrófono... 📡');
         await this.requestAndLoadMedia();
     },
 
     async requestAndLoadMedia() {
         try {
-            // Intentar pedir Video + Audio
             let stream;
             try {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
             } catch (e) {
-                // Fallback por si la PC no tiene micrófono pero sí tiene OBS/Cámara
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
             }
 
@@ -1366,16 +1364,15 @@ const app = {
                 placeholder.classList.add('hidden');
             }
 
-            this.showToast('✅ Módulo A/V listo. Puedes revisar los Ajustes (⚙️).');
+            this.showToast('✅ Cámara local activada.');
             await this.populateMediaDevices(stream);
 
         } catch (err) {
             console.error(err);
             const placeholder = document.getElementById('cam-loading-placeholder');
             if(placeholder) {
-                placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i><p class="text-xs text-red-500 font-bold tracking-widest text-center mt-2">PERMISO DENEGADO<br>Habilita la cámara/mic en tu navegador</p>`;
+                placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i><p class="text-xs text-red-500 font-bold tracking-widest text-center mt-2">PERMISO DENEGADO<br>Habilita la cámara en tu navegador</p>`;
             }
-            this.showToast('⚠️ Permiso denegado.');
         }
     },
 
@@ -1450,7 +1447,6 @@ const app = {
         }
     },
 
-    // 🛡️ CONTROLES HARDWARE (Mic, Cam, Tuerca Ajustes)
     toggleMic() {
         this.haptic('light');
         if (this.activeWebcamStream && this.activeWebcamStream.getAudioTracks().length > 0) {
@@ -1458,7 +1454,7 @@ const app = {
             this.activeWebcamStream.getAudioTracks()[0].enabled = !this.isMicMuted;
             this.updateMediaTogglesUI();
         } else {
-            this.showToast('⚠️ No hay micrófono activo. Revisa ajustes (⚙️).');
+            this.showToast('⚠️ No hay micrófono conectado.');
         }
     },
 
@@ -1533,13 +1529,11 @@ const app = {
             this.isCamOff = false;
             this.updateMediaTogglesUI();
             this.closeAVSettings();
-            this.showToast('✅ Dispositivos actualizados.');
         } catch(e) {
             this.showToast('⚠️ Error al aplicar dispositivos.');
         }
     },
 
-    // 🛡️ BOTÓN: MINIMIZAR A VENTANA FLOTANTE (PIP) PARA CHATEAR
     toggleMinimizeVideo() {
         this.haptic('light');
         const bunker = document.getElementById('floating-video-bunker');
@@ -1553,7 +1547,7 @@ const app = {
             bunker.classList.remove('inset-0');
             controls.classList.add('hidden');
             icon.className = 'fa-solid fa-expand';
-            this.showToast('Modo Ventana Flotante activo. Puedes abrir el chat.');
+            // 🛡️ REGLA: Eliminado el Toast obstructivo al minimizar. Transición limpia.
         } else {
             bunker.classList.remove('pip-mode');
             bunker.classList.add('inset-0');
@@ -1562,21 +1556,16 @@ const app = {
         }
     },
 
-    // 🛡️ BOTÓN: INICIAR TRANSMISIÓN PÚBLICA
     startLiveTransmission() {
         this.haptic('heavy');
         const badge = document.getElementById('video-badge');
         const btnGoLive = document.getElementById('btn-go-live');
-        const btnCancel = document.getElementById('btn-cancel-stream');
         
         if(badge) {
             badge.className = 'absolute top-2 left-2 z-20 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md';
             badge.innerText = 'EN VIVO';
         }
         if(btnGoLive) btnGoLive.classList.add('hidden');
-        if(btnCancel) btnCancel.classList.remove('hidden');
-        
-        this.showToast('🔴 ¡Estás transmitiendo en vivo en el Búnker!');
         
         const announceMsg = this.getTrans('stream_announce');
         const payload = JSON.stringify({ text: announceMsg, media_url: null });
@@ -1586,22 +1575,7 @@ const app = {
         }
     },
 
-    cancelLiveTransmission() {
-        this.haptic('medium');
-        const badge = document.getElementById('video-badge');
-        const btnGoLive = document.getElementById('btn-go-live');
-        const btnCancel = document.getElementById('btn-cancel-stream');
-        
-        if(badge) {
-            badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md';
-            badge.innerText = 'PREVISUALIZACIÓN';
-        }
-        if(btnCancel) btnCancel.classList.add('hidden');
-        if(btnGoLive) btnGoLive.classList.remove('hidden');
-        
-        this.showToast('Transmisión pública pausada. Solo tú puedes ver esto.');
-    },
-
+    // 🛡️ REGLA: SOLO EL BOTÓN ROJO MATA LA CÁMARA
     leaveVideoBunker() {
         this.haptic('light');
         if (this.activeWebcamStream) {
@@ -1618,8 +1592,6 @@ const app = {
         if (bunker) bunker.classList.add('hidden');
         
         this.isVideoMinimized = false;
-        
-        this.showToast('Cámara cerrada.');
     },
 
     startVideoCall() { 
