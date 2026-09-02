@@ -100,17 +100,6 @@ const app = {
         animate();
     },
 
-    renderAntiLeakWatermark() {
-        let wm = document.getElementById('anti-leak-wm');
-        if (!wm) {
-            wm = document.createElement('div'); wm.id = 'anti-leak-wm'; wm.className = 'anti-leak-watermark'; document.body.appendChild(wm);
-        }
-        const stamp = `ID:${this.userId || 'GUEST'} • ALPHA`;
-        let content = '';
-        for(let i=0; i<150; i++) content += `<span>${stamp}</span>`;
-        wm.innerHTML = content;
-    },
-
     async refreshUserData() {
         if (!this.userId) this.initUserId();
         if (!this.userId) return;
@@ -211,7 +200,6 @@ const app = {
             if (!localId) { localId = "99" + Math.floor(100000 + Math.random() * 900000); localStorage.setItem("alpha_user_id", localId); }
             this.userId = parseInt(localId);
         }
-        this.renderAntiLeakWatermark();
     },
 
     async loadTipMenu(creatorId) {
@@ -223,7 +211,6 @@ const app = {
         return [];
     },
 
-    // 🛡️ REGLA: Optimización Visual Creador (Guardar Todos y Regresar)
     async openTipMenuManagementModal() {
         this.closeModals();
         this.initUserId();
@@ -301,7 +288,6 @@ const app = {
         if(successCount > 0) this.closeModals();
     },
 
-    // 🛡️ REGLA: Optimización Visual Perfil del Creador (Scrollable + Feed Propio + Botón Tip Menu)
     async viewCreatorProfile(creatorId, creatorName) {
         this.haptic('medium');
         this.closeModals();
@@ -404,7 +390,6 @@ const app = {
         }
     },
 
-    // 🛡️ REGLA: Optimización Visual del Menú Propina Fan (Regresar + Diseño Compacto)
     async openFanTipMenu(creatorId, postId, creatorName) {
         this.closeModals();
         this.initUserId();
@@ -990,6 +975,56 @@ const app = {
         } catch (e) {}
     },
 
+    async openFanTipMenu(creatorId, postId, creatorName) {
+        this.closeModals();
+        this.initUserId();
+        
+        let modal = document.getElementById('modal-fan-tip-menu');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-fan-tip-menu" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#ffb703] rounded-3xl p-6 w-11/12 max-w-lg max-h-[85vh] flex flex-col shadow-[0_0_20px_rgba(255,183,3,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ffb703]/30">
+                            <h3 class="text-xl font-black text-[#ffb703] uppercase tracking-wider"><i class="fa-solid fa-coins mr-2"></i> TIP MENU</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        </div>
+                        <p class="text-center font-bold text-white mb-4 uppercase tracking-widest text-sm">Apoya a <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
+                        <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-4"></div>
+                        
+                        <div class="mt-4 pt-4 border-t border-[#ffb703]/30 flex justify-between gap-2 shrink-0">
+                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase">Regresar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-fan-tip-menu');
+        }
+
+        document.getElementById('fan-tip-creator-name').innerText = `@${creatorName}`;
+        modal.classList.remove('hidden');
+
+        const container = document.getElementById('fan-tip-slots-container');
+        container.innerHTML = '<div class="text-center text-neutral-400 mt-4 font-bold">Desplegando menú... ⏳</div>';
+        
+        const slots = await this.loadTipMenu(creatorId);
+        container.innerHTML = slots.length === 0 ? '<div class="text-center text-neutral-500 mt-10 font-bold bg-black/50 p-4 rounded-xl">El creador aún no configura su Tip Menu.</div>' : slots.map(s => `
+            <button onclick="app.sendTipFromPost(${creatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-4 flex justify-between items-center text-white transition active:scale-95 shadow-md">
+                <span class="font-bold text-sm text-left truncate pr-2">${this.escapeHtml(s.title)}</span>
+                <span class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-xs font-black px-3 py-1.5 rounded-xl shadow-md whitespace-nowrap">${s.price_alpha} $ALPHA</span>
+            </button>
+        `).join('');
+    },
+
+    async sendTipFromPost(creatorId, amount, postId) {
+        try {
+            await sendAlphaTip(this.userId, creatorId, amount, postId);
+            this.triggerFireworks(); 
+            this.closeModals();
+            await this.refreshUserData();
+        } catch (e) { }
+    },
+
     selectCreatorRole() { this.closeModals(); },
     selectFanRole() { this.closeModals(); }
 };
@@ -998,10 +1033,23 @@ window.app = app;
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof app === 'undefined') return;
     app.checkSession(); app.generateCaptcha();
+    
+    // 🛡️ REGLA: Sensor de Privacidad y Anti-Screen Record (Telón Negro)
+    const applyPrivacyBlackout = () => document.body.classList.add('privacy-blur');
+    const removePrivacyBlackout = () => document.body.classList.remove('privacy-blur');
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) applyPrivacyBlackout();
+        else removePrivacyBlackout();
+    });
+
+    // Detectar cuando el SO superpone menús (como herramientas de captura o notificaciones)
+    window.addEventListener('blur', applyPrivacyBlackout);
+    window.addEventListener('focus', removePrivacyBlackout);
+
     document.addEventListener('contextmenu', event => event.preventDefault());
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('CONTENIDO PROTEGIDO BÚNKER'); app.showToast('⚠️ Capturas de pantalla bloqueadas.'); }
+        if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('CONTENIDO PROTEGIDO BÚNKER'); app.showToast('⚠️ Capturas bloqueadas.'); }
         if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
     });
-    document.addEventListener('visibilitychange', () => { if (document.hidden) { document.body.classList.add('privacy-blur'); } else { document.body.classList.remove('privacy-blur'); } });
 });

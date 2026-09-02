@@ -21,36 +21,15 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
-/* 🛡️ SENSOR DE PRIVACIDAD (BLUR) */
+/* 🛡️ SENSOR DE PRIVACIDAD (APAGÓN NEGRO TOTAL) */
+.privacy-blur > * {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.05s ease !important;
+}
 .privacy-blur {
-    filter: blur(25px) grayscale(100%);
-    pointer-events: none;
-    transition: filter 0.1s ease;
-}
-
-/* 🛡️ MARCA DE AGUA ANTI-LEAK (ID DEL USUARIO) */
-.anti-leak-watermark {
-    position: fixed;
-    top: -50%;
-    left: -50%;
-    width: 200vw;
-    height: 200vh;
-    pointer-events: none;
-    z-index: 9998; 
-    display: flex;
-    flex-wrap: wrap;
-    overflow: hidden;
-    opacity: 0.03; /* Apenas visible para no estorbar, pero detectable forensemente */
-    color: #fff;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 18px;
-    transform: rotate(-35deg);
-    user-select: none;
-    align-content: flex-start;
-}
-.anti-leak-watermark span {
-    padding: 30px 40px;
-    white-space: nowrap;
+    background: #000000 !important;
+    background-image: none !important;
 }
 
 /* TRON GRID BACKGROUND */
