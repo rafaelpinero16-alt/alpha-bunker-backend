@@ -29,7 +29,10 @@ window.t = {
         status_unlinked_desc: "Conecta tu Wallet o Tarjeta de Crédito para verificar tu cuenta sin hacer KYC.",
         btn_link_payment: "VINCULAR PAGO", btn_my_favorites: "MIS CREADORES FAVORITOS",
         favorites_title: "FAVORITOS", favorites_desc: "Etiqueta a tus 10 creadores favoritos del Búnker para acceder rápido a sus perfiles.",
-        level_up_title: "¡NUEVO RANGO!", level_up_sub: "Privilegios Desbloqueados", warnings_label: "ADVERTENCIAS"
+        level_up_title: "¡NUEVO RANGO!", level_up_sub: "Privilegios Desbloqueados", warnings_label: "ADVERTENCIAS",
+        recurring_billing_label: "HABILITAR SUSCRIPCIÓN MENSUAL RECURRENTE",
+        recurring_billing_desc: "Se procesará el cobro automático de tu rango cada 30 días. Recibirás una alerta 3 días antes.",
+        payment_log_title: "REGISTRO DE PAGOS B2C / B2B"
     },
     en: { 
         warn_title: "WARNING", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "This space contains explicit material.", warn_p2: "By entering, you confirm you are of legal age (18+).", btn_accept: "I ACCEPT", btn_exit: "EXIT", btn_back: "BACK", login_title: "VAULT ACCESS", login_desc: "Log in or create your account.", lbl_phone: "PHONE NUMBER", btn_phone_login: "LOGIN WITH NUMBER", or_direct: "OR DIRECTLY WITH", btn_tg_login: "LOGIN WITH TELEGRAM", no_account: "Don't have an account yet?", btn_create_acc: "CREATE NEW ACCOUNT", cap_title: "HUMAN VERIFICATION", cap_desc: "Solve the security code to enter.", btn_new_code: "Generate another code", btn_verify: "VERIFY ACCESS", reg_title: "NEW ACCOUNT", reg_desc: "Register to get access.", lbl_email: "EMAIL ADDRESS", btn_register: "REGISTER", or_fast: "OR FAST WITH", have_account: "Already have an account?", btn_login_link: "Log In", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -60,7 +63,10 @@ window.t = {
         status_unlinked_desc: "Connect your Wallet or Credit Card to verify your account without KYC.",
         btn_link_payment: "LINK PAYMENT", btn_my_favorites: "MY FAVORITE CREATORS",
         favorites_title: "FAVORITES", favorites_desc: "Tag your top 10 favorite Bunker creators for quick access.",
-        level_up_title: "NEW RANK!", level_up_sub: "Privileges Unlocked", warnings_label: "WARNINGS"
+        level_up_title: "NEW RANK!", level_up_sub: "Privileges Unlocked", warnings_label: "WARNINGS",
+        recurring_billing_label: "ENABLE RECURRING MONTHLY SUBSCRIPTION",
+        recurring_billing_desc: "Your rank will be automatically charged every 30 days. You will receive an alert 3 days prior.",
+        payment_log_title: "B2C / B2B PAYMENT LOG"
     },
     it: { 
         warn_title: "AVVERTENZA", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Questo spazio contiene materiale esplicito.", warn_p2: "Entrando, confermi di essere maggiorenne.", btn_accept: "ACCETTO", btn_exit: "ESCI", btn_back: "INDIETRO", login_title: "ACCESSO AL VAULT", login_desc: "Accedi o crea il tuo account.", lbl_phone: "NUMERO DI TELEFONO", btn_phone_login: "ACCEDI CON NUMERO", or_direct: "O DIRETTAMENTE CON", btn_tg_login: "LOGIN CON TELEGRAM", no_account: "Non hai ancora un account?", btn_create_acc: "CREA NUOVO ACCOUNT", cap_title: "VERIFICA UMANA", cap_desc: "Risolvi il codice di sicurezza.", btn_new_code: "Genera altro codice", btn_verify: "VERIFICA ACCESSO", reg_title: "NUOVO ACCOUNT", reg_desc: "Registrati per l'accesso.", lbl_email: "EMAIL", btn_register: "REGISTRATI", or_fast: "O VELOCE CON", have_account: "Hai già un account?", btn_login_link: "Accedi", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -91,7 +97,10 @@ window.t = {
         status_unlinked_desc: "Collega il tuo Portafoglio o Carta per verificare l'account senza KYC.",
         btn_link_payment: "COLLEGA PAGAMENTO", btn_my_favorites: "I MIEI CREATOR PREFERITI",
         favorites_title: "PREFERITI", favorites_desc: "Etichetta i tuoi 10 creator preferiti del Bunker per un accesso rapido.",
-        level_up_title: "NUOVO RANGO!", level_up_sub: "Privilegi Sbloccati", warnings_label: "AVVERTIMENTI"
+        level_up_title: "NUOVO RANGO!", level_up_sub: "Privilegi Sbloccati", warnings_label: "AVVERTIMENTI",
+        recurring_billing_label: "ABILITA ABBONAMENTO MENSILE RICORRENTE",
+        recurring_billing_desc: "Il tuo rango verrà addebitato automaticamente ogni 30 giorni. Riceverai un avviso 3 giorni prima.",
+        payment_log_title: "REGISTRO PAGAMENTI B2C / B2B"
     },
     pt: { 
         warn_title: "AVISO", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Este espaço contém material explícito.", warn_p2: "Ao entrar, você confirma ser maior de idade (18+).", btn_accept: "ACEITO", btn_exit: "SAIR", btn_back: "VOLTAR", login_title: "ACESSO AO VAULT", login_desc: "Faça login ou crie sua conta.", lbl_phone: "NÚMERO DE TELEFONE", btn_phone_login: "ENTRAR COM NÚMERO", or_direct: "OU DIRETAMENTE COM", btn_tg_login: "LOGIN COM TELEGRAM", no_account: "Ainda não tem conta?", btn_create_acc: "CRIAR NOVA CONTA", cap_title: "VERIFICAÇÃO HUMANA", cap_desc: "Resolva o código de segurança.", btn_new_code: "Gerar outro código", btn_verify: "VERIFICAR ACESSO", reg_title: "NOVA CONTA", reg_desc: "Registre-se para acessar.", lbl_email: "E-MAIL", btn_register: "REGISTRAR", or_fast: "OU RÁPIDO COM", have_account: "Já tem conta?", btn_login_link: "Fazer Login", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -122,7 +131,10 @@ window.t = {
         status_unlinked_desc: "Conecte sua Carteira ou Cartão de Crédito para verificar a conta sem KYC.",
         btn_link_payment: "VINCULAR PAGAMENTO", btn_my_favorites: "MEUS CRIADORES FAVORITOS",
         favorites_title: "FAVORITOS", favorites_desc: "Marque seus 10 criadores favoritos do Búnker para acesso rápido.",
-        level_up_title: "NOVO RANGO!", level_up_sub: "Privilégios Desbloqueados", warnings_label: "AVISOS"
+        level_up_title: "NOVO RANGO!", level_up_sub: "Privilégios Desbloqueados", warnings_label: "AVISOS",
+        recurring_billing_label: "ATIVAR ASSINATURA MENSAL RECORRENTE",
+        recurring_billing_desc: "O seu rango será cobrado automaticamente a cada 30 dias. Você receberá um alerta 3 dias antes.",
+        payment_log_title: "REGISTRO DE PAGAMENTOS B2C / B2B"
     },
     de: { 
         warn_title: "WARNUNG", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Dieser Raum enthält sexuelles Material.", warn_p2: "Mit dem Betreten bestätigen Sie, dass Sie über 18 Jahre alt sind.", btn_accept: "AKZEPTIEREN", btn_exit: "VERLASSEN", btn_back: "ZURÜCK", login_title: "VAULT ZUGANG", login_desc: "Melden Sie sich an.", lbl_phone: "TELEFONNUMMER", btn_phone_login: "MIT NUMMER ANMELDEN", or_direct: "ODER DIREKT MIT", btn_tg_login: "LOGIN MIT TELEGRAM", no_account: "Noch kein Konto?", btn_create_acc: "NEUES KONTO ERSTELLEN", cap_title: "MENSCHLICHE PRÜFUNG", cap_desc: "Lösen Sie den Sicherheitscode.", btn_new_code: "Neuen Code generieren", btn_verify: "ZUGANG PRÜFEN", reg_title: "NEUES KONTO", reg_desc: "Registrieren.", lbl_email: "E-MAIL", btn_register: "REGISTRAR", or_fast: "ODER SCHNELL MIT", have_account: "Bereits ein Konto?", btn_login_link: "Anmelden", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -153,7 +165,10 @@ window.t = {
         status_unlinked_desc: "Verbinden Sie Wallet oder Kreditkarte, um das Konto ohne KYC zu verifizieren.",
         btn_link_payment: "ZAHLUNG VERKNÜPFEN", btn_my_favorites: "MEINE LIEBLINGS-CREATORS",
         favorites_title: "FAVORITEN", favorites_desc: "Markieren Sie Ihre 10 Lieblings-Bunker-Creators für schnellen Zugriff.",
-        level_up_title: "NEUER RANG!", level_up_sub: "Privilegien Freigeschaltet", warnings_label: "WARNUNGEN"
+        level_up_title: "NEUER RANG!", level_up_sub: "Privilegien Freigeschaltet", warnings_label: "WARNUNGEN",
+        recurring_billing_label: "AUTOMATISCHE MONATLICHE ABONNIERUNG AKTIVIEREN",
+        recurring_billing_desc: "Ihr Rang wird alle 30 Tage automatisch belastet. Sie erhalten 3 Tage im Voraus eine Benachrichtigung.",
+        payment_log_title: "B2C / B2B ZAHLUNGSPROTOKOLL"
     },
     fr: { 
         warn_title: "AVERTISSEMENT", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Cet espace contient du matériel explicite.", warn_p2: "En entrant, vous confirmez avoir plus de 18 ans.", btn_accept: "J'ACCEPTE", btn_exit: "SORTIR", btn_back: "RETOUR", login_title: "ACCÈS VAULT", login_desc: "Connectez-vous.", lbl_phone: "NUMÉRO DE TÉLÉPHONE", btn_phone_login: "CONNEXION AVEC NUMÉRO", or_direct: "OU DIRECTEMENT AVEC", btn_tg_login: "CONNEXION TELEGRAM", no_account: "Pas encore de compte ?", btn_create_acc: "CRÉER UN COMPTE", cap_title: "VÉRIFICATION", cap_desc: "Résolvez le code.", btn_new_code: "Générer un autre code", btn_verify: "VÉRIFIER", reg_title: "NOUVEAU COMPTE", reg_desc: "Inscrivez-vous.", lbl_email: "E-MAIL", btn_register: "S'INSCRIRE", or_fast: "OU RAPIDE AVEC", have_account: "Déjà un compte ?", btn_login_link: "Se connecter", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -184,7 +199,10 @@ window.t = {
         status_unlinked_desc: "Connectez votre Portefeuille ou Carte de Crédit pour vérifier le compte sans KYC.",
         btn_link_payment: "LIER LE PAIEMENT", btn_my_favorites: "MES CRÉATEURS FAVORIS",
         favorites_title: "FAVORIS", favorites_desc: "Étiquetez vos 10 créateurs favoris du Bunker pour un accès rapide.",
-        level_up_title: "NOUVEAU RANG!", level_up_sub: "Privilèges Débloqués", warnings_label: "AVERTISSEMENTS"
+        level_up_title: "NOUVEAU RANGO!", level_up_sub: "Privilèges Débloqués", warnings_label: "AVERTISSEMENTS",
+        recurring_billing_label: "ACTIVER L'ABONNEMENT MENSUEL RÉCURRENT",
+        recurring_billing_desc: "Votre rang sera facturé automatiquement tous les 30 jours. Vous recevrez une alerte 3 jours avant.",
+        payment_log_title: "JOURNAL DES PAIEMENTS B2C / B2B"
     }
 };
 
