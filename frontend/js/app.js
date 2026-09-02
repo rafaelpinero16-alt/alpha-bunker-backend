@@ -45,7 +45,7 @@ const app = {
         } catch (e) {}
     },
 
-    // 🛡️ REGLA ABSOLUTA: Toasts de servicio dinámicos que no bloquean clics y mueren en 1.5s
+    // 🛡️ REGLA: Toasts de servicio dinámicos que no bloquean clics y mueren en 1.5s
     showToast(msg) {
         let oldToast = document.getElementById('alpha-dynamic-toast');
         if (oldToast) oldToast.remove();
@@ -155,6 +155,23 @@ const app = {
             }
         }
         animate();
+    },
+
+    // 🛡️ REGLA: Inyección Dinámica de Marca de Agua
+    renderAntiLeakWatermark() {
+        let wm = document.getElementById('anti-leak-wm');
+        if (!wm) {
+            wm = document.createElement('div');
+            wm.id = 'anti-leak-wm';
+            wm.className = 'anti-leak-watermark';
+            document.body.appendChild(wm);
+        }
+        const stamp = `ID:${this.userId || 'GUEST'} • ALPHA`;
+        let content = '';
+        for(let i=0; i<150; i++) {
+            content += `<span>${stamp}</span>`;
+        }
+        wm.innerHTML = content;
     },
 
     async refreshUserData() {
@@ -322,6 +339,8 @@ const app = {
             }
             this.userId = parseInt(localId);
         }
+        // 🛡️ REGLA: Al iniciar la ID, inyectamos su huella forense en la pantalla
+        this.renderAntiLeakWatermark();
     },
 
     async loadTipMenu(creatorId) {
@@ -1038,7 +1057,6 @@ const app = {
     openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); },
 
-    // 🛡️ REGLA ABSOLUTA: Asesino Silencioso de Mensajes de Servicio en el Chat
     setupSystemMessageObserver(containerId) {
         const container = document.getElementById(containerId);
         if (!container || container.dataset.observed === 'true') return;
@@ -1393,6 +1411,7 @@ const app = {
         }
 
         const bunker = document.getElementById('floating-video-bunker');
+        const placeholder = document.getElementById('cam-loading-placeholder');
         const badge = document.getElementById('video-badge');
         const btnGoLive = document.getElementById('btn-go-live');
 
@@ -1409,6 +1428,11 @@ const app = {
             badge.innerText = 'PREVISUALIZACIÓN';
         }
         if(btnGoLive) btnGoLive.classList.remove('hidden');
+
+        if(placeholder) {
+            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`;
+            placeholder.classList.remove('hidden');
+        }
 
         await this.requestAndLoadMedia();
     },
@@ -1908,4 +1932,27 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     app.checkSession(); 
     app.generateCaptcha();
+
+    // 🛡️ REGLA: Bloqueo Estricto de Menú Contextual (Clic Derecho)
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // 🛡️ REGLA: Bloqueo de Teclado (F12, PrintScreen, Inspect Element)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'PrintScreen' || e.keyCode === 44) {
+            navigator.clipboard.writeText('CONTENIDO PROTEGIDO BÚNKER'); 
+            app.showToast('⚠️ Capturas de pantalla bloqueadas.');
+        }
+        if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) {
+            e.preventDefault();
+        }
+    });
+
+    // 🛡️ REGLA: Sensor de Privacidad Multitarea (Difuminado al Minimizar)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            document.body.classList.add('privacy-blur');
+        } else {
+            document.body.classList.remove('privacy-blur');
+        }
+    });
 });
