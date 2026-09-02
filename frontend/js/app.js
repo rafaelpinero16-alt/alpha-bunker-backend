@@ -80,13 +80,13 @@ const app = {
         overlay.className = 'fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500 opacity-0';
         overlay.innerHTML = `
             <div class="levitate flex flex-col items-center text-center">
-                <h2 class="text-4xl font-black text-[#00f3ff] uppercase tracking-widest mb-8 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">¡NUEVO RANGO!</h2>
+                <h2 class="text-4xl font-black text-[#00f3ff] uppercase tracking-widest mb-8 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">${this.getTrans('level_up_title') || '¡NUEVO RANGO!'}</h2>
                 <div class="relative inline-flex w-40 h-40 items-center justify-center mb-8">
                     <div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[25px] opacity-90 animate-pulse"></div>
                     <img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain drop-shadow-[0_0_10px_rgba(0,243,255,1)]" onerror="this.src='./assets/badge_0.png'"> 
                 </div>
                 <p class="text-3xl font-black text-[#ffb703] uppercase tracking-widest drop-shadow-[0_0_10px_rgba(255,183,3,0.8)]">${rankInfo.name}</p>
-                <p class="text-sm font-bold text-neutral-300 mt-4 uppercase tracking-widest">Privilegios Desbloqueados</p>
+                <p class="text-sm font-bold text-neutral-300 mt-4 uppercase tracking-widest">${this.getTrans('level_up_sub') || 'Privilegios Desbloqueados'}</p>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -212,7 +212,6 @@ const app = {
         if (rankDisplay) rankDisplay.innerHTML = rankHTML;
         if (rankFeed) rankFeed.innerHTML = `<div class="relative inline-block w-4 h-4 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[6px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle text-xs font-black">${rankInfo.name}</span>`;
 
-        // 🛡️ NUEVA LÓGICA DE KYC Y BILLETERAS B2C / B2B
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const kycStatusEl = document.getElementById('prof-kyc-status'), kycDescEl = document.getElementById('prof-kyc-desc'), kycBtn = document.getElementById('btn-verify-kyc');
         const isAdminUser = this.isAdminUser();
@@ -222,13 +221,13 @@ const app = {
         const hasPaymentMethod = walletConnected || ccConnected;
 
         let warningText = "";
-        if(this.userData.warnings > 0) warningText = ` - ⚠️ ADVERTENCIAS: ${this.userData.warnings}/5`;
+        if(this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label') || 'ADVERTENCIAS'}: ${this.userData.warnings}/5`;
 
         if (kycStatusEl) {
             if (userRole === 'fan' && hasPaymentMethod) {
-                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">BILLETERA VINCULADA ✅ ${warningText}</span>`; 
+                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('status_wallet_linked') || 'BILLETERA / TARJETA VINCULADA'} ✅ ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
-                if (kycDescEl) kycDescEl.innerText = 'Método de pago activo. No requieres verificación KYC.';
+                if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc') || 'Método de pago activo. No requieres verificación KYC.';
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else if (kycStatus === 'verified' || isAdminUser) {
                 kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">VERIFICADO (+18) ✅ ${warningText}</span>`; 
@@ -237,12 +236,12 @@ const app = {
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else {
                 if (userRole === 'fan') {
-                    kycStatusEl.innerText = `PAGO NO VINCULADO ⚠️${warningText}`; 
+                    kycStatusEl.innerText = `${this.getTrans('status_unlinked') || 'PAGO NO VINCULADO'} ⚠️${warningText}`; 
                     kycStatusEl.className = `text-xs font-black uppercase text-neutral-400`;
-                    if (kycDescEl) kycDescEl.innerText = 'Conecta tu Wallet o Tarjeta de Crédito para verificar tu cuenta sin hacer KYC.';
+                    if (kycDescEl) kycDescEl.innerText = this.getTrans('status_unlinked_desc') || 'Conecta tu Wallet o Tarjeta de Crédito para verificar tu cuenta sin hacer KYC.';
                     if (kycBtn) {
                         kycBtn.classList.remove('hidden');
-                        kycBtn.innerText = 'VINCULAR PAGO';
+                        kycBtn.innerText = this.getTrans('btn_link_payment') || 'VINCULAR PAGO';
                         kycBtn.setAttribute('onclick', 'app.openPaymentMethods()');
                     }
                 } else {
@@ -267,7 +266,7 @@ const app = {
             if (userRole === 'creator' || isAdminUser) {
                 if (creatorSubBox) creatorSubBox.classList.remove('hidden');
                 dynamicButtons.forEach(btn => {
-                    btn.innerHTML = '<i class="fa-solid fa-list-ul"></i> EDITAR MIS 10 SLOTS (TIP MENU)';
+                    btn.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${this.getTrans('b2b_edit_tips') || 'EDITAR MIS 10 SLOTS (TIP MENU)'}`;
                     btn.setAttribute('onclick', 'app.openTipMenuManagementModal()');
                     btn.classList.replace('bg-[#00f3ff]', 'bg-[#ff00ff]');
                     btn.classList.replace('text-[#00f3ff]', 'text-[#ff00ff]');
@@ -275,7 +274,7 @@ const app = {
             } else {
                 if (creatorSubBox) creatorSubBox.classList.add('hidden'); 
                 dynamicButtons.forEach(btn => {
-                    btn.innerHTML = '<i class="fa-solid fa-star"></i> MIS CREADORES FAVORITOS';
+                    btn.innerHTML = `<i class="fa-solid fa-star"></i> ${this.getTrans('btn_my_favorites') || 'MIS CREADORES FAVORITOS'}`;
                     btn.setAttribute('onclick', 'app.openFavoritesModal()');
                     btn.classList.replace('bg-[#ff00ff]', 'bg-[#00f3ff]'); 
                     btn.classList.replace('text-[#ff00ff]', 'text-[#00f3ff]');
@@ -304,10 +303,6 @@ const app = {
         }
     },
 
-    // ==========================================
-    // 💳 MÉTODOS DE PAGO Y FAVORITOS (FAN B2C)
-    // ==========================================
-
     openPaymentMethods() {
         this.closeModals();
         let modal = document.getElementById('modal-payment-methods');
@@ -315,11 +310,11 @@ const app = {
             const modalHTML = `
                 <div id="modal-payment-methods" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                        <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">MÉTODOS DE PAGO</h3>
-                        <p class="text-xs text-neutral-300 text-center mb-6">Vincula tu cuenta para verificar tu perfil B2C de inmediato.</p>
-                        <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> Conectar TON Wallet</button>
-                        <button onclick="app.connectCreditCard()" class="bg-neutral-800 border border-neutral-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase hover:bg-neutral-700 active:scale-95 transition"><i class="fa-solid fa-credit-card text-xl"></i> Tarjeta de Crédito</button>
-                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">Cancelar</button>
+                        <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">${this.getTrans('pay_methods_title') || 'MÉTODOS DE PAGO'}</h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6">${this.getTrans('pay_methods_desc') || 'Vincula tu cuenta para verificar tu perfil B2C de inmediato.'}</p>
+                        <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> ${this.getTrans('btn_connect_ton') || 'Conectar TON Wallet'}</button>
+                        <button onclick="app.connectCreditCard()" class="bg-neutral-800 border border-neutral-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase hover:bg-neutral-700 active:scale-95 transition"><i class="fa-solid fa-credit-card text-xl"></i> ${this.getTrans('btn_credit_card') || 'Tarjeta de Crédito'}</button>
+                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">${this.getTrans('btn_cancel') || 'Cancelar'}</button>
                     </div>
                 </div>
             `;
@@ -331,13 +326,77 @@ const app = {
 
     connectCreditCard() {
         this.haptic('medium');
-        this.showToast('Abriendo pasarela segura de Tarjeta de Crédito... 💳');
-        setTimeout(() => {
-            localStorage.setItem('alpha_cc_connected', 'true');
-            this.showToast('¡Tarjeta vinculada con éxito! ✅');
-            this.closeModals();
-            this.updateProfileUI();
-        }, 1500);
+        this.closeModals();
+        let modal = document.getElementById('modal-cc-form');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-cc-form" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
+                            <h3 class="text-lg font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-credit-card mr-2"></i> ${this.getTrans('cc_modal_title') || 'VINCULAR TARJETA'}</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        </div>
+                        <div class="space-y-3 flex-1 overflow-y-auto pr-1">
+                            <div>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_number') || 'NÚMERO DE TARJETA'}</label>
+                                <input type="text" id="cc-number" placeholder="4532 •••• •••• 8921" maxlength="19" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_name') || 'NOMBRE DEL TITULAR'}</label>
+                                <input type="text" id="cc-name" placeholder="Felipe Sanchez" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="relative">
+                                    <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_expiry') || 'EXPIRACIÓN'}</label>
+                                    <input type="text" id="cc-expiry" placeholder="MM/AA" maxlength="5" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium text-center" />
+                                </div>
+                                <div class="relative">
+                                    <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_cvv') || 'CVV'}</label>
+                                    <input type="password" id="cc-cvv" placeholder="•••" maxlength="4" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium text-center" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_bank') || 'BANCO EMISOR'}</label>
+                                <input type="text" id="cc-bank" placeholder="Bancolombia / NeoBanco" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
+                            </div>
+                        </div>
+                        <div class="mt-5 pt-3 border-t border-[#00f3ff]/30 flex gap-2">
+                            <button onclick="app.openPaymentMethods()" class="w-1/2 bg-neutral-800 border border-neutral-600 text-white py-3 rounded-xl text-xs font-black uppercase transition">${this.getTrans('btn_back') || 'Regresar'}</button>
+                            <button onclick="app.saveCreditCardData()" class="w-1/2 bg-[#00f3ff] text-black py-3 rounded-xl text-xs font-black uppercase shadow-[0_0_10px_rgba(0,243,255,0.5)] transition">${this.getTrans('btn_save_bio') || 'Guardar'}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-cc-form');
+        }
+        modal.classList.remove('hidden');
+    },
+
+    saveCreditCardData() {
+        this.haptic('medium');
+        const num = document.getElementById('cc-number')?.value.trim();
+        const name = document.getElementById('cc-name')?.value.trim();
+        const bank = document.getElementById('cc-bank')?.value.trim();
+
+        if (!num || !name || !bank) {
+            this.showToast('⚠️ Completa los campos obligatorios de la tarjeta.');
+            return;
+        }
+
+        const maskedCard = {
+            last4: num.slice(-4),
+            name: name,
+            bank: bank,
+            connected_at: new Date().toISOString()
+        };
+
+        localStorage.setItem('alpha_cc_data', JSON.stringify(maskedCard));
+        localStorage.setItem('alpha_cc_connected', 'true');
+        
+        this.showToast('¡Tarjeta guardada y vinculada en tu perfil! 💳✅');
+        this.closeModals();
+        this.updateProfileUI();
     },
 
     payWithCreditCard(alphaAmount) {
@@ -364,15 +423,15 @@ const app = {
                 <div id="modal-favorites-edit" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
                         <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-star mr-2"></i> FAVORITOS</h3>
+                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-star mr-2"></i> ${this.getTrans('favorites_title') || 'FAVORITOS'}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">Etiqueta a tus 10 creadores favoritos del Búnker para acceder rápido a sus perfiles.</p>
+                        <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">${this.getTrans('favorites_desc') || 'Etiqueta a tus creadores favoritos.'}</p>
                         <div id="favorites-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
                         
                         <div class="mt-4 pt-4 border-t border-[#00f3ff]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">Regresar</button>
-                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">Guardar</button>
+                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">${this.getTrans('btn_back') || 'Regresar'}</button>
+                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">${this.getTrans('btn_save_bio') || 'Guardar'}</button>
                         </div>
                     </div>
                 </div>
@@ -415,10 +474,6 @@ const app = {
         this.closeModals();
     },
 
-    // ==========================================
-    // ⚙️ GESTIÓN DE CREADORES B2B (TIP MENU)
-    // ==========================================
-
     async loadTipMenu(creatorId) {
         this.initUserId();
         try {
@@ -445,8 +500,8 @@ const app = {
                         <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
                         
                         <div class="mt-4 pt-4 border-t border-[#ff00ff]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">Regresar</button>
-                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black hover:bg-[#ff00ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">Guardar Cambios</button>
+                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">${this.getTrans('btn_back') || 'Regresar'}</button>
+                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black hover:bg-[#ff00ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">${this.getTrans('btn_save_bio') || 'Guardar'}</button>
                         </div>
                     </div>
                 </div>
@@ -718,7 +773,7 @@ const app = {
                             <div class="grid grid-cols-2 gap-2">
                                 <button onclick="app.buyPackageStars('${pkg.slug}')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars}</button>
                                 <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">💎 ${pkg.price_ton} TON</button>
-                                <button onclick="app.payWithCreditCard(${pkg.alpha_total})" class="w-full col-span-2 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition mt-1"><i class="fa-solid fa-credit-card"></i> Pagar con Tarjeta</button>
+                                <button onclick="app.payWithCreditCard(${pkg.alpha_total})" class="w-full col-span-2 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition mt-1"><i class="fa-solid fa-credit-card"></i> ${this.getTrans('btn_credit_card') || 'Pagar con Tarjeta'}</button>
                             </div>
                         </div>
                     `;
@@ -951,7 +1006,7 @@ const app = {
         this.haptic('light');
         if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
         if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
+        ['modal-profile', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
