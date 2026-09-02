@@ -37,7 +37,6 @@ def clean_old_messages(db: Session):
     db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
     db.commit()
 
-# --- 1. SOPORTE BÚNKER (CRM PRIVADO CON ADMIN) ---
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     await manager.connect(websocket)
@@ -80,7 +79,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
     except WebSocketDisconnect:
         manager.disconnect(websocket)
     except Exception as e:
-        print(f"[CRM CHAT ERROR]: {e}")
         manager.disconnect(websocket)
 
 @router.get("/history")
@@ -89,11 +87,8 @@ def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
     messages = db.query(ChatMessage).filter(ChatMessage.author_name.notlike("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
-# --- 2. CHAT GLOBAL & VIDEO BÚNKER (INDEPENDIENTE) ---
 @router.websocket("/global/ws/{user_id}")
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
-    await global_manager.connect(websocket)
-    
     try:
         db.execute(text("SELECT warnings_count FROM users LIMIT 1"))
     except Exception:
@@ -112,7 +107,16 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         db.commit()
         db.refresh(user)
 
-    # 🛡️ Regex Blindado: Atrapa http, https, www, t.me, y terminaciones comerciales sin importar espacios
+    is_admin = (user.role == "admin" or user.user_id == 8269470905)
+
+    if not is_admin and user.role == "creator" and user.kyc_status != "verified":
+        await websocket.accept()
+        await websocket.send_json({"is_error": True, "message": "🚫 ACCESO DENEGADO: Los creadores requieren KYC (+18) aprobado para ingresar al Chat Global."})
+        await websocket.close(code=1008)
+        return
+
+    await global_manager.connect(websocket)
+
     link_pattern = re.compile(
         r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b'
     )
@@ -120,7 +124,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
     try:
         while True:
             data = await websocket.receive_text()
-            
             text_val = data
             media_val = None
             try:
@@ -130,15 +133,11 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
             except:
                 pass
 
-            is_admin = (user.role == "admin" or user.user_id == 8269470905)
-
             try:
                 current_warnings = getattr(user, 'warnings_count', 0)
                 if current_warnings is None: current_warnings = 0
 
                 if not is_admin:
-                    
-                    # 1. Filtro Anti-Spam Estricto
                     if link_pattern.search(text_val):
                         user.warnings_count = current_warnings + 1
                         penalty_amount = 5 
@@ -150,22 +149,15 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             db.add(tx)
                         db.commit()
 
-                        # 🛡️ Código estructurado para traducción y auto-eliminación en el frontend
-                        sys_data = {
-                            "code": "SYS_WARN_SPAM",
-                            "user": user.name,
-                            "warnings": user.warnings_count,
-                            "penalty": penalty_amount
-                        }
-                        warning_msg = json.dumps(sys_data)
+                        warning_msg = f"⚠️ @{user.name}, los enlaces externos están terminantemente prohibidos. Llevas {user.warnings_count} de 4 advertencias. A la 5ta falta serás BANEADO. Penalización aplicada: -{penalty_amount} $ALPHA."
                         
                         sys_msg = ChatMessage(
-                            user_id=user.user_id,
-                            author_name="[System] Centinela",
+                            user_id=8269470905, 
+                            author_name="Centinela Anti-Spam",
                             author_role="admin",
                             access_level=5,
                             content=json.dumps({"text": warning_msg, "media_url": None}),
-                            is_system=True
+                            is_system=False 
                         )
                         db.add(sys_msg)
                         db.commit()
@@ -181,14 +173,11 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         
                         if user.warnings_count >= 5:
                             await websocket.send_json({"is_error": True, "message": "🚫 Límite de advertencias superado. Envío restringido."})
+                            await websocket.close(code=1008)
                         continue
                     
                     if current_warnings >= 5:
                         await websocket.send_json({"is_error": True, "message": "🚫 Cuenta restringida por exceso de spam (5/5)."})
-                        continue
-
-                    if user.role == "creator" and user.kyc_status != "verified":
-                        await websocket.send_json({"is_error": True, "message": "⚠️ Identidad no confirmada. Requieres KYC para escribir."})
                         continue
 
                     if "@" in text_val:
@@ -220,10 +209,9 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         db.commit()
 
             except Exception as e:
-                print(f"[RULE CHECK ERROR]: {e}")
+                pass
 
             db_content = json.dumps({"text": text_val, "media_url": media_val})
-
             new_msg = ChatMessage(
                 user_id=user.user_id,
                 author_name=f"[Global] {user.name}",
@@ -251,7 +239,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
     except WebSocketDisconnect:
         global_manager.disconnect(websocket)
     except Exception as e:
-        print(f"[GLOBAL CHAT ERROR]: {e}")
         global_manager.disconnect(websocket)
 
 @router.get("/global/history")
