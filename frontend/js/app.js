@@ -270,7 +270,6 @@ const app = {
             }
         }
 
-        // Verificación de alerta de cobro recurrente (3 días antes)
         const ccData = JSON.parse(localStorage.getItem('alpha_cc_data') || '{}');
         if (ccData.next_billing_date && ccData.recurring) {
             const daysLeft = Math.ceil((new Date(ccData.next_billing_date) - new Date()) / (1000 * 60 * 60 * 24));
@@ -430,7 +429,7 @@ const app = {
                         <div class="space-y-3 flex-1 overflow-y-auto pr-1 mt-1">
                             <div>
                                 <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_number') || 'NÚMERO DE TARJETA'}</label>
-                                <input type="text" id="cc-number" placeholder="4532 1234 5678 8921" maxlength="19" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim(); app.detectCardBrand(this.value);" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
+                                <input type="text" id="cc-number" placeholder="4532 1234 5678 8921" maxlength="19" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '\\$1 ').trim(); app.detectCardBrand(this.value);" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
                             </div>
                             <div>
                                 <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_name') || 'NOMBRE DEL TITULAR'}</label>
@@ -528,7 +527,6 @@ const app = {
         localStorage.setItem('alpha_cc_data', JSON.stringify(maskedCard));
         localStorage.setItem('alpha_cc_connected', 'true');
         
-        // Registro de log de pago / vinculación
         const logs = JSON.parse(localStorage.getItem('alpha_payment_logs') || '[]');
         logs.unshift({ description: 'Vinculación de Tarjeta de Crédito', amount: '0.00 $ALPHA', date: new Date().toISOString() });
         localStorage.setItem('alpha_payment_logs', JSON.stringify(logs));
@@ -556,7 +554,6 @@ const app = {
             this.showToast('¡Pago completado! 💎');
             this.triggerFireworks();
 
-            // Guardar log de transacción
             const logs = JSON.parse(localStorage.getItem('alpha_payment_logs') || '[]');
             logs.unshift({ description: 'Compra de Rango / Paquete $ALPHA', amount: `${alphaAmount} $ALPHA`, date: new Date().toISOString() });
             localStorage.setItem('alpha_payment_logs', JSON.stringify(logs));
