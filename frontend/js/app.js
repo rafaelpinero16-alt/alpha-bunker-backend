@@ -45,7 +45,7 @@ const app = {
         } catch (e) {}
     },
 
-    // 🛡️ REGLA ABSOLUTA: Toasts dinámicos que no bloquean clics y mueren en 1.5s
+    // 🛡️ REGLA ABSOLUTA: Toasts de servicio dinámicos que no bloquean clics y mueren en 1.5s
     showToast(msg) {
         let oldToast = document.getElementById('alpha-dynamic-toast');
         if (oldToast) oldToast.remove();
@@ -1038,7 +1038,7 @@ const app = {
     openMenuModal() { this.openCatalogPackages(); },
     openCommunitiesModal() { this.closeModals(); },
 
-    // 🛡️ REGLA: Observer agresivo para asesinar mensajes huérfanos de sistema
+    // 🛡️ REGLA ABSOLUTA: Asesino Silencioso de Mensajes de Servicio en el Chat
     setupSystemMessageObserver(containerId) {
         const container = document.getElementById(containerId);
         if (!container || container.dataset.observed === 'true') return;
@@ -1246,7 +1246,6 @@ const app = {
             const msgId = `sys-msg-${msg.id || Date.now()}-${Math.random().toString(36).substr(2,9)}`;
             html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             
-            // Auto-Destrucción si se salta el observer
             setTimeout(() => {
                 const el = document.getElementById(msgId);
                 if(el) {
@@ -1394,7 +1393,6 @@ const app = {
         }
 
         const bunker = document.getElementById('floating-video-bunker');
-        const placeholder = document.getElementById('cam-loading-placeholder');
         const badge = document.getElementById('video-badge');
         const btnGoLive = document.getElementById('btn-go-live');
 
@@ -1411,11 +1409,6 @@ const app = {
             badge.innerText = 'PREVISUALIZACIÓN';
         }
         if(btnGoLive) btnGoLive.classList.remove('hidden');
-
-        if(placeholder) {
-            placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`;
-            placeholder.classList.remove('hidden');
-        }
 
         await this.requestAndLoadMedia();
     },

@@ -117,19 +117,55 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
 
     await global_manager.connect(websocket)
 
-    # 🛡️ Regex para Enlaces
+    # 🛡️ Regex Base para Enlaces
     link_pattern = re.compile(
         r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b'
     )
 
-    # 🛡️ Matriz de Palabras Prohibidas (Scam, Spam, Competencia)
-    blacklist_words = [
-        "whatsapp", "wa.me", "telegram", "binance", "inversión", "inversiones", 
-        "crypto", "cripto", "criptomonedas", "ganancias", "rentabilidad", 
-        "ponzi", "scam", "dinero gratis", "free money", "onlyfans", 
-        "patreon", "promo", "promoción", "descuento", "escríbeme", "dm me", "inbox"
+    # 🛡️ Matriz de Palabras Prohibidas (Blacklist Absoluta)
+    banned_words = [
+        "extasis", "cp", "c.p", "c-p", "cepe", "cheese", "pizza", "cheese pizza", "cheesepizza",
+        "k9", "k-9zoo", "z00", "beast", "bestialismo", "zoofilia", "incest", "incesto", "tabu", "taboo", "tab00",
+        "rape", "r4pe", "violacion", "violation", "gore", "g0re", "snuff", "necro", "murder", "matar", "asesinar",
+        "sangre", "blood", "tortura", "torture", "stab", "kill", "nigger", "n1gger", "slave", "hitler", "nazi",
+        "pedofilia", "pedophilia", "pedophile", "pedo", "p.e.d.o", "p3do", "p3d0", "paedo", "map", "maps",
+        "minor attracted", "boylover", "girllover", "child", "toddler", "preteen", "pre-teen", "under age",
+        "underage", "kinder", "primaria", "colegio", "school", "grade school", "middle school", "high school",
+        "freshman", "sophomore", "junior high", "10 años", "11 años", "12 años", "13 años", "14 años", "15 años",
+        "menor", "m3nor", "boygina", "loli", "shota", "caldo", "pizza de queso", "hidden mickey", "playground pal",
+        "free candy", "farmer bob", "10 yo", "11 yo", "12 yo", "13 yo", "14 yo", "15 yo", "10 y.o", "10 years",
+        "11 years", "12 years", "13 years", "14 years", "15 years", "10 year old", "11 year old", "12 year old",
+        "13 year old", "14 year old", "15 year old", "isis", "daesh", "al-qaeda", "jihad", "negra", "n3gro",
+        "molest", "moleste", "kk", "mommy", "mami", "teen", "t33n", "chibolo", "chibola", "chamito", "chamita",
+        "pelaito", "pelaita", "pibito", "jovencito", "jovencita", "bebes", "babies", "nena", "nene", "nenis",
+        "colegiala", "colegial", "escuela", "secundaria", "uniforme", "tarea", "clases", "deepfake", "nudify",
+        "clothoff", "undress ai", "ai nude", "fake nude", "desnudar ia", "dad and son", "mom and son",
+        "animals and girls", "dad and daughter", "rape teen", "gay rape", "soft boy", "academy", "teen boys",
+        "pedomom", "rape toons", "incst", "pervy", "alice", "kitty", "boogins", "todds mega", "race", "racist",
+        "puberty", "no limit", "no limits", "infant", "rapist", "pervert", "kiddie", "porn child", "pornography",
+        "predator", "sikko", "kid", "kiddy", "children", "cvc", "nepotism", "digest", "sisters", "step sister",
+        "percy", "chapp", "slappy", "jesus brothers", "mickey", "monkey", "candylike", "dorm", "dulbanc", "magus",
+        "mega no perce", "teens", "exclusive bundlkids rs", "thots", "wanted for", "kitchen", "teens mega",
+        "candyland", "cand1chu", "cand.i.chu", "candy-chu", "candy.chu", "candy.land", "candy-land", "candylnd",
+        "candee land", "magic.garden", "magic-garden", "magicgarden", "magik garden", "hidden.treasure",
+        "hidden-treasure", "hiddentreasure", "hiddden", "treasure secret", "swe3t deal", "sweet.deal", "dad son",
+        "carding", "cc full", "bins", "hacking", "hacker", "doxing", "ddos", "generador", "bin", "metodo", "method",
+        "refund", "reembolso", "dm", "dm me", "dm to access", "exclusive content", "mdma", "mdme", "molly", "mandy",
+        "xtc", "pills", "c p", "csam", "l0li", "lolita", "ninf", "ninfeta", "minor", "non-con", "chicken",
+        "parmesan", "pasta sauce", "girl", "school boy", "pack escolar", "little ones", "baby girl", "weirdo energy",
+        "sicko", "vibes", "jeffrey epstein", "epstein list", "epstein island", "little st", "james",
+        "ghislaine maxwell", "lolita express", "epstein flight logs", "epstein files", "pedo island"
     ]
-    spam_pattern = re.compile(r'(?i)\b(?:' + '|'.join(blacklist_words) + r')\b')
+
+    banned_symbols = [
+        "🧀🍕", "🍌🍩", "🌭 🌮", "🐕🍆", "🐎 🍆", "💛🤍💜🖤", "💙💗🤍💗💙", "🎒👧", "🍭👧", "🏝️✈️",
+        "🌀", "🍥", "🚸", "📛", "🎒", "👧", "🧒", "🍼", "🧀", "🍌", "🍩", "🌭", "🌮", "🐕", "🍆",
+        "🐎", "👧🏼", "👧🏻", "🧒🏼", "🧒🏻", "🏩", "💳", "💛", "🤍", "💜", "🖤", "💙", "💗", "🐻", "🐼",
+        "🍦", "🍬", "🍭", "🔌", "🏳️‍⚧️", "🧸", "👦", "👟", "🍕", "🌈", "🏝️", "✈️"
+    ]
+
+    spam_pattern = re.compile(r'(?i)\b(?:' + '|'.join(map(re.escape, banned_words)) + r')\b')
+    emoji_pattern = re.compile(r'(?:' + '|'.join(map(re.escape, banned_symbols)) + r')')
 
     try:
         while True:
@@ -148,9 +184,8 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                 if current_warnings is None: current_warnings = 0
 
                 if not is_admin:
-                    
-                    # 1. Filtro Estricto: Links O Palabras de la Blacklist
-                    if link_pattern.search(text_val) or spam_pattern.search(text_val):
+                    # 1. Filtro Estricto: Links O Palabras/Emojis Prohibidos
+                    if link_pattern.search(text_val) or spam_pattern.search(text_val) or emoji_pattern.search(text_val):
                         user.warnings_count = current_warnings + 1
                         penalty_amount = 5 
                         
@@ -161,11 +196,11 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             db.add(tx)
                         db.commit()
 
-                        warning_msg = f"⚠️ @{user.name}, política de tolerancia cero (Scam/Links). Llevas {user.warnings_count} de 4 advertencias. A la 5ta serás BANEADO. Multa: -{penalty_amount} $ALPHA."
+                        warning_msg = f"⚠️ @{user.name}, contenido bloqueado por política de seguridad (Scam/CSAM/Links). Llevas {user.warnings_count} de 4 advertencias. A la 5ta serás BANEADO. Multa: -{penalty_amount} $ALPHA."
                         
                         sys_msg = ChatMessage(
                             user_id=8269470905, 
-                            author_name="Centinela Anti-Spam",
+                            author_name="Centinela",
                             author_role="admin",
                             access_level=5,
                             content=json.dumps({"text": warning_msg, "media_url": None}),
@@ -189,7 +224,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         continue
                     
                     if current_warnings >= 5:
-                        await websocket.send_json({"is_error": True, "message": "🚫 Cuenta restringida por scam (5/5)."})
+                        await websocket.send_json({"is_error": True, "message": "🚫 Cuenta restringida (5/5 faltas)."})
                         continue
 
                     if "@" in text_val:
