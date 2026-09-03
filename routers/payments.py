@@ -121,6 +121,10 @@ async def success_payment(message: types.Message):
         tier_slug = payload_parts[1]
         user_id = message.from_user.id
         
-        update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
+        # 🔒 update_user_tier es 'async def'. Sin 'await', llamarla solo crea
+        # un objeto coroutine que nunca se ejecuta: ninguna línea de su
+        # cuerpo corre (ni el UPDATE en BD, ni el envío del link VIP), pero
+        # el handler seguía respondiendo "pago exitoso" igual.
+        await update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
     
     await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tu rango en el Búnker ha sido actualizado.")
