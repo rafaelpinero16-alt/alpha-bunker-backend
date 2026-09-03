@@ -186,10 +186,13 @@ const app = {
         const now = Date.now();
         const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
-        if (lastChange && (now - parseInt(lastChange)) < thirtyDaysMs) {
-            const daysLeft = Math.ceil((thirtyDaysMs - (now - parseInt(lastChange))) / (1000 * 60 * 60 * 24));
-            this.showToast(`⏳ Debes esperar ${daysLeft} días para volver a cambiar tu alias.`);
-            return;
+        // Lógica de Alias: Primer cambio libre. Cambios posteriores restringidos a 30 días salvo si es Admin.
+        if (lastChange && !this.isAdminUser()) {
+            if ((now - parseInt(lastChange)) < thirtyDaysMs) {
+                const daysLeft = Math.ceil((thirtyDaysMs - (now - parseInt(lastChange))) / (1000 * 60 * 60 * 24));
+                this.showToast(`⏳ Debes esperar ${daysLeft} días para volver a cambiar tu alias.`);
+                return;
+            }
         }
 
         localStorage.setItem('alpha_user_name', newName);
@@ -213,13 +216,16 @@ const app = {
         this.haptic('medium');
         const oldPassInput = document.getElementById('settings-old-pass');
         const newPassInput = document.getElementById('settings-new-pass');
+        const confirmPassInput = document.getElementById('settings-confirm-pass');
+        
         const oldPass = oldPassInput?.value.trim();
         const newPass = newPassInput?.value.trim();
+        const confirmPass = confirmPassInput?.value.trim();
         
         const currentSavedPass = localStorage.getItem('alpha_user_pass') || '';
 
-        if (!oldPass || !newPass) {
-            this.showToast('⚠️ Completa ambos campos de contraseña.');
+        if (!oldPass || !newPass || !confirmPass) {
+            this.showToast('⚠️ Completa todos los campos de contraseña.');
             return;
         }
         
@@ -233,6 +239,11 @@ const app = {
             return;
         }
 
+        if (newPass !== confirmPass) {
+            this.showToast('⚠️ Las nuevas contraseñas no coinciden.');
+            return;
+        }
+
         localStorage.setItem('alpha_user_pass', newPass);
         
         const successMsg = this.getTrans('pwd_changed_success') || 'SU CONTRASEÑA NUEVA HA SIDO CAMBIADA';
@@ -240,6 +251,7 @@ const app = {
         
         oldPassInput.value = '';
         newPassInput.value = '';
+        if (confirmPassInput) confirmPassInput.value = '';
         this.closeSettingsModal();
     },
 
@@ -521,12 +533,13 @@ const app = {
     },
 
     async initTonConnect() {
-        if (!this.tonConnectUI && window.TON_CONNECT_UI) {
+        const TonConnectClass = window.TonConnectUI || window.TON_CONNECT_UI;
+        if (!this.tonConnectUI && TonConnectClass) {
             try {
                 const originRaw = window.location.origin;
                 const safeOrigin = (originRaw === "null" || originRaw === "file://" || !originRaw) ? "" : originRaw;
                 
-                this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
+                this.tonConnectUI = new TonConnectClass({ 
                     manifestUrl: safeOrigin + '/tonconnect-manifest.json',
                     uiPreferences: { theme: 'DARK' }
                 });
@@ -557,8 +570,18 @@ const app = {
             await this.initTonConnect();
             
             if (!this.tonConnectUI) {
-                this.showToast('⚠️ TON Connect cargando. Intenta de nuevo.');
-                return;
+                const TonConnectClass = window.TonConnectUI || window.TON_CONNECT_UI;
+                if (TonConnectClass) {
+                    const originRaw = window.location.origin;
+                    const safeOrigin = (originRaw === "null" || originRaw === "file://" || !originRaw) ? "" : originRaw;
+                    this.tonConnectUI = new TonConnectClass({ 
+                        manifestUrl: safeOrigin + '/tonconnect-manifest.json',
+                        uiPreferences: { theme: 'DARK' }
+                    });
+                } else {
+                    this.showToast('⚠️ TON Connect no disponible.');
+                    return;
+                }
             }
             if (this.tonConnectUI.connected) {
                 if (confirm('¿Desconectar billetera?')) { 
@@ -1653,7 +1676,7 @@ const app = {
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const userRole = this.userData?.role || 'fan';
         const isAdminUser = this.isAdminUser();
-        const walletConnected = this.tonConnectUI?.connected || localStorage.getItem('alpha_cc_connected') === 'true';
+        const walletConnected = this.tonConnectUI?.connected || localStorage.getItem('alpha_ton_connected') === 'true' || localStorage.getItem('alpha_cc_connected') === 'true';
 
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { 
             this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar como creador.'); 
