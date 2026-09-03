@@ -50,7 +50,13 @@ window.t = {
         radar_title: "RADAR",
         welcome_chat_msg: "¡Bienvenido al Chat Global y Video Búnker!",
         lbl_prof_status: "Estado:",
-        lbl_change_photo: "CAMBIAR"
+        lbl_change_photo: "CAMBIAR",
+        
+        // 🎙️ TRADUCCIONES CLIP MULTIMEDIA CHAT
+        media_img_photo: "Imagen / Foto",
+        media_short_video: "Video Corto",
+        media_voice_note: "Nota de Voz",
+        media_video_selfie: "Video Selfie"
     },
     en: { 
         warn_title: "WARNING", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "This space contains explicit material.", warn_p2: "By entering, you confirm you are of legal age (18+).", btn_accept: "I ACCEPT", btn_exit: "EXIT", btn_back: "BACK", login_title: "VAULT ACCESS", login_desc: "Log in or create your account.", lbl_phone: "PHONE NUMBER", btn_phone_login: "LOGIN WITH NUMBER", or_direct: "OR DIRECTLY WITH", btn_tg_login: "LOGIN WITH TELEGRAM", no_account: "Don't have an account yet?", btn_create_acc: "CREATE NEW ACCOUNT", cap_title: "HUMAN VERIFICATION", cap_desc: "Solve the security code to enter.", btn_new_code: "Generate another code", btn_verify: "VERIFY ACCESS", reg_title: "NEW ACCOUNT", reg_desc: "Register to get access.", lbl_email: "EMAIL ADDRESS", btn_register: "REGISTER", or_fast: "OR FAST WITH", have_account: "Already have an account?", btn_login_link: "Log In", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -102,10 +108,15 @@ window.t = {
         radar_title: "RADAR",
         welcome_chat_msg: "Welcome to Global Chat & Video Bunker!",
         lbl_prof_status: "Status:",
-        lbl_change_photo: "CHANGE"
+        lbl_change_photo: "CHANGE",
+        
+        media_img_photo: "Image / Photo",
+        media_short_video: "Short Video",
+        media_voice_note: "Voice Note",
+        media_video_selfie: "Video Selfie"
     },
     it: { 
-        warn_title: "AVVERTENZA", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Questo spazio contiene materiale esplicito.", warn_p2: "Entrando, confermi di essere maggiorenne.", btn_accept: "ACCETTO", btn_exit: "ESCI", btn_back: "INDIETRO", login_title: "ACCESSO AL VAULT", login_desc: "Accedi o crea il tuo account.", lbl_phone: "NUMERO DI TELEFONO", btn_phone_login: "ACCEDI CON NUMERO", or_direct: "O DIRETTAMENTE CON", btn_tg_login: "LOGIN CON TELEGRAM", no_account: "Non hai ancora un account?", btn_create_acc: "CREA NUOVO ACCOUNT", cap_title: "VERIFICA UMANA", cap_desc: "Risolvi il codice di sicurezza.", btn_new_code: "Genera altro codice", btn_verify: "VERIFICA ACCESSO", reg_title: "NUOVO ACCOUNT", reg_desc: "Registrati per l'accesso.", lbl_email: "EMAIL", btn_register: "REGISTRATI", or_fast: "O VELOCE CON", have_account: "Hai già un account?", btn_login_link: "Accedi", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
+        warn_title: "AVVERTENZA", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Questo spazio contiene materiale esplicito.", warn_p2: "Entrando, confermi di essere maggiorenne.", btn_accept: "ACCETTO", btn_exit: "ESCI", btn_back: "INDIETRO", login_title: "ACCESSO AL VAULT", login_desc: "Accedi o crea il tuo account.", lbl_phone: "NUMERO DI TELEFONE", btn_phone_login: "ACCEDI CON NUMERO", or_direct: "O DIRETTAMENTE CON", btn_tg_login: "LOGIN CON TELEGRAM", no_account: "Non hai ancora un account?", btn_create_acc: "CREA NUOVO ACCOUNT", cap_title: "VERIFICA UMANA", cap_desc: "Risolvi il codice di sicurezza.", btn_new_code: "Genera altro codice", btn_verify: "VERIFICA ACCESSO", reg_title: "NUOVO ACCOUNT", reg_desc: "Registrati per l'accesso.", lbl_email: "EMAIL", btn_register: "REGISTRATI", or_fast: "O VELOCE CON", have_account: "Hai già un account?", btn_login_link: "Accedi", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
         nav_cat: "CATALOGO", nav_com: "COMUNITÀ", nav_post: "PUBBLICA", nav_profile: "PROFILO", nav_sup: "MESSAGGI CRM", btn_wallet: "CONNETTI WALLET", btn_logout: "ESCI", 
         rank_0: "SPIA 🕵️", rank_1: "SOLDATO 🎖️", rank_2: "VETERANO ⚔️", rank_3: "LEGGENDA 👑", rank_4: "ICONA 💎",
         upload_hdr: "CARICA CONTENUTO", lbl_level: "LIVELLO RICHIESTO 👀", opt_0: "🆓 Pubblico", opt_1: "🎖️ Blocca per SOLDIER", opt_2: "⚔️ Blocca per VETERAN", opt_3: "👑 Blocca per LEGEND", lbl_file: "FOTO O VIDEO 📸", txt_upload: "Tocca per caricare", lbl_desc: "DESCRIZIONE", btn_pub: "PUBBLICA",
@@ -154,7 +165,12 @@ window.t = {
         radar_title: "RADAR",
         welcome_chat_msg: "Benvenuto nella Chat Globale & Video Bunker!",
         lbl_prof_status: "Stato:",
-        lbl_change_photo: "CAMBIA"
+        lbl_change_photo: "CAMBIA",
+        
+        media_img_photo: "Immagine / Foto",
+        media_short_video: "Video Breve",
+        media_voice_note: "Nota Vocale",
+        media_video_selfie: "Video Selfie"
     },
     pt: { 
         warn_title: "AVISO", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Este espaço contém material explícito.", warn_p2: "Ao entrar, você confirma ser maior de idade (18+).", btn_accept: "ACEITO", btn_exit: "SAIR", btn_back: "VOLTAR", login_title: "ACESSO AO VAULT", login_desc: "Faça login ou crie sua conta.", lbl_phone: "NÚMERO DE TELEFONE", btn_phone_login: "ENTRAR COM NÚMERO", or_direct: "OU DIRETAMENTE COM", btn_tg_login: "LOGIN COM TELEGRAM", no_account: "Ainda não tem conta?", btn_create_acc: "CRIAR NOVA CONTA", cap_title: "VERIFICAÇÃO HUMANA", cap_desc: "Resolva o código de segurança.", btn_new_code: "Gerar outro código", btn_verify: "VERIFICAR ACESSO", reg_title: "NOVA CONTA", reg_desc: "Registre-se para acessar.", lbl_email: "E-MAIL", btn_register: "REGISTRAR", or_fast: "OU RÁPIDO COM", have_account: "Já tem conta?", btn_login_link: "Fazer Login", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -206,7 +222,12 @@ window.t = {
         radar_title: "RADAR",
         welcome_chat_msg: "Bem-vindo ao Chat Global & Vídeo Búnker!",
         lbl_prof_status: "Estado:",
-        lbl_change_photo: "MUDAR"
+        lbl_change_photo: "MUDAR",
+        
+        media_img_photo: "Imagem / Foto",
+        media_short_video: "Vídeo Curto",
+        media_voice_note: "Mensagem de Voz",
+        media_video_selfie: "Vídeo Selfie"
     },
     de: { 
         warn_title: "WARNUNG", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Dieser Raum enthält sexuelles Material.", warn_p2: "Mit dem Betreten bestätigen Sie, dass Sie über 18 Jahre alt sind.", btn_accept: "AKZEPTIEREN", btn_exit: "VERLASSEN", btn_back: "ZURÜCK", login_title: "VAULT ZUGANG", login_desc: "Melden Sie sich an.", lbl_phone: "TELEFONNUMMER", btn_phone_login: "MIT NUMMER ANMELDEN", or_direct: "ODER DIREKT MIT", btn_tg_login: "LOGIN MIT TELEGRAM", no_account: "Noch kein Konto?", btn_create_acc: "NEUES KONTO ERSTELLEN", cap_title: "MENSCHLICHE PRÜFUNG", cap_desc: "Lösen Sie den Sicherheitscode.", btn_new_code: "Neuen Code generieren", btn_verify: "ZUGANG PRÜFEN", reg_title: "NEUES KONTO", reg_desc: "Registrieren.", lbl_email: "E-MAIL", btn_register: "REGISTRAR", or_fast: "ODER SCHNELL MIT", have_account: "Bereits ein Konto?", btn_login_link: "Anmelden", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -258,7 +279,12 @@ window.t = {
         radar_title: "RADAR",
         welcome_chat_msg: "Willkommen im globalen Chat & Video Bunker!",
         lbl_prof_status: "Status:",
-        lbl_change_photo: "ÄNDERN"
+        lbl_change_photo: "ÄNDERN",
+        
+        media_img_photo: "Bild / Foto",
+        media_short_video: "Kurzvideo",
+        media_voice_note: "Sprachnotiz",
+        media_video_selfie: "Video Selfie"
     },
     fr: { 
         warn_title: "AVERTISSEMENT", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Cet espace contient du matériel explicite.", warn_p2: "En entrant, vous confirmez avoir plus de 18 ans.", btn_accept: "J'ACCEPTE", btn_exit: "SORTIR", btn_back: "RETOUR", login_title: "ACCÈS VAULT", login_desc: "Connectez-vous.", lbl_phone: "NUMÉRO DE TÉLÉPHONE", btn_phone_login: "CONNEXION AVEC NUMÉRO", or_direct: "OU DIRECTEMENT AVEC", btn_tg_login: "CONNEXION TELEGRAM", no_account: "Pas encore de compte ?", btn_create_acc: "CRÉER UN COMPTE", cap_title: "VÉRIFICATION", cap_desc: "Résolvez le code.", btn_new_code: "Générer un autre code", btn_verify: "VÉRIFIER", reg_title: "NOUVEAU COMPTE", reg_desc: "Inscrivez-vous.", lbl_email: "E-MAIL", btn_register: "S'INSCRIRE", or_fast: "OU RAPIDE AVEC", have_account: "Déjà un compte ?", btn_login_link: "Se connecter", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -287,7 +313,7 @@ window.t = {
         status_kyc_fan_desc: "Mode de paiement actif. Aucune vérification KYC requise.",
         status_unlinked_desc: "Connectez votre Portefeuille ou Carte de Crédit pour vérifier le compte sans KYC.",
         btn_link_payment: "LIER LE PAIEMENT", btn_my_favorites: "MES CRÉATEURS FAVORIS",
-        favorites_title: "FAVORIS", favorites_desc: "Étiquetez vos 10 créateurs favoris du Bunker pour un accès rapide.",
+        favorites_title: "FAVORITOS", favorites_desc: "Étiquetez vos 10 créateurs favoris du Bunker pour un accès rapide.",
         level_up_title: "NOUVEAU RANGO!", level_up_sub: "Privilégios Débloqués", warnings_label: "AVERTISSEMENTS",
         recurring_billing_label: "ACTIVER L'ABONNEMENT MENSUEL RÉCURRENT",
         recurring_billing_desc: "Votre rang sera facturé automatiquement tous les 30 jours. Vous recevrez une alerte 3 jours avant.",
@@ -310,7 +336,12 @@ window.t = {
         radar_title: "RADAR",
         welcome_chat_msg: "Bienvenue sur le Chat Global & Vidéo Bunker !",
         lbl_prof_status: "Statut :",
-        lbl_change_photo: "CHANGER"
+        lbl_change_photo: "CHANGER",
+        
+        media_img_photo: "Image / Photo",
+        media_short_video: "Vidéo Courte",
+        media_voice_note: "Note Vocale",
+        media_video_selfie: "Vidéo Selfie"
     }
 };
 
@@ -347,7 +378,6 @@ window.applyTranslations = function(lang) {
         'txt-go-live': 'btn_go_live', 'txt-cancel-stream': 'btn_cancel_stream', 'txt-close-cam': 'btn_close_cam',
         'av-settings-title': 'av_settings_title', 'lbl-cam': 'lbl_cam', 'lbl-mic': 'lbl_mic', 'btn-apply-av': 'btn_apply_av',
         
-        // Mapeo Modal Settings
         'txt-settings-title': 'settings_title',
         'lbl-settings-username': 'settings_lbl_username',
         'name-change-warning': 'settings_name_warn',
@@ -380,6 +410,19 @@ window.applyTranslations = function(lang) {
 
     const backBtns = document.querySelectorAll('.btn-back-text');
     backBtns.forEach(btn => { btn.innerText = dict.btn_back; });
+
+    // Traducciones dinámicas para el menú multimedia del Chat
+    const menuPhoto = document.getElementById('btn-menu-photo');
+    if(menuPhoto) menuPhoto.innerHTML = `<i class="fa-solid fa-image text-[#00f3ff]"></i> ${dict.media_img_photo}`;
+    
+    const menuVideo = document.getElementById('btn-menu-video');
+    if(menuVideo) menuVideo.innerHTML = `<i class="fa-solid fa-video text-[#ff00ff]"></i> ${dict.media_short_video}`;
+    
+    const menuAudio = document.getElementById('btn-menu-audio');
+    if(menuAudio) menuAudio.innerHTML = `<i class="fa-solid fa-microphone text-[#ffb703]"></i> ${dict.media_voice_note}`;
+    
+    const menuSelfie = document.getElementById('btn-menu-selfie');
+    if(menuSelfie) menuSelfie.innerHTML = `<i class="fa-solid fa-camera-retro text-emerald-400"></i> ${dict.media_video_selfie}`;
     
     const chatInput = document.getElementById('chat-input');
     if (chatInput) chatInput.placeholder = dict.chat_placeholder;
