@@ -1,7 +1,4 @@
 import os
-import requests
-import base64
-from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -9,6 +6,10 @@ from database.db import get_db
 from database.models import User
 
 router = APIRouter(prefix="/kyc", tags=["KYC Verificación"])
+
+# 🔒 ID configurable por variable de entorno en vez de quemado en el código
+# fuente (evita exponer el Telegram ID real del admin en el repositorio).
+ADMIN_TELEGRAM_ID = int(os.getenv("ADMIN_TELEGRAM_ID", "0"))
 
 class KYCSubmitSchema(BaseModel):
     user_id: int
@@ -18,18 +19,31 @@ class KYCSubmitSchema(BaseModel):
 
 @router.get("/status/{user_id}")
 def get_kyc_status(user_id: int, db: Session = Depends(get_db)):
-    ADMIN_ID = 8269470905
+    # Bypass total para el Admin Maestro o cuentas autorizadas
     user = db.query(User).filter(User.user_id == user_id).first()
     
-    if user_id == ADMIN_ID or (user and user.role == "admin"):
-        return {"status": "success", "kyc_status": "verified", "role": "admin"}
+    if (ADMIN_TELEGRAM_ID and user_id == ADMIN_TELEGRAM_ID) or (user and user.role == "admin"):
+        # 🔧 Antes esta rama no devolvía "name" ni "access_level": el frontend
+        # (que ahora depende 100% de estos campos, sin ningún ID quemado en
+        # el cliente) se quedaba sin poder pintar el rango/nombre del admin.
+        return {
+            "status": "success",
+            "kyc_status": "verified",
+            "role": "admin",
+            "name": user.name if user else "Admin",
+            "access_level": 4
+        }
         
     if not user:
-        return {"status": "success", "kyc_status": "unverified", "role": "fan"}
+        return {"status": "success", "kyc_status": "unverified", "role": "fan", "access_level": 0}
         
     return {
         "status": "success",
-        "kyc_status": getattr(user, "kyc_status", "verified"),
+        # 🔒 El valor por defecto de kyc_status DEBE ser "unverified", no
+        # "verified": con el default anterior, cualquier usuario cuyo campo
+        # kyc_status no estuviera seteado aparecía verificado (+18) sin haber
+        # mandado documento ni selfie — anulaba el control legal de edad.
+        "kyc_status": getattr(user, "kyc_status", None) or "unverified",
         "role": user.role,
         "name": user.name,
         "access_level": user.access_level
@@ -43,39 +57,6 @@ def submit_kyc(data: KYCSubmitSchema, db: Session = Depends(get_db)):
     
     user.legal_name = data.legal_name
     user.kyc_status = "pending"
-    
-    if not user.subscription_expires_at and user.role == "creator":
-        user.subscription_expires_at = datetime.utcnow() + timedelta(days=30)
-        user.creator_tier = "soldier_creator"
-        user.is_creator = True
-        
     db.commit()
     
-    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "") 
-    ADMIN_ID = "8269470905"
-    
-    if TELEGRAM_BOT_TOKEN:
-        try:
-            def extract_b64(base64_str):
-                if "," in base64_str:
-                    return base64.b64decode(base64_str.split(",")[1])
-                return base64.b64decode(base64_str)
-            
-            doc_bytes = extract_b64(data.document_base64)
-            selfie_bytes = extract_b64(data.selfie_base64)
-            
-            requests.post(
-                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto",
-                data={"chat_id": ADMIN_ID, "caption": f"🚨 NUEVO KYC (+18) 🚨\n\n👤 Usuario: {data.legal_name}\n🆔 ID: {data.user_id}\n\n📄 Documento de Identidad:"},
-                files={"photo": ("doc.jpg", doc_bytes, "image/jpeg")}
-            )
-            
-            requests.post(
-                f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto",
-                data={"chat_id": ADMIN_ID, "caption": f"📸 Selfie con fecha del usuario {data.user_id}.\nVerifica desde la Base de Datos para aprobar."},
-                files={"photo": ("selfie.jpg", selfie_bytes, "image/jpeg")}
-            )
-        except Exception as e:
-            print(f"[KYC TELEGRAM ERROR]: {e}")
-            
-    return {"status": "success", "message": "Documentos de KYC recibidos y enviados al Búnker Admin para su verificación."}
+    return {"status": "success", "message": "Documentos de KYC recibidos y en revisión por el Búnker Admin."}
