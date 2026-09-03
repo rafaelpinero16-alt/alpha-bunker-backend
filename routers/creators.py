@@ -24,7 +24,13 @@ def update_tip_menu_slot(data: TipMenuSlotSchema, db: Session = Depends(get_db))
     if not (1 <= data.slot_number <= 10):
         raise HTTPException(status_code=400, detail="El espacio debe ser un número entre 1 y 10.")
     
-    creator = db.query(User).filter(User.user_id == data.user_id, User.is_creator == True).first()
+    # 🔒 Filtramos correctamente por el string del rol ("creator" o "admin").
+    # Se elimina la dependencia de is_creator que generaba el bloqueo (Error 403).
+    creator = db.query(User).filter(
+        User.user_id == data.user_id,
+        User.role.in_(["creator", "admin"])
+    ).first()
+    
     if not creator:
         raise HTTPException(status_code=403, detail="Acceso denegado. Solo creadores verificados pueden editar su Tip Menu.")
     
