@@ -1,5 +1,5 @@
-// 🔧 Elevado a v30 y reestructurado a Network-First
-const CACHE_VERSION = 'v30';
+// 🔧 Versión v31 - Service Worker Blindado contra dominios externos
+const CACHE_VERSION = 'v31';
 const CACHE_NAME = `alphatom-vault-${CACHE_VERSION}`;
 
 const ASSETS_TO_CACHE = [
@@ -15,7 +15,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting(); // Obliga al nuevo Service Worker a instalarse de inmediato
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -24,7 +24,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            return caches.delete(key); // Destruye cualquier caché vieja estancada
+            return caches.delete(key);
           }
         })
       );
@@ -33,13 +33,23 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// 🚀 ESTRATEGIA NETWORK-FIRST: Siempre busca cambios en Vercel primero
+// 🚀 FETCH BLINDADO: Ignora dominios externos de wallets para evitar el error de Response
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Si la petición es externa (APIs, TonConnect, CDNs de imágenes externas), déjala pasar libremente sin cachear
+  if (url.origin !== location.origin) {
+    return;
+  }
+
   if (event.request.method !== 'GET') return;
   
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
         const responseClone = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseClone);
@@ -47,7 +57,6 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // Fallback a caché SOLO si no hay internet
         return caches.match(event.request);
       })
   );
