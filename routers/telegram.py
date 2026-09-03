@@ -6,11 +6,13 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from core.config import bot
 from database.db import get_db
 from database.models import Wallet, Transaction, Package, User
+from routers.logic import update_user_tier
 
 router = APIRouter(prefix="/telegram", tags=["Telegram Webhook"])
 
-TELEGRAM_SECRET_TOKEN = os.getenv("TELEGRAM_SECRET_TOKEN", "").strip()
-MINI_APP_URL = os.getenv("MINI_APP_URL", "https://tu-miniapp.netlify.app")
+# 🔒 Valores actualizados con los datos proporcionados
+TELEGRAM_SECRET_TOKEN = os.getenv("TELEGRAM_SECRET_TOKEN", "AlphaBunker2026").strip()
+MINI_APP_URL = os.getenv("MINI_APP_URL", "https://alpha-bunker-backend.vercel.app/").strip()
 
 @router.post("/webhook")
 async def telegram_webhook(
@@ -18,8 +20,10 @@ async def telegram_webhook(
     x_telegram_bot_api_secret_token: str = Header(None),
     db: Session = Depends(get_db)
 ):
-    # Validar el token secreto solo si está configurado
-    if TELEGRAM_SECRET_TOKEN and x_telegram_bot_api_secret_token != TELEGRAM_SECRET_TOKEN:
+    # 🔒 Falla cerrado: sin secreto configurado, no se aceptan webhooks.
+    if not TELEGRAM_SECRET_TOKEN:
+        raise HTTPException(status_code=500, detail="TELEGRAM_SECRET_TOKEN no está configurado en el servidor.")
+    if x_telegram_bot_api_secret_token != TELEGRAM_SECRET_TOKEN:
         raise HTTPException(status_code=403, detail="Acceso denegado: Token secreto inválido.")
     
     try:
@@ -98,6 +102,12 @@ async def telegram_webhook(
             except Exception as e:
                 db.rollback()
                 print(f"❌ [DATABASE] Error al procesar billetera: {e}")
+
+            # 🔒 Acreditación de Rango y Generación de Enlace VIP
+            try:
+                await update_user_tier(user_id=sender_id, tier=payload, amount=total_amount)
+            except Exception as e:
+                print(f"❌ [TIER UPDATE ERROR]: {e}")
             
             # 3. CONFIRMACIÓN AL FAN EN TELEGRAM
             try:
