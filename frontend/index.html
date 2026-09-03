@@ -11,7 +11,8 @@
     <title>ALPHA TOM - Hybrid Ecosystem & Vault</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@tonconnect/ui@1.0.0-beta.7/dist/tonconnect-ui.min.js"></script>
+    <!-- 🛡️ ACTUALIZACIÓN CRÍTICA: TonConnect UI a versión estable 2.0.9 para reparar el puente con Telegram Wallet -->
+    <script src="https://unpkg.com/@tonconnect/ui@2.0.9/dist/tonconnect-ui.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Rajdhani:wght@500;700;900&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
@@ -238,7 +239,7 @@
             </button>
             <button onclick="app.openUploadPanel()" class="flex flex-col items-center text-[#00f3ff] hover:scale-110 transition relative -mt-7 w-16">
                 <div class="bg-black border-2 border-[#00f3ff] p-3.5 rounded-full shadow-[0_0_20px_#00f3ff] animate-pulse mb-1">
-                    <i class="fa-solid fa-circle-plus text-2xl drop-shadow-[0_0_5px_#ff00ff]"></i>
+                    <i class="fa-solid fa-circle-plus text-2xl drop-shadow-[0_0_5px_#00f3ff]"></i>
                 </div>
                 <span class="text-[10px] font-black tracking-wide text-[#00f3ff]" id="nav-post">PUBLICAR</span>
             </button>
@@ -492,10 +493,10 @@
                     <div class="p-2.5 bg-[#050505] border-t border-neutral-800 flex items-center gap-2 pb-4 relative">
                         <!-- Menú Desplegable Multimedia -->
                         <div id="global-media-menu" class="hidden absolute bottom-14 left-2 bg-neutral-900 border border-[#00f3ff] rounded-2xl p-2 shadow-[0_0_20px_rgba(0,243,255,0.3)] flex flex-col gap-1.5 z-50 w-48">
-                            <button onclick="app.triggerGlobalMediaUpload('image/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-image text-[#00f3ff]"></i> Imagen / Foto</button>
-                            <button onclick="app.triggerGlobalMediaUpload('video/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-video text-[#ff00ff]"></i> Video Corto</button>
-                            <button onclick="app.triggerGlobalMediaUpload('audio/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-microphone text-[#ffb703]"></i> Nota de Voz</button>
-                            <button onclick="app.startGlobalSelfieCam()" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-camera-retro text-emerald-400"></i> Video Selfie</button>
+                            <button id="btn-menu-photo" onclick="app.triggerGlobalMediaUpload('image/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-image text-[#00f3ff]"></i> Imagen / Foto</button>
+                            <button id="btn-menu-video" onclick="app.triggerGlobalMediaUpload('video/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-video text-[#ff00ff]"></i> Video Corto</button>
+                            <button id="btn-menu-audio" onclick="app.triggerGlobalMediaUpload('audio/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-microphone text-[#ffb703]"></i> Nota de Voz</button>
+                            <button id="btn-menu-selfie" onclick="app.startGlobalSelfieCam()" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-camera-retro text-emerald-400"></i> Video Selfie</button>
                         </div>
 
                         <button onclick="document.getElementById('global-media-menu').classList.toggle('hidden')" class="w-10 h-10 shrink-0 rounded-full bg-neutral-900 border border-[#00f3ff]/50 text-[#00f3ff] flex items-center justify-center hover:bg-[#00f3ff]/20 transition shadow-[0_0_10px_rgba(0,243,255,0.3)] text-sm" title="Opciones Multimedia">
@@ -594,11 +595,11 @@
     <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
     <div id="toast" class="toast cursor-pointer hover:opacity-80 transition-opacity">¡Copiado! 📋</div>
     
-    <script src="js/security.js?v=29"></script>
-    <script src="js/translations.js?v=29"></script>
-    <script src="js/api.js?v=29"></script>
-    <script src="js/chat.js?v=29"></script>
-    <script src="js/app.js?v=29" defer></script>
+    <script src="js/security.js?v=30"></script>
+    <script src="js/translations.js?v=30"></script>
+    <script src="js/api.js?v=30"></script>
+    <script src="js/chat.js?v=30"></script>
+    <script src="js/app.js?v=30" defer></script>
 
     <script>
         if ('serviceWorker' in navigator) {

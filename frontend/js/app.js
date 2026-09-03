@@ -532,7 +532,11 @@ const app = {
     },
 
     async initTonConnect() {
-        const TonConnectClass = window.TonConnectUI || window.TON_CONNECT_UI;
+        // 🛡️ ACTUALIZACIÓN CRÍTICA: Compatibilidad estricta con TonConnect V2 y Telegram Wallet nativo
+        const TonConnectClass = (window.TON_CONNECT_UI && window.TON_CONNECT_UI.TonConnectUI) 
+            ? window.TON_CONNECT_UI.TonConnectUI 
+            : window.TonConnectUI;
+            
         if (!this.tonConnectUI && TonConnectClass) {
             try {
                 // FORZAR MANIFIESTO ABSOLUTO PARA EVITAR ERRORES DE ORIGEN CRUZADO
@@ -542,6 +546,11 @@ const app = {
                     manifestUrl: safeOrigin + '/tonconnect-manifest.json',
                     uiPreferences: { theme: 'DARK' }
                 });
+                
+                // Forzar restauración de conexión y preparación del puente en segundo plano
+                if (typeof this.tonConnectUI.connectionRestored === 'object') {
+                    await this.tonConnectUI.connectionRestored;
+                }
                 
                 this.tonConnectUI.onStatusChange(async (wallet) => {
                     const btnHdr = document.getElementById('btn-wallet-hdr');
@@ -568,21 +577,17 @@ const app = {
         try {
             this.haptic('medium'); 
             this.initUserId(); 
-            await this.initTonConnect();
             
             if (!this.tonConnectUI) {
-                const TonConnectClass = window.TonConnectUI || window.TON_CONNECT_UI;
-                if (TonConnectClass) {
-                    const safeOrigin = "https://alpha-bunker-backend-production.up.railway.app";
-                    this.tonConnectUI = new TonConnectClass({ 
-                        manifestUrl: safeOrigin + '/tonconnect-manifest.json',
-                        uiPreferences: { theme: 'DARK' }
-                    });
-                } else {
-                    this.showToast('⚠️ TON Connect no disponible.');
-                    return;
-                }
+                await this.initTonConnect();
             }
+
+            // Validación robusta
+            if (!this.tonConnectUI) {
+                this.showToast('⚠️ TON Connect no está cargado correctamente. Recarga la app.');
+                return;
+            }
+
             if (this.tonConnectUI.connected) {
                 if (confirm('¿Desconectar billetera?')) { 
                     await this.tonConnectUI.disconnect(); 
@@ -596,7 +601,7 @@ const app = {
             }
         } catch (err) {
             console.error("TonConnect openModal error:", err);
-            this.showToast('⚠️ Error al abrir pasarela TON.');
+            this.showToast('⚠️ Error al abrir pasarela TON. Intenta nuevamente.');
         }
     },
 
@@ -1122,7 +1127,11 @@ const app = {
     async rechargeAlphaCoins(amountTon, alphaAmount, targetLevel = null) {
         try {
             this.haptic('heavy'); await this.initTonConnect();
-            if (!this.tonConnectUI || !this.tonConnectUI.connected || !this.tonConnectUI.account) { this.showToast('⚠️ Conecta tu billetera TON.'); return; }
+            if (!this.tonConnectUI || !this.tonConnectUI.connected || !this.tonConnectUI.account) { 
+                this.showToast('⚠️ Conecta tu billetera TON.'); 
+                await this.connectWallet(); 
+                return; 
+            }
             const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: "UQDWI2auHgQ5a9KnWn9_by-RSswIaKfz38b_Yib_cIy-Jklp", amount: Math.floor(amountTon * 1000000000).toString() }] };
             const result = await this.tonConnectUI.sendTransaction(transaction);
             const res = await fetch(`${this.backendUrl}/wallet/recharge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, amount_ton: amountTon, alpha_added: alphaAmount, boc: result?.boc || "DIRECT_TX" }) });
