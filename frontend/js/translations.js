@@ -33,7 +33,6 @@ window.t = {
         recurring_billing_desc: "Se procesará el cobro automático de tu rango cada 30 días. Recibirás una alerta 3 días antes.",
         payment_log_title: "REGISTRO DE PAGOS B2C / B2B",
         
-        // ⚙️ AJUSTES / SETTINGS & RADAR LATERAL
         settings_title: "AJUSTES DEL BÚNKER",
         settings_lbl_username: "Cambiar Alias",
         settings_name_warn: "⚠️ Primer cambio libre. Modificaciones posteriores limitadas a 1 vez cada 30 días (Ilimitado para Administradores).",
@@ -86,7 +85,6 @@ window.t = {
         recurring_billing_desc: "Your rank will be automatically charged every 30 days. You will receive an alert 3 days prior.",
         payment_log_title: "B2C / B2B PAYMENT LOG",
         
-        // ⚙️ SETTINGS & LATERAL RADAR
         settings_title: "BUNKER SETTINGS",
         settings_lbl_username: "Change Username",
         settings_name_warn: "⚠️ First change is free. Later updates limited to once every 30 days (Unlimited for Admins).",
@@ -139,7 +137,6 @@ window.t = {
         recurring_billing_desc: "Il tuo rango verrà addebitato automaticamente ogni 30 giorni. Riceverai un avviso 3 giorni prima.",
         payment_log_title: "REGISTRO PAGAMENTI B2C / B2B",
         
-        // ⚙️ IMPOSTAZIONI & RADAR LATERALE
         settings_title: "IMPOSTAZIONI BUNKER",
         settings_lbl_username: "Cambia Alias",
         settings_name_warn: "⚠️ Primo cambio libero. Modifiche successive limitate a 1 volta ogni 30 giorni (Illimitato per Admin).",
@@ -170,7 +167,7 @@ window.t = {
         role_title: "SELECIONE SEU PAPEL", role_desc: "Escolha", role_creator: "CRIADOR (B2B)", role_creator_desc: "Promo", role_fan: "FÃ (B2C)", role_fan_desc: "VIP",
         cat_title: "ATUALIZAR PLANO", cat_loading: "Carregando pacotes táticos... ⏳", cat_error: "⚠️ Erro ao conectar ao servidor.", cat_official_rank: "RANK OFICIAL",
         pkg_spy_name: "SPY", pkg_spy_desc: "Reconhecimento e acesso inicial ao Búnker.", pkg_soldier_name: "SOLDIER", pkg_soldier_desc: "Infantaria tática com conteúdo essencial.", pkg_veteran_name: "VETERAN", pkg_veteran_desc: "Acesso avançado a operações especiais.", pkg_legend_name: "LEGEND", pkg_legend_desc: "Patente de Comandante com privilégios VIP totais.", pkg_icon_legend_name: "ICON LEGEND", pkg_icon_legend_desc: "General Supremo com acesso ilimitado e câmeras.",
-        btn_sel: "SELECIONAR", btn_life: "SELEZIONAR B2B", btn_bank: "Bancos e Stripe", com_title: "PARCEIROS", pay_stars: "Telegram Stars", btn_stripe: "Stripe / Checkout Externo", txt_pay_proof: "Enviar comprovante ao CRM.", bank_title: "BANCOS", copy_global: "Copiar Dados", copy_airtm: "Copiar Dados", copy_ton: "Copiar Endereço",
+        btn_sel: "SELECCIONAR", btn_life: "SELEZIONAR B2B", btn_bank: "Bancos e Stripe", com_title: "PARCEIROS", pay_stars: "Telegram Stars", btn_stripe: "Stripe / Checkout Externo", txt_pay_proof: "Enviar comprovante ao CRM.", bank_title: "BANCOS", copy_global: "Copiar Dados", copy_airtm: "Copiar Dados", copy_ton: "Copiar Endereço",
         chat_title: "SUPORTE (CRM PRIVADO)", chat_routed: "Canal Direto com Admin", btn_send_proof: "ENVIAR COMPROVANTE", chat_welcome: "Bunker CRM Ativo!", chat_placeholder: "Escreva sua mensagem...",
         wall_chat_title: "CHAT GLOBAL & VÍDEO BÚNKER", wall_chat_desc: "Comunidade ao vivo", btn_wall_chat: "CHAT", btn_wall_video: "VÍDEO",
         toast_video: "Conectando videochamada...", chat_connecting: "CONECTANDO AO BÚNKER... ⚡", chat_connected: "CONEXÃO ESTABELECIDA ✅", chat_error: "RECONECTANDO... 🔄", toast_reconnecting: "Reconectando canal...",
@@ -192,7 +189,6 @@ window.t = {
         recurring_billing_desc: "O seu rango será cobrado automaticamente a cada 30 dias. Você receberá um alerta 3 dias antes.",
         payment_log_title: "REGISTRO DE PAGAMENTOS B2C / B2B",
         
-        // ⚙️ CONFIGURAÇÕES & RADAR LATERAL
         settings_title: "CONFIGURAÇÕES DO BÚNKER",
         settings_lbl_username: "Mudar Alias",
         settings_name_warn: "⚠️ Primeiro alteração livre. Mudanças posteriores limitadas a 1 vez a cada 30 dias (Ilimitado para Admins).",
@@ -245,7 +241,6 @@ window.t = {
         recurring_billing_desc: "Ihr Rang wird alle 30 Tage automatisch belastet. Sie erhalten 3 Tage im Voraus eine Benachrichtigung.",
         payment_log_title: "B2C / B2B ZAHLUNGSPROTOKOLL",
         
-        // ⚙️ EINSTELLUNGEN & SEITLICHES RADAR
         settings_title: "BUNKER EINSTELLUNGEN",
         settings_lbl_username: "Benutzername ändern",
         settings_name_warn: "⚠️ Erste Änderung frei. Spätere Änderungen auf 1x alle 30 Tage begrenzt (Unbegrenzt für Admins).",
@@ -298,7 +293,6 @@ window.t = {
         recurring_billing_desc: "Votre rang sera facturé automatiquement tous les 30 jours. Vous recevrez une alerte 3 jours avant.",
         payment_log_title: "JOURNAL DES PAIEMENTS B2C / B2B",
         
-        // ⚙️ PARAMÈTRES & RADAR LATÉRAL
         settings_title: "PARAMÈTRES DU BUNKER",
         settings_lbl_username: "Changer d'alias",
         settings_name_warn: "⚠️ Premier changement libre. Modifications suivantes limitées à 1 fois tous les 30 jours (Illimité pour Admins).",

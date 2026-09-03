@@ -354,7 +354,6 @@ body.light-theme .text-neutral-300 {
     animation: fadeInMsg 0.3s ease-out forwards;
 }
 
-/* 🛡️ BLEND MODE PARA INSIGNIAS */
 .rank-badge {
     mix-blend-mode: screen;
     background-color: transparent !important;
