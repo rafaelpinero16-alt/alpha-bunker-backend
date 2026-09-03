@@ -348,10 +348,10 @@
                 </button>
                 <div id="prof-creator-subscription-box" class="hidden mt-3 bg-gradient-to-r from-neutral-900 to-black border border-[#ff00ff]/50 rounded-2xl p-4">
                     <h4 class="text-[10px] font-black text-[#ff00ff] uppercase tracking-widest mb-1" id="txt-b2b-title">MEMBRESÍA CREADOR B2B</h4>
-                    <p class="text-[9px] text-neutral-400 mb-3" id="txt-b2b-desc">Desbloquea la edición de tu Tip Menu y monetización activa.</p>
+                    <p class="text-[9px] text-neutral-400 mb-3" id="txt-b2b-desc">Desbloquea la edición de tu Tip Menu y monetización activa. ¡Un mes gratis!</p>
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="app.subscribeCreatorTier('soldier_creator')" class="bg-neutral-800 border border-neutral-600 text-white hover:border-[#ff00ff] px-2 py-2 rounded-xl text-[9px] font-black uppercase transition"><span id="txt-soldier-title">SOLDIER CREATOR</span> <br><span class="text-[#ff00ff]">$4.99/mes</span></button>
-                        <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-neutral-800 border border-neutral-600 text-white hover:border-[#00f3ff] px-2 py-2 rounded-xl text-[9px] font-black uppercase transition"><span id="txt-icon-title">ICON CREATOR</span> <br><span class="text-[#00f3ff]">$7.99/mes</span></button>
+                        <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-neutral-800 border border-neutral-600 text-white hover:border-[#ff00ff] px-2 py-2 rounded-xl text-[9px] font-black uppercase transition"><span id="txt-icon-title">ICON CREATOR</span> <br><span class="text-[#ff00ff]">$7.99/mes</span></button>
                     </div>
                 </div>
             </div>
@@ -379,19 +379,20 @@
             </div>
             
             <div class="space-y-5 text-sm">
-                <!-- 1. CAMBIAR ALIAS (1 VEZ AL MES) -->
+                <!-- 1. CAMBIAR ALIAS (1 VEZ AL MES / ILIMITADO SI ES ADMIN) -->
                 <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
-                    <label class="block text-xs text-[#00f3ff] font-bold uppercase tracking-wider mb-1" id="lbl-settings-username"><i class="fa-solid fa-user-pen mr-1"></i> Cambiar Alias (1 vez al mes)</label>
+                    <label class="block text-xs text-[#00f3ff] font-bold uppercase tracking-wider mb-1" id="lbl-settings-username"><i class="fa-solid fa-user-pen mr-1"></i> Cambiar Alias</label>
                     <input type="text" id="settings-username-input" class="cyber-input text-sm mb-2" placeholder="Nuevo alias VIP">
-                    <p id="name-change-warning" class="text-[10px] text-amber-400 mb-2 font-semibold">⚠️ Solo puedes cambiar tu nombre una vez cada 30 días por seguridad del Búnker.</p>
+                    <p id="name-change-warning" class="text-[10px] text-amber-400 mb-2 font-semibold">⚠️ Primer cambio libre. Modificaciones posteriores limitadas a 1 vez cada 30 días (Ilimitado para Administradores).</p>
                     <button onclick="app.updateUsernameSettings()" id="btn-settings-update-name" class="w-full bg-[#00f3ff] text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(0,243,255,0.4)]">Actualizar Alias</button>
                 </div>
 
-                <!-- 2. CAMBIAR CONTRASEÑA (CON VERIFICACIÓN PREVIA) -->
+                <!-- 2. CAMBIAR CONTRASEÑA (3 CAMPOS OBLIGATORIOS) -->
                 <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
                     <label class="block text-xs text-[#ff00ff] font-bold uppercase tracking-wider mb-1" id="lbl-settings-pwd"><i class="fa-solid fa-lock mr-1"></i> Cambiar Contraseña</label>
                     <input type="password" id="settings-old-pass" placeholder="Contraseña actual" class="cyber-input text-sm mb-2">
                     <input type="password" id="settings-new-pass" placeholder="Nueva contraseña (mín. 6 caracteres)" class="cyber-input text-sm mb-2">
+                    <input type="password" id="settings-confirm-pass" placeholder="Repetir nueva contraseña" class="cyber-input text-sm mb-2">
                     <p id="txt-settings-pwd-note" class="text-[10px] text-neutral-400 mb-2">Recibirás confirmación directa en tu cuenta al actualizar.</p>
                     <button onclick="app.updatePasswordSettings()" id="btn-settings-update-pwd" class="w-full bg-[#ff00ff] text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(255,0,255,0.4)]">Actualizar Contraseña</button>
                 </div>

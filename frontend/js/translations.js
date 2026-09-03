@@ -7,7 +7,7 @@ window.t = {
         upload_hdr: "SUBIR CONTENIDO", lbl_level: "NIVEL REQUERIDO PARA VER 👀", opt_0: "🆓 Público (Todos los Visitantes)", opt_1: "🎖️ Bloquear para SOLDIER", opt_2: "⚔️ Bloquear para VETERAN", opt_3: "👑 Bloquear para LEGEND", lbl_file: "FOTO O VIDEO (Galería) 📸", txt_upload: "Tocar para subir archivo", lbl_desc: "TEXTO / DESCRIPCIÓN", btn_pub: "PUBLICAR AL MURO",
         prof_title: "MI PERFIL", prof_alpha_title: "BILLETERA $ALPHA", prof_alpha_desc: "Recarga saldo con tu billetera TON conectada para dar propinas y desbloquear contenido exclusivo.", btn_recharge: "RECARGAR 1 TON x 100 $ALPHA", lbl_alias: "NOMBRE DE USUARIO / ALIAS", prof_growth: "Crecimiento de Rango", prof_next: "Siguiente: SOLDIER", lbl_bio: "BIO / DESCRIPCIÓN VIP", btn_save_bio: "GUARDAR PERFIL", btn_pub_content: "PUBLICAR CONTENIDO",
         prof_kyc_title: "ESTADO KYC (+18)", prof_kyc_desc: "Verifica tu documento oficial y selfie para publicar y monetizar.", btn_verify_kyc: "VERIFICAR CUENTA AHORA", prof_kyc_verified: "VERIFICADO (+18) ✅", prof_kyc_verified_desc: "Identidad y mayoría de edad confirmada. Acceso total activo.", prof_kyc_pending: "EN REVISIÓN ⏳", prof_kyc_pending_desc: "Tus documentos están siendo auditados por el Búnker Admin.", btn_kyc_pending: "SOLICITUD EN PROCESO ⏳",
-        b2b_main_title: "MEMBRESÍA CREADOR B2B", b2b_free_month: "1º MES GRATIS 🎁", b2b_desc: "Desbloquea la edición de tu Tip Menu y monetización activa.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mes", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mes", b2b_edit_tips: "EDITAR MIS 10 SLOTS (TIP MENU)",
+        b2b_main_title: "MEMBRESÍA CREADOR B2B", b2b_free_month: "1º MES GRATIS 🎁", b2b_desc: "Desbloquea la edición de tu Tip Menu y monetización activa. ¡Un mes gratis!", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mes", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mes", b2b_edit_tips: "EDITAR MIS 10 SLOTS (TIP MENU)",
         role_title: "SELECCIONA TU ROL", role_desc: "¿Cómo deseas interactuar con la plataforma?", role_creator: "SOY CREADOR (B2B)", role_creator_desc: "Pautas / Promos (150 XTR)", role_fan: "SOY FAN (B2C)", role_fan_desc: "Suscripciones VIP por Tiers",
         cat_title: "UPGRADE PLAN", cat_loading: "Cargando 5 packs tácticos del Búnker... ⏳", cat_error: "⚠️ Error al conectar con el servidor.", cat_official_rank: "RANGO OFICIAL",
         pkg_spy_name: "SPY", pkg_spy_desc: "Reconocimiento y acceso inicial al Búnker.", pkg_soldier_name: "SOLDIER", pkg_soldier_desc: "Infantería táctica con contenido esencial.", pkg_veteran_name: "VETERAN", pkg_veteran_desc: "Acceso avanzado a operaciones especiales.", pkg_legend_name: "LEGEND", pkg_legend_desc: "Rango de Comandante con privilegios VIP totales.", pkg_icon_legend_name: "ICON LEGEND", pkg_icon_legend_desc: "General Supremo con acceso ilimitado y cámaras.",
@@ -35,8 +35,8 @@ window.t = {
         
         // ⚙️ AJUSTES / SETTINGS & RADAR LATERAL
         settings_title: "AJUSTES DEL BÚNKER",
-        settings_lbl_username: "Cambiar Alias (1 vez al mes)",
-        settings_name_warn: "⚠️ Solo puedes cambiar tu nombre una vez cada 30 días por seguridad del Búnker.",
+        settings_lbl_username: "Cambiar Alias",
+        settings_name_warn: "⚠️ Primer cambio libre. Modificaciones posteriores limitadas a 1 vez cada 30 días (Ilimitado para Administradores).",
         settings_btn_update_name: "Actualizar Alias",
         settings_lbl_pwd: "Cambiar Contraseña",
         settings_ph_old_pass: "Contraseña actual",
@@ -60,7 +60,7 @@ window.t = {
         upload_hdr: "UPLOAD CONTENT", lbl_level: "REQUIRED LEVEL TO VIEW 👀", opt_0: "🆓 Public (All Visitors)", opt_1: "🎖️ Block for SOLDIER", opt_2: "⚔️ Block for VETERAN", opt_3: "👑 Block for LEGEND", lbl_file: "PHOTO OR VIDEO 📸", txt_upload: "Tap to upload file", lbl_desc: "TEXT / DESCRIPTION", btn_pub: "PUBLISH TO WALL",
         prof_title: "MY PROFILE", prof_alpha_title: "$ALPHA WALLET", prof_alpha_desc: "Recharge balance to unlock exclusive content.", btn_recharge: "RECHARGE 1 TON x 100 $ALPHA", lbl_alias: "USERNAME / ALIAS", prof_growth: "Rank Growth", prof_next: "Next: SOLDIER", lbl_bio: "BIO / VIP DESCRIPTION", btn_save_bio: "SAVE PROFILE", btn_pub_content: "PUBLISH CONTENT",
         prof_kyc_title: "KYC STATUS (+18)", prof_kyc_desc: "Verify your identity to monetize.", btn_verify_kyc: "VERIFY ACCOUNT NOW", prof_kyc_verified: "VERIFIED (+18) ✅", prof_kyc_verified_desc: "Identity confirmed. Full access active.", prof_kyc_pending: "IN REVIEW ⏳", prof_kyc_pending_desc: "Your documents are being audited.", btn_kyc_pending: "REQUEST IN PROCESS ⏳",
-        b2b_main_title: "B2B CREATOR MEMBERSHIP", b2b_free_month: "1ST MONTH FREE 🎁", b2b_desc: "Unlock Tip Menu and monetization.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mo", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mo", b2b_edit_tips: "EDIT MY 10 SLOTS (TIP MENU)",
+        b2b_main_title: "B2B CREATOR MEMBERSHIP", b2b_free_month: "1ST MONTH FREE 🎁", b2b_desc: "Unlock Tip Menu and monetization. One month free!", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mo", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mo", b2b_edit_tips: "EDIT MY 10 SLOTS (TIP MENU)",
         role_title: "SELECT YOUR ROLE", role_desc: "How do you want to interact?", role_creator: "I AM CREATOR (B2B)", role_creator_desc: "Promos / Ads", role_fan: "I AM FAN (B2C)", role_fan_desc: "VIP Subscriptions",
         cat_title: "UPGRADE PLAN", cat_loading: "Loading tactical packs... ⏳", cat_error: "⚠️ Error connecting to server.", cat_official_rank: "OFFICIAL RANK",
         pkg_spy_name: "SPY", pkg_spy_desc: "Recon and initial access to the Bunker.", pkg_soldier_name: "SOLDIER", pkg_soldier_desc: "Tactical infantry with essential content.", pkg_veteran_name: "VETERAN", pkg_veteran_desc: "Advanced access to special operations.", pkg_legend_name: "LEGEND", pkg_legend_desc: "Commander rank with full VIP privileges.", pkg_icon_legend_name: "ICON LEGEND", pkg_icon_legend_desc: "Supreme General with unlimited access.",
@@ -88,8 +88,8 @@ window.t = {
         
         // ⚙️ SETTINGS & LATERAL RADAR
         settings_title: "BUNKER SETTINGS",
-        settings_lbl_username: "Change Username (Once a month)",
-        settings_name_warn: "⚠️ You can only change your username once every 30 days for Bunker security.",
+        settings_lbl_username: "Change Username",
+        settings_name_warn: "⚠️ First change is free. Later updates limited to once every 30 days (Unlimited for Admins).",
         settings_btn_update_name: "Update Username",
         settings_lbl_pwd: "Change Password",
         settings_ph_old_pass: "Current password",
@@ -113,7 +113,7 @@ window.t = {
         upload_hdr: "CARICA CONTENUTO", lbl_level: "LIVELLO RICHIESTO 👀", opt_0: "🆓 Pubblico", opt_1: "🎖️ Blocca per SOLDIER", opt_2: "⚔️ Blocca per VETERAN", opt_3: "👑 Blocca per LEGEND", lbl_file: "FOTO O VIDEO 📸", txt_upload: "Tocca per caricare", lbl_desc: "DESCRIZIONE", btn_pub: "PUBBLICA",
         prof_title: "MIO PROFILO", prof_alpha_title: "PORTAFOGLIO $ALPHA", prof_alpha_desc: "Ricarica il saldo.", btn_recharge: "RICARICA 1 TON x 100 $ALPHA", lbl_alias: "USERNAME / ALIAS", prof_growth: "Crescita", prof_next: "Prossimo: SOLDIER", lbl_bio: "BIO / DESCRIZIONE VIP", btn_save_bio: "SALVA PROFILO", btn_pub_content: "PUBBLICA CONTENUTO",
         prof_kyc_title: "STATO KYC (+18)", prof_kyc_desc: "Verifica il tuo documento.", btn_verify_kyc: "VERIFICA ACCOUNT ORA", prof_kyc_verified: "VERIFICATO (+18) ✅", prof_kyc_verified_desc: "Identità confermata. Accesso totale attivo.", prof_kyc_pending: "IN REVISIONE ⏳", prof_kyc_pending_desc: "I tuoi documenti sono in revisione.", btn_kyc_pending: "RICHIESTA IN CORSO ⏳",
-        b2b_main_title: "ABBONAMENTO CREATORE B2B", b2b_free_month: "1º MESE GRATIS 🎁", b2b_desc: "Sblocca la modifica del tuo Tip Menu e la monetizzazione.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mese", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mese", b2b_edit_tips: "MODIFICA I MIEI 10 SLOTS",
+        b2b_main_title: "ABBONAMENTO CREATORE B2B", b2b_free_month: "1º MESE GRATIS 🎁", b2b_desc: "Sblocca la modifica del tuo Tip Menu e la monetizzazione. Un mese gratis!", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mese", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mese", b2b_edit_tips: "MODIFICA I MIEI 10 SLOTS",
         role_title: "SELEZIONA RUOLO", role_desc: "Scegli come interagire", role_creator: "CREATORE (B2B)", role_creator_desc: "Promo", role_fan: "FAN (B2C)", role_fan_desc: "Abbonamenti VIP",
         cat_title: "AGGIORNA PIANO", cat_loading: "Caricamento pack tattici... ⏳", cat_error: "⚠️ Errore di connessione.", cat_official_rank: "RANGO UFFICIALE",
         pkg_spy_name: "SPY", pkg_spy_desc: "Ricognizione e accesso iniziale al Bunker.", pkg_soldier_name: "SOLDIER", pkg_soldier_desc: "Fanteria tattica con contenuti essenziali.", pkg_veteran_name: "VETERAN", pkg_veteran_desc: "Accesso avanzato a operazioni speciali.", pkg_legend_name: "LEGEND", pkg_legend_desc: "Grado di Comandante con privilegi VIP totali.", pkg_icon_legend_name: "ICON LEGEND", pkg_icon_legend_desc: "Generale Supremo con accesso illimitato e telecamere.",
@@ -141,8 +141,8 @@ window.t = {
         
         // ⚙️ IMPOSTAZIONI & RADAR LATERALE
         settings_title: "IMPOSTAZIONI BUNKER",
-        settings_lbl_username: "Cambia Alias (1 volta al mese)",
-        settings_name_warn: "⚠️ Puoi cambiare il tuo nome solo una volta ogni 30 giorni per sicurezza del Bunker.",
+        settings_lbl_username: "Cambia Alias",
+        settings_name_warn: "⚠️ Primo cambio libero. Modifiche successive limitate a 1 volta ogni 30 giorni (Illimitato per Admin).",
         settings_btn_update_name: "Aggiorna Alias",
         settings_lbl_pwd: "Cambia Password",
         settings_ph_old_pass: "Password attuale",
@@ -166,7 +166,7 @@ window.t = {
         upload_hdr: "ENVIAR CONTEÚDO", lbl_level: "NÍVEL EXIGIDO 👀", opt_0: "🆓 Público", opt_1: "🎖️ Bloquear para SOLDIER", opt_2: "⚔️ Bloquear para VETERAN", opt_3: "👑 Bloquear para LEGEND", lbl_file: "FOTO OU VÍDEO 📸", txt_upload: "Toque para enviar", lbl_desc: "DESCRIÇÃO", btn_pub: "PUBLICAR",
         prof_title: "MEU PERFIL", prof_alpha_title: "CARTEIRA $ALPHA", prof_alpha_desc: "Recarregue para desbloquear conteúdo.", btn_recharge: "RECARREGAR 1 TON x 100 $ALPHA", lbl_alias: "NOME DE USUÁRIO", prof_growth: "Crescimento", prof_next: "Próximo: SOLDIER", lbl_bio: "BIO / DESCRIÇÃO VIP", btn_save_bio: "SALVAR PERFIL", btn_pub_content: "PUBLICAR CONTEÚDO",
         prof_kyc_title: "STATUS KYC (+18)", prof_kyc_desc: "Verifique seu documento oficial para monetizar.", btn_verify_kyc: "VERIFICAR CONTA AGORA", prof_kyc_verified: "VERIFICADO (+18) ✅", prof_kyc_verified_desc: "Identidade confirmada. Acesso total ativo.", prof_kyc_pending: "EM REVISÃO ⏳", prof_kyc_pending_desc: "Seus documentos estão sendo analisados.", btn_kyc_pending: "SOLICITAÇÃO EM PROCESSO ⏳",
-        b2b_main_title: "ASSINATURA CRIADOR B2B", b2b_free_month: "1º MÊS GRÁTIS 🎁", b2b_desc: "Desbloqueie a edição do seu Tip Menu e monetização.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mês", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mês", b2b_edit_tips: "EDITAR MEUS 10 SLOTS",
+        b2b_main_title: "ASSINATURA CRIADOR B2B", b2b_free_month: "1º MÊS GRÁTIS 🎁", b2b_desc: "Desbloqueie a edição do seu Tip Menu e monetização. Um mês grátis!", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mês", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mês", b2b_edit_tips: "EDITAR MEUS 10 SLOTS",
         role_title: "SELECIONE SEU PAPEL", role_desc: "Escolha", role_creator: "CRIADOR (B2B)", role_creator_desc: "Promo", role_fan: "FÃ (B2C)", role_fan_desc: "VIP",
         cat_title: "ATUALIZAR PLANO", cat_loading: "Carregando pacotes táticos... ⏳", cat_error: "⚠️ Erro ao conectar ao servidor.", cat_official_rank: "RANK OFICIAL",
         pkg_spy_name: "SPY", pkg_spy_desc: "Reconhecimento e acesso inicial ao Búnker.", pkg_soldier_name: "SOLDIER", pkg_soldier_desc: "Infantaria tática com conteúdo essencial.", pkg_veteran_name: "VETERAN", pkg_veteran_desc: "Acesso avançado a operações especiais.", pkg_legend_name: "LEGEND", pkg_legend_desc: "Patente de Comandante com privilégios VIP totais.", pkg_icon_legend_name: "ICON LEGEND", pkg_icon_legend_desc: "General Supremo com acesso ilimitado e câmeras.",
@@ -194,8 +194,8 @@ window.t = {
         
         // ⚙️ CONFIGURAÇÕES & RADAR LATERAL
         settings_title: "CONFIGURAÇÕES DO BÚNKER",
-        settings_lbl_username: "Mudar Alias (1 vez por mês)",
-        settings_name_warn: "⚠️ Você só pode alterar seu nome uma vez a cada 30 dias para segurança do Búnker.",
+        settings_lbl_username: "Mudar Alias",
+        settings_name_warn: "⚠️ Primeiro alteração livre. Mudanças posteriores limitadas a 1 vez a cada 30 dias (Ilimitado para Admins).",
         settings_btn_update_name: "Atualizar Alias",
         settings_lbl_pwd: "Mudar Senha",
         settings_ph_old_pass: "Senha atual",
@@ -219,7 +219,7 @@ window.t = {
         upload_hdr: "INHALT HOCHLADEN", lbl_level: "ERFORDERLICHES LEVEL 👀", opt_0: "🆓 Öffentlich", opt_1: "🎖️ Blockieren für SOLDIER", opt_2: "⚔️ Blockieren für VETERAN", opt_3: "👑 Blockieren für LEGEND", lbl_file: "FOTO ODER VIDEO 📸", txt_upload: "Tippen zum Hochladen", lbl_desc: "BESCHREIBUNG", btn_pub: "VERÖFFENTLICHEN",
         prof_title: "MEIN PROFIL", prof_alpha_title: "$ALPHA WALLET", prof_alpha_desc: "Guthaben aufladen.", btn_recharge: "1 TON x 100 $ALPHA AUFLADEN", lbl_alias: "BENUTZERNAME", prof_growth: "Wachstum", prof_next: "Nächster: SOLDIER", lbl_bio: "BIO / BESCHREIBUNG", btn_save_bio: "PROFIL SPEICHERN", btn_pub_content: "INHALT VERÖFFENTLICHEN",
         prof_kyc_title: "KYC STATUS (+18)", prof_kyc_desc: "Verifizieren Sie Ihr Dokument, um zu monetarisieren.", btn_verify_kyc: "KONTO JETZT VERIFIZIEREN", prof_kyc_verified: "VERIFIZIERT (+18) ✅", prof_kyc_verified_desc: "Identität bestätigt. Voller Zugriff aktiv.", prof_kyc_pending: "IN PRÜFUNG ⏳", prof_kyc_pending_desc: "Ihre Dokumente werden geprüft.", btn_kyc_pending: "ANFRAGE IN BEARBEITUNG ⏳",
-        b2b_main_title: "B2B SCHÖPFER MITGLIEDSCHAFT", b2b_free_month: "1. MONAT FREI 🎁", b2b_desc: "Schalten Sie Ihr Tip-Menü frei.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / Monat", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / Monat", b2b_edit_tips: "MEINE 10 SLOTS BEARBEITEN",
+        b2b_main_title: "B2B SCHÖPFER MITGLIEDSCHAFT", b2b_free_month: "1. MONAT FREI 🎁", b2b_desc: "Schalten Sie Ihr Tip-Menü frei. Ein Monat gratis!", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / Monat", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / Monat", b2b_edit_tips: "MEINE 10 SLOTS BEARBEITEN",
         role_title: "ROLLE", role_desc: "Wählen", role_creator: "SCHÖPFER (B2B)", role_creator_desc: "Promo", role_fan: "FAN (B2C)", role_fan_desc: "VIP",
         cat_title: "AKTUALISIEREN", cat_loading: "Laden der 5 taktischen Pakete... ⏳", cat_error: "⚠️ Fehler beim Verbinden.", cat_official_rank: "OFFIZIELLER RANG",
         pkg_spy_name: "SPY", pkg_spy_desc: "Aufklärung und anfänglicher Zugang zum Bunker.", pkg_soldier_name: "SOLDIER", pkg_soldier_desc: "Taktische Infanterie mit wesentlichen Inhalten.", pkg_veteran_name: "VETERAN", pkg_veteran_desc: "Erweiterter Zugang zu Spezialeinsätzen.", pkg_legend_name: "LEGEND", pkg_legend_desc: "Kommandanten-Rang mit vollen VIP-Privilegien.", pkg_icon_legend_name: "ICON LEGEND", pkg_icon_legend_desc: "Oberster General mit unbegrenztem Zugang und Kameras.",
@@ -247,8 +247,8 @@ window.t = {
         
         // ⚙️ EINSTELLUNGEN & SEITLICHES RADAR
         settings_title: "BUNKER EINSTELLUNGEN",
-        settings_lbl_username: "Benutzername ändern (1x im Monat)",
-        settings_name_warn: "⚠️ Sie können Ihren Benutzernamen aus Sicherheitsgründen nur alle 30 Tage ändern.",
+        settings_lbl_username: "Benutzername ändern",
+        settings_name_warn: "⚠️ Erste Änderung frei. Spätere Änderungen auf 1x alle 30 Tage begrenzt (Unbegrenzt für Admins).",
         settings_btn_update_name: "Benutzername aktualisieren",
         settings_lbl_pwd: "Passwort ändern",
         settings_ph_old_pass: "Aktuelles Passwort",
@@ -272,7 +272,7 @@ window.t = {
         upload_hdr: "PUBLIER", lbl_level: "NIVEAU REQUIS 👀", opt_0: "🆓 Public", opt_1: "🎖️ Bloquer pour SOLDIER", opt_2: "⚔️ Bloquer pour VETERAN", opt_3: "👑 Bloquear para LEGEND", lbl_file: "PHOTO OU VIDÉO 📸", txt_upload: "Appuyez pour télécharger", lbl_desc: "DESCRIPTION", btn_pub: "PUBLIER SUR LE MUR",
         prof_title: "MON PROFIL", prof_alpha_title: "PORTEFEUILLE $ALPHA", prof_alpha_desc: "Rechargez votre solde.", btn_recharge: "RECHARGER 1 TON x 100 $ALPHA", lbl_alias: "NOM D'UTILISATEUR", prof_growth: "Croissance", prof_next: "Prochain: SOLDIER", lbl_bio: "BIO / DESCRIPTION VIP", btn_save_bio: "SAUVEGARDER", btn_pub_content: "PUBLIER CONTENU",
         prof_kyc_title: "STATUT KYC (+18)", prof_kyc_desc: "Vérifiez votre document officiel pour monétiser.", btn_verify_kyc: "VÉRIFIER LE COMPTE", prof_kyc_verified: "VÉRIFIÉ (+18) ✅", prof_kyc_verified_desc: "Identité confirmée. Accès total actif.", prof_kyc_pending: "EN RÉVISION ⏳", prof_kyc_pending_desc: "Vos documents sont en cours d'audit.", btn_kyc_pending: "DEMANDE EN COURS ⏳",
-        b2b_main_title: "ABONNEMENT CRÉATEUR B2B", b2b_free_month: "1er MOIS GRATUIT 🎁", b2b_desc: "Débloquez l'édition de votre Tip Menu.", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mois", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mois", b2b_edit_tips: "MODIFIER MES 10 SLOTS",
+        b2b_main_title: "ABONNEMENT CRÉATEUR B2B", b2b_free_month: "1er MOIS GRATUIT 🎁", b2b_desc: "Débloquez l'édition de votre Tip Menu. Un mois gratuit !", b2b_soldier_title: "SOLDIER CREATOR", b2b_soldier_price: "$4.99 USD / mois", b2b_icon_title: "ICON CREATOR", b2b_icon_price: "$7.99 USD / mois", b2b_edit_tips: "MODIFIER MES 10 SLOTS",
         role_title: "RÔLE", role_desc: "Choisir", role_creator: "CRÉATEUR (B2B)", role_creator_desc: "Promo", role_fan: "FAN (B2C)", role_fan_desc: "VIP",
         cat_title: "METTRE À JOUR", cat_loading: "Chargement des packs... ⏳", cat_error: "⚠️ Erreur de connexion au serveur.", cat_official_rank: "RANG OFFICIEL",
         pkg_spy_name: "SPY", pkg_spy_desc: "Reconnaissance et accès initial au Bunker.", pkg_soldier_name: "SOLDIER", pkg_soldier_desc: "Infanterie tactique avec contenu essentiel.", pkg_veteran_name: "VETERAN", pkg_veteran_desc: "Accès avanzado a operaciones especiales.", pkg_legend_name: "LEGEND", pkg_legend_desc: "Rang de Commandant avec privilèges VIP totaux.", pkg_icon_legend_name: "ICON LEGEND", pkg_icon_legend_desc: "Général Suprême avec accès illimité et caméras.",
@@ -300,8 +300,8 @@ window.t = {
         
         // ⚙️ PARAMÈTRES & RADAR LATÉRAL
         settings_title: "PARAMÈTRES DU BUNKER",
-        settings_lbl_username: "Changer d'alias (1 fois par mois)",
-        settings_name_warn: "⚠️ Vous ne pouvez changer votre nom qu'une fois tous les 30 jours par sécurité.",
+        settings_lbl_username: "Changer d'alias",
+        settings_name_warn: "⚠️ Premier changement libre. Modifications suivantes limitées à 1 fois tous les 30 jours (Illimité pour Admins).",
         settings_btn_update_name: "Mettre à jour l'alias",
         settings_lbl_pwd: "Changer le mot de passe",
         settings_ph_old_pass: "Mot de passe actuel",
@@ -400,4 +400,7 @@ window.applyTranslations = function(lang) {
 
     const newPass = document.getElementById('settings-new-pass');
     if (newPass && dict.settings_ph_new_pass) newPass.placeholder = dict.settings_ph_new_pass;
+
+    const confirmPass = document.getElementById('settings-confirm-pass');
+    if (confirmPass) confirmPass.placeholder = dict.settings_ph_new_pass || "Repetir nueva contraseña";
 };
