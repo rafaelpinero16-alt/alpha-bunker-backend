@@ -78,6 +78,13 @@ body.light-theme .text-neutral-300 {
     border-radius: 4px;
 }
 
+/* 🛡️ REGLA PARA MANTENER LA CABECERA DEL CHAT FIJA Y EVITAR DESPLAZAMIENTOS */
+#modal-global-chat .glass-panel {
+    max-height: 100vh; /* Ajuste crítico para móviles */
+    display: flex;
+    flex-direction: column;
+}
+
 .privacy-blur > * {
     opacity: 0 !important;
     pointer-events: none !important;
