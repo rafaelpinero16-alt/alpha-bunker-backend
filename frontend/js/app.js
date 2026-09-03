@@ -1654,4 +1654,4 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('CONTENIDO PROTEGIDO BÚNKER'); app.showToast('⚠️ Capturas bloqueadas.'); }
         if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
     });
-});
+});// FORZAR PUSH
