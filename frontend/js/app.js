@@ -5,7 +5,7 @@ const app = {
     currentCaptcha: '',
     isAdmin: false,
     userAccessLevel: 0,
-    userData: { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 },
+    userData: { name: 'USER', access_tier: 0, role: 'fan', warnings: 0, isOnline: true },
     lastView: 'consent',
     tempPostMedia: null,
     registerRoleSelected: 'fan',
@@ -69,6 +69,134 @@ const app = {
                 setTimeout(() => { if (document.body.contains(toast)) toast.remove(); }, 300);
             }
         }, 1500);
+    },
+
+    // 🛡️ MODO CLARO / OSCURO
+    toggleTheme() {
+        this.haptic('light');
+        const body = document.body;
+        body.classList.toggle('light-theme');
+        const isLight = body.classList.contains('light-theme');
+        localStorage.setItem('alpha_theme', isLight ? 'light' : 'dark');
+        const icon = document.getElementById('theme-icon');
+        if (icon) icon.className = isLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        this.showToast(isLight ? '☀️ Modo Claro Activado' : '🌙 Modo Oscuro Activado');
+    },
+
+    initTheme() {
+        const savedTheme = localStorage.getItem('alpha_theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-theme');
+            const icon = document.getElementById('theme-icon');
+            if (icon) icon.className = 'fa-solid fa-sun';
+        }
+    },
+
+    // 🛡️ ESTADO OPERATIVO (ONLINE / OFFLINE CON BOTÓN ROJO/VERDE)
+    toggleOnlineStatus() {
+        this.haptic('medium');
+        this.userData.isOnline = !this.userData.isOnline;
+        localStorage.setItem('alpha_user_online', this.userData.isOnline);
+        this.updateOnlineStatusUI();
+        this.showToast(this.userData.isOnline ? '🟢 Estado: ONLINE' : '🔴 Estado: OFFLINE');
+    },
+
+    updateOnlineStatusUI() {
+        const badge = document.getElementById('user-status-badge');
+        const toggleBtn = document.getElementById('profile-status-toggle');
+        const settingsBtnText = document.getElementById('settings-status-text');
+        const settingsIndicator = document.getElementById('settings-status-indicator');
+        const settingsBtn = document.getElementById('settings-status-btn');
+        
+        const isOnline = this.userData.isOnline !== false;
+        
+        if (badge) {
+            badge.innerText = isOnline ? '● ONLINE' : '○ OFFLINE';
+            badge.className = isOnline 
+                ? 'text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30' 
+                : 'text-[9px] font-bold text-neutral-400 bg-neutral-800 px-2 py-0.5 rounded-full border border-neutral-700';
+        }
+        if (toggleBtn) {
+            toggleBtn.innerText = isOnline ? '● ONLINE' : '○ OFFLINE';
+            toggleBtn.className = isOnline 
+                ? 'text-xs font-black text-emerald-400 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/50' 
+                : 'text-xs font-black text-neutral-400 bg-neutral-800 px-2.5 py-0.5 rounded-full border border-neutral-700';
+        }
+        if (settingsBtnText && settingsIndicator && settingsBtn) {
+            settingsBtnText.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
+            settingsIndicator.className = isOnline 
+                ? 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse' 
+                : 'w-2.5 h-2.5 rounded-full bg-red-500';
+            settingsBtn.className = isOnline 
+                ? 'bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5' 
+                : 'bg-red-600/20 border border-red-500 text-red-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5';
+        }
+    },
+
+    // 🛡️ GESTIÓN DE SETTINGS Y RESTRICCIÓN MENSUAL DE CAMBIO DE NOMBRE
+    openSettingsModal() {
+        this.haptic('light');
+        const modal = document.getElementById('modal-settings');
+        if (modal) {
+            modal.classList.remove('hidden');
+            const nameInput = document.getElementById('settings-username-input');
+            const savedName = localStorage.getItem('alpha_user_name') || 'mastertom';
+            if (nameInput) nameInput.value = savedName;
+            this.updateOnlineStatusUI();
+        }
+    },
+
+    closeSettingsModal() {
+        this.haptic('light');
+        document.getElementById('modal-settings')?.classList.add('hidden');
+    },
+
+    updateUsernameSettings() {
+        this.haptic('medium');
+        const input = document.getElementById('settings-username-input');
+        const newName = input ? input.value.trim() : '';
+        if (!newName) {
+            this.showToast('⚠️ Ingresa un alias válido.');
+            return;
+        }
+
+        const lastChange = localStorage.getItem('alpha_last_name_change');
+        const now = Date.now();
+        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+
+        if (lastChange && (now - parseInt(lastChange)) < thirtyDaysMs) {
+            const daysLeft = Math.ceil((thirtyDaysMs - (now - parseInt(lastChange))) / (1000 * 60 * 60 * 24));
+            this.showToast(`⏳ Debes esperar ${daysLeft} días para volver a cambiar tu alias.`);
+            return;
+        }
+
+        localStorage.setItem('alpha_user_name', newName);
+        localStorage.setItem('alpha_last_name_change', now.toString());
+        this.userData.name = newName;
+        this.updateProfileUI();
+        this.showToast('✅ ¡Alias actualizado con éxito!');
+        this.closeSettingsModal();
+    },
+
+    updatePasswordSettings() {
+        this.haptic('medium');
+        const oldPass = document.getElementById('settings-old-pass')?.value.trim();
+        const newPass = document.getElementById('settings-new-pass')?.value.trim();
+
+        if (!oldPass || !newPass) {
+            this.showToast('⚠️ Completa ambos campos de contraseña.');
+            return;
+        }
+        if (newPass.length < 6) {
+            this.showToast('⚠️ La nueva contraseña debe tener al menos 6 caracteres.');
+            return;
+        }
+
+        localStorage.setItem('alpha_user_pass', newPass);
+        this.showToast('🔒 ¡Contraseña actualizada correctamente!');
+        document.getElementById('settings-old-pass').value = '';
+        document.getElementById('settings-new-pass').value = '';
+        this.closeSettingsModal();
     },
 
     showLevelUpAnimation(rankLevel) {
@@ -230,7 +358,6 @@ const app = {
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
                 if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc') || 'Método de pago activo. No requieres verificación KYC.';
                 
-                // Botón constante para cambiar método de pago en cualquier momento
                 const sessionValid = localStorage.getItem('alpha_logged_in') === 'true' && this.userId;
                 if (kycBtn && sessionValid) {
                     kycBtn.classList.remove('hidden');
@@ -295,6 +422,7 @@ const app = {
                 });
             }
         }
+        this.updateOnlineStatusUI();
     },
 
     updateViewsCounter() {
@@ -315,6 +443,8 @@ const app = {
             if (!localId) { localId = "99" + Math.floor(100000 + Math.random() * 900000); localStorage.setItem("alpha_user_id", localId); }
             this.userId = parseInt(localId);
         }
+        const savedOnline = localStorage.getItem('alpha_user_online');
+        if (savedOnline !== null) this.userData.isOnline = savedOnline === 'true';
     },
 
     async initTonConnect() {
@@ -1023,7 +1153,7 @@ const app = {
 
     async checkSession() {
         try {
-            this.initUserId(); this.initTonConnect();
+            this.initUserId(); this.initTonConnect(); this.initTheme();
             const savedLang = localStorage.getItem('alpha_lang') || 'es'; this.currentLang = savedLang;
             const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
@@ -1103,7 +1233,7 @@ const app = {
         this.haptic('light');
         if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
         if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
+        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
@@ -1133,7 +1263,30 @@ const app = {
     async openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('chat-messages'); await this.loadChatHistory(); BunkerChat.initCRM(this.userId, this.backendUrl); },
     async loadChatHistory() { const container = document.getElementById('chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); this.scrollToBottom('chat-messages'); } } } catch (err) {} },
     
-    async openGlobalChat() { this.closeModals(); document.getElementById('modal-global-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('global-chat-messages'); await this.loadGlobalChatHistory(); BunkerChat.initGlobal(this.userId, this.backendUrl); },
+    // 🛡️ CHAT GLOBAL & VIDEO BÚNKER (ESTILO GRUPO DE TELEGRAM CON RADAR)
+    async openGlobalChat() { 
+        this.closeModals(); 
+        document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
+        this.updateOnlineUsersRadar();
+        this.setupSystemMessageObserver('global-chat-messages'); 
+        await this.loadGlobalChatHistory(); 
+        BunkerChat.initGlobal(this.userId, this.backendUrl); 
+    },
+    
+    updateOnlineUsersRadar() {
+        const chipsContainer = document.getElementById('online-users-chips');
+        const countSpan = document.getElementById('online-users-count');
+        const userName = localStorage.getItem('alpha_user_name') || 'mastertom';
+        if (countSpan) countSpan.innerText = '1';
+        if (chipsContainer) {
+            chipsContainer.innerHTML = `
+                <div class="flex items-center gap-1 bg-black px-2.5 py-1 rounded-full border border-emerald-500/40 text-[10px] font-bold text-emerald-300">
+                    <i class="fa-solid fa-circle text-[5px] text-emerald-500"></i> @${this.escapeHtml(userName)} (Tú)
+                </div>
+            `;
+        }
+    },
+
     async loadGlobalChatHistory() { const container = document.getElementById('global-chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); this.scrollToBottom('global-chat-messages'); } } } catch (e) {} },
 
     async handleChatMediaPreview(event, type) {
