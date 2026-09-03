@@ -1,12 +1,14 @@
 {
+  "id": "/alphatom-vault",
   "name": "ALPHA TOM - Hybrid Ecosystem & Vault",
   "short_name": "AlphaTom",
   "description": "Vault privado, CRM y ecosistema híbrido exclusivo.",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#050505",
-  "theme_color": "#00f3ff",
-  "orientation": "portrait",
+  "theme_color": "#050505",
+  "orientation": "portrait-primary",
   "icons": [
     {
       "src": "assets/logo.jpg",
@@ -20,5 +22,6 @@
       "type": "image/jpeg",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }

@@ -71,7 +71,6 @@ const app = {
         }, 1500);
     },
 
-    // 🛡️ MODO CLARO / OSCURO (CON SWITCH DESLIZANTE)
     toggleTheme() {
         this.haptic('light');
         const body = document.body;
@@ -100,11 +99,9 @@ const app = {
         if(themeSwitch) themeSwitch.checked = isLight;
     },
 
-    // 🛡️ ESTADO OPERATIVO CON CANDADO DE RANGO (SPY SIEMPRE ONLINE)
     toggleOnlineStatus() {
         this.haptic('medium');
         
-        // CANDADO: El rango Spy (Nivel 0) no puede ocultarse
         if (this.userData.access_tier === 0 && !this.isAdminUser()) {
             this.userData.isOnline = true;
             this.showToast('⚠️ Requiere rango Soldier o superior para modo OFFLINE.');
@@ -129,7 +126,6 @@ const app = {
         
         const isOnline = this.userData.isOnline !== false;
         
-        // Puntos Neón Visuales
         if(profileDot) profileDot.style.display = isOnline ? 'block' : 'none';
         if(feedDot) feedDot.style.display = isOnline ? 'block' : 'none';
         
@@ -166,7 +162,6 @@ const app = {
             if (nameInput) nameInput.value = savedName;
             this.updateOnlineStatusUI();
             
-            // Sincronizar UI del Switch
             const isLight = document.body.classList.contains('light-theme');
             const themeSwitch = document.getElementById('theme-switch');
             if(themeSwitch) themeSwitch.checked = isLight;
@@ -197,7 +192,6 @@ const app = {
             return;
         }
 
-        // GUARDADO LOCAL Y SINCRONIZACIÓN
         localStorage.setItem('alpha_user_name', newName);
         localStorage.setItem('alpha_last_name_change', now.toString());
         this.userData.name = newName;
@@ -241,7 +235,6 @@ const app = {
 
         localStorage.setItem('alpha_user_pass', newPass);
         
-        // Notificación Multiidioma
         const successMsg = this.getTrans('pwd_changed_success') || 'SU CONTRASEÑA NUEVA HA SIDO CAMBIADA';
         this.showToast(`🔒 ${successMsg}`);
         
@@ -430,7 +423,7 @@ const app = {
             } else if (kycStatus === 'verified' || isAdminUser) {
                 kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">VERIFICADO (+18) ✅ ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
-                if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total attivo.';
+                if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else {
                 if (userRole === 'fan') {
@@ -491,19 +484,45 @@ const app = {
         if (viewsEl) viewsEl.innerText = views.toLocaleString();
     },
 
+    // 🛡️ AISLAMIENTO MULTICUENTA Y CREDENCIALES DE ADMINISTRADOR SUPREMO
     initUserId() {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        const currentSavedId = localStorage.getItem("alpha_user_id");
+        
+        let newId;
         if (tgUser && tgUser.id) {
-            const savedId = localStorage.getItem("alpha_user_id");
-            if (savedId && savedId != tgUser.id) {
-                ['alpha_user_bio', 'alpha_user_avatar', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
-            }
-            this.userId = tgUser.id; localStorage.setItem("alpha_user_id", this.userId);
+            newId = tgUser.id.toString();
         } else {
-            let localId = localStorage.getItem("alpha_user_id");
-            if (!localId) { localId = "99" + Math.floor(100000 + Math.random() * 900000); localStorage.setItem("alpha_user_id", localId); }
-            this.userId = parseInt(localId);
+            const phoneAlias = localStorage.getItem('alpha_user_name');
+            if (phoneAlias && phoneAlias.startsWith('Tel:')) {
+                newId = phoneAlias.replace('Tel: ', '').trim();
+            } else {
+                newId = currentSavedId || ("99" + Math.floor(100000 + Math.random() * 900000));
+            }
         }
+
+        // 🔄 LIMPIEZA RADICAL MULTICUENTA: Si el ID cambia, destruir la sesión anterior por completo
+        if (currentSavedId && currentSavedId !== newId) {
+            localStorage.clear(); 
+            console.log("Cambio de cuenta detectado. Entorno limpiado.");
+        }
+
+        this.userId = newId; 
+        localStorage.setItem("alpha_user_id", this.userId);
+        
+        // 👑 LLAVE MAESTRA ADMIN
+        const myAdminTelegramID = "8269470905"; 
+        const myAdminPhone = "+573150213065"; 
+        
+        const isTelegramAdmin = (this.userId === myAdminTelegramID);
+        const isPhoneAdmin = (this.userId === myAdminPhone || (localStorage.getItem('alpha_user_name') && localStorage.getItem('alpha_user_name') === `Tel: ${myAdminPhone}`));
+
+        if (isTelegramAdmin || isPhoneAdmin) {
+            this.userData.role = 'admin';
+            this.userData.access_tier = 4; // ICON LEGEND Automático
+            localStorage.setItem('alpha_user_role', 'admin');
+        }
+
         const savedOnline = localStorage.getItem('alpha_user_online');
         if (savedOnline !== null) this.userData.isOnline = savedOnline === 'true';
     },
@@ -1370,7 +1389,6 @@ const app = {
     async openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('chat-messages'); await this.loadChatHistory(); BunkerChat.initCRM(this.userId, this.backendUrl); },
     async loadChatHistory() { const container = document.getElementById('chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); this.scrollToBottom('chat-messages'); } } } catch (err) {} },
     
-    // 🛡️ CHAT GLOBAL & VIDEO BÚNKER (RADAR LATERAL DERECHO)
     async openGlobalChat() { 
         this.closeModals(); 
         document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
@@ -1388,7 +1406,6 @@ const app = {
         
         if (countSpan) countSpan.innerText = '1';
         
-        // Chip en Radar de Chat
         if (chipsContainerChat) {
             chipsContainerChat.innerHTML = `
                 <div class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate">
@@ -1396,7 +1413,6 @@ const app = {
                 </div>
             `;
         }
-        // Chip en Radar de Video
         if(chipsContainerVideo) {
             chipsContainerVideo.innerHTML = `
                 <div class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate">
@@ -1538,11 +1554,11 @@ const app = {
         if (userTier < 4 && !isAdminUser) { this.showToast('⚠️ Acceso denegado. Requiere rango ICON LEGEND.'); this.openCatalogPackages(); return; }
         const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
         if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
-        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
         if(btnGoLive) btnGoLive.classList.remove('hidden');
         if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
         await this.requestAndLoadMedia();
-        this.updateOnlineUsersRadar(); // Actualizar radar lateral al entrar
+        this.updateOnlineUsersRadar(); 
     },
 
     async requestAndLoadMedia() {
@@ -1758,16 +1774,24 @@ const app = {
 };
 
 window.app = app;
+
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof app === 'undefined') return;
     app.checkSession(); app.generateCaptcha();
     
-    const applyPrivacyBlackout = () => document.body.classList.add('privacy-blur');
+    // 🌐 DETECCIÓN DE ENTORNO: ¿Telegram o Navegador Web / APK?
+    const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+    
+    const applyPrivacyBlackout = () => { if (isTelegram) document.body.classList.add('privacy-blur'); };
     const removePrivacyBlackout = () => document.body.classList.remove('privacy-blur');
 
-    document.addEventListener('visibilitychange', () => { if (document.hidden) applyPrivacyBlackout(); else removePrivacyBlackout(); });
-    window.addEventListener('blur', applyPrivacyBlackout);
-    window.addEventListener('focus', removePrivacyBlackout);
+    if (isTelegram) {
+        document.addEventListener('visibilitychange', () => { if (document.hidden) applyPrivacyBlackout(); else removePrivacyBlackout(); });
+        window.addEventListener('blur', applyPrivacyBlackout);
+        window.addEventListener('focus', removePrivacyBlackout);
+    } else {
+        removePrivacyBlackout(); // Desbloquea la pantalla en Chrome y APKs
+    }
 
     document.addEventListener('contextmenu', event => event.preventDefault());
     document.addEventListener('keydown', (e) => {
