@@ -26,7 +26,7 @@ const app = {
     sanitizeUrl(url) {
         if (!url) return '';
         const s = String(url).trim();
-        if (s.startsWith('data:image/') || s.startsWith('data:video/')) return s;
+        if (s.startsWith('data:image/') || s.startsWith('data:video/') || s.startsWith('data:audio/')) return s;
         try {
             const u = new URL(s);
             if (u.protocol === 'https:') return s;
@@ -535,8 +535,8 @@ const app = {
         const TonConnectClass = window.TonConnectUI || window.TON_CONNECT_UI;
         if (!this.tonConnectUI && TonConnectClass) {
             try {
-                const originRaw = window.location.origin;
-                const safeOrigin = (!originRaw || originRaw === "null" || originRaw === "file://") ? "https://alpha-bunker-backend.vercel.app" : originRaw;
+                // FORZAR MANIFIESTO ABSOLUTO PARA EVITAR ERRORES DE ORIGEN CRUZADO
+                const safeOrigin = "https://alpha-bunker-backend-production.up.railway.app";
                 
                 this.tonConnectUI = new TonConnectClass({ 
                     manifestUrl: safeOrigin + '/tonconnect-manifest.json',
@@ -573,8 +573,7 @@ const app = {
             if (!this.tonConnectUI) {
                 const TonConnectClass = window.TonConnectUI || window.TON_CONNECT_UI;
                 if (TonConnectClass) {
-                    const originRaw = window.location.origin;
-                    const safeOrigin = (!originRaw || originRaw === "null" || originRaw === "file://") ? "https://alpha-bunker-backend.vercel.app" : originRaw;
+                    const safeOrigin = "https://alpha-bunker-backend-production.up.railway.app";
                     this.tonConnectUI = new TonConnectClass({ 
                         manifestUrl: safeOrigin + '/tonconnect-manifest.json',
                         uiPreferences: { theme: 'DARK' }
@@ -1159,6 +1158,66 @@ const app = {
         } catch (err) {}
     },
 
+    triggerGlobalMediaUpload(acceptType) {
+        document.getElementById('global-media-menu')?.classList.add('hidden');
+        const fileInput = document.getElementById('global-media-upload');
+        if (fileInput) {
+            fileInput.accept = acceptType;
+            fileInput.click();
+        }
+    },
+
+    async startGlobalSelfieCam() {
+        document.getElementById('global-media-menu')?.classList.add('hidden');
+        this.haptic('medium');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+            let mediaRecorder;
+            let chunks = [];
+            try {
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(stream);
+            }
+
+            this.showToast('🔴 Grabando Video Selfie (5s)...');
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.tempChatMediaData = e.target.result;
+                    const previewContainer = document.getElementById('global-chat-preview-container');
+                    const previewVideo = document.getElementById('global-chat-preview-video');
+                    const previewImg = document.getElementById('global-chat-preview-img');
+                    const previewName = document.getElementById('global-chat-preview-name');
+                    if (previewContainer) {
+                        previewContainer.classList.remove('hidden');
+                        if (previewImg) previewImg.classList.add('hidden');
+                        if (previewVideo) {
+                            previewVideo.src = e.target.result;
+                            previewVideo.classList.remove('hidden');
+                            previewVideo.play();
+                        }
+                        if (previewName) previewName.innerText = "Video Selfie 📸";
+                    }
+                    this.showToast('✅ Video Selfie listo para enviar.');
+                };
+                reader.readAsDataURL(blob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            setTimeout(() => {
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            }, 5000);
+        } catch (err) {
+            this.showToast('⚠️ No se pudo acceder a la cámara frontal.');
+        }
+    },
+
     triggerAvatarInput() { this.haptic('light'); const input = document.getElementById('avatar-file-input'); if (input) input.click(); },
     
     async handleAvatarChange(event) {
@@ -1450,21 +1509,77 @@ const app = {
     async loadGlobalChatHistory() { const container = document.getElementById('global-chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); this.scrollToBottom('global-chat-messages'); } } } catch (e) {} },
 
     async handleChatMediaPreview(event, type) {
+        document.getElementById('global-media-menu')?.classList.add('hidden');
         const file = event.target.files[0]; if (!file) return;
         this.initUserId();
-        const isAdminUser = this.isAdminUser(), isCreator = this.userData?.role === 'creator', userTier = this.userData?.access_tier || 0, isVideo = file.type.startsWith('video/');
+        const isAdminUser = this.isAdminUser(), isCreator = this.userData?.role === 'creator', userTier = this.userData?.access_tier || 0;
+        const isVideo = file.type.startsWith('video/');
+        const isAudio = file.type.startsWith('audio/');
+        
         if (type === 'global' && !isAdminUser && !isCreator) {
             if (userTier < 2) { this.showToast('⚠️ Requiere VETERAN para enviar fotos.'); return; }
             if (isVideo && userTier < 3) { this.showToast('⚠️ Requiere LEGEND para videos cortos.'); return; }
         }
-        this.haptic('light'); const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input'), previewContainer = document.getElementById(`${type}-chat-preview-container`), previewImg = document.getElementById(`${type}-chat-preview-img`), previewVideo = document.getElementById(`${type}-chat-preview-video`), previewName = document.getElementById(`${type}-chat-preview-name`);
+        
+        this.haptic('light'); 
+        const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input');
+        const previewContainer = document.getElementById(`${type}-chat-preview-container`);
+        const previewImg = document.getElementById(`${type}-chat-preview-img`);
+        const previewVideo = document.getElementById(`${type}-chat-preview-video`);
+        const previewName = document.getElementById(`${type}-chat-preview-name`);
+        
         if (isVideo) {
             if (file.size > 5 * 1024 * 1024) { this.showToast('⚠️ Máx 5MB por video.'); this.clearChatMedia(type); return; }
-            const reader = new FileReader(); reader.onload = (e) => { this.tempChatMediaData = e.target.result; if (previewContainer) { previewContainer.classList.remove('hidden'); previewImg.classList.add('hidden'); previewVideo.src = e.target.result; previewVideo.classList.remove('hidden'); previewName.innerText = `Video: ${file.name.substring(0,12)}...`; } if (inputEl) inputEl.focus(); this.showToast('✅ Video adjunto.'); }; reader.readAsDataURL(file);
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+                this.tempChatMediaData = e.target.result; 
+                if (previewContainer) { 
+                    previewContainer.classList.remove('hidden'); 
+                    if(previewImg) previewImg.classList.add('hidden'); 
+                    if(previewVideo) {
+                        previewVideo.src = e.target.result; 
+                        previewVideo.classList.remove('hidden'); 
+                    }
+                    if(previewName) previewName.innerText = `Video: ${file.name.substring(0,12)}...`; 
+                } 
+                if (inputEl) inputEl.focus(); 
+                this.showToast('✅ Video adjunto.'); 
+            }; 
+            reader.readAsDataURL(file);
+        } else if (isAudio) {
+            if (file.size > 2 * 1024 * 1024) { this.showToast('⚠️ Máx 2MB por audio.'); this.clearChatMedia(type); return; }
+            const reader = new FileReader(); 
+            reader.onload = (e) => { 
+                this.tempChatMediaData = e.target.result; 
+                if (previewContainer) { 
+                    previewContainer.classList.remove('hidden'); 
+                    if(previewImg) previewImg.classList.add('hidden'); 
+                    if(previewVideo) {
+                        previewVideo.src = ""; 
+                        previewVideo.classList.add('hidden'); 
+                    }
+                    if(previewName) previewName.innerHTML = `<i class="fa-solid fa-microphone text-[#ffb703] mr-1"></i> Audio: ${file.name.substring(0,12)}...`; 
+                } 
+                if (inputEl) inputEl.focus(); 
+                this.showToast('✅ Nota de voz adjunta.'); 
+            }; 
+            reader.readAsDataURL(file);
         } else {
             this.tempChatMediaData = await this.compressImage(file, 800, 0.7); 
-            if (previewContainer) { previewContainer.classList.remove('hidden'); previewVideo.classList.add('hidden'); previewVideo.src = ""; previewImg.src = this.tempChatMediaData; previewImg.classList.remove('hidden'); previewName.innerText = `Foto: ${file.name.substring(0,12)}...`; }
-            if (inputEl) inputEl.focus(); this.showToast('✅ Foto adjunta.');
+            if (previewContainer) { 
+                previewContainer.classList.remove('hidden'); 
+                if(previewVideo) {
+                    previewVideo.classList.add('hidden'); 
+                    previewVideo.src = ""; 
+                }
+                if(previewImg) {
+                    previewImg.src = this.tempChatMediaData; 
+                    previewImg.classList.remove('hidden'); 
+                }
+                if(previewName) previewName.innerText = `Foto: ${file.name.substring(0,12)}...`; 
+            }
+            if (inputEl) inputEl.focus(); 
+            this.showToast('✅ Foto adjunta.');
         }
     },
 
@@ -1522,8 +1637,10 @@ const app = {
                 </div>
             `;
 
-            if (contentObj.media_url.startsWith('data:video')) { 
-                safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" controlsList="nodownload noremoteplayback" disablePictureInPicture></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none"><i class="fa-solid fa-expand text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>${menuHtml}</div>`; 
+            if (contentObj.media_url.startsWith('data:video') || contentObj.media_url.includes('.mp4') || contentObj.media_url.includes('.webm')) { 
+                safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" autoplay muted loop playsinline></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none"><i class="fa-solid fa-expand text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>${menuHtml}</div>`; 
+            } else if (contentObj.media_url.startsWith('data:audio') || contentObj.media_url.includes('.mp3') || contentObj.media_url.includes('.wav') || contentObj.media_url.includes('.ogg')) {
+                safeMedia = `<div class="relative mt-2 mb-1"><audio src="${encodedUrl}" controls class="w-full h-10 rounded-full" controlsList="nodownload"></audio>${menuHtml}</div>`;
             } else { 
                 safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" /><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>${menuHtml}</div>`; 
             }
@@ -1545,11 +1662,27 @@ const app = {
     },
 
     openLightbox(mediaUrl, type) {
-        this.haptic('light'); const modal = document.getElementById('media-lightbox-modal'), imgEl = document.getElementById('lightbox-img'), videoEl = document.getElementById('lightbox-video');
-        if (!modal) return; modal.classList.remove('hidden');
-        if (type === 'image') { videoEl.classList.add('hidden'); videoEl.pause(); imgEl.src = mediaUrl; imgEl.classList.remove('hidden'); } else { imgEl.classList.add('hidden'); videoEl.src = mediaUrl; videoEl.classList.remove('hidden'); videoEl.play(); }
+        this.haptic('light'); 
+        const modal = document.getElementById('media-lightbox-modal');
+        const imgEl = document.getElementById('lightbox-img'); 
+        const videoEl = document.getElementById('lightbox-video');
+        if (!modal) return; 
+        modal.classList.remove('hidden');
+        if (type === 'image') { 
+            if(videoEl) { videoEl.classList.add('hidden'); videoEl.pause(); }
+            if(imgEl) { imgEl.src = mediaUrl; imgEl.classList.remove('hidden'); }
+        } else { 
+            if(imgEl) imgEl.classList.add('hidden'); 
+            if(videoEl) { videoEl.src = mediaUrl; videoEl.classList.remove('hidden'); videoEl.play(); }
+        }
     },
-    closeLightbox() { this.haptic('light'); const modal = document.getElementById('media-lightbox-modal'), videoEl = document.getElementById('lightbox-video'); if (videoEl) videoEl.pause(); if (modal) modal.classList.add('hidden'); },
+    closeLightbox() { 
+        this.haptic('light'); 
+        const modal = document.getElementById('media-lightbox-modal');
+        const videoEl = document.getElementById('lightbox-video'); 
+        if (videoEl) videoEl.pause(); 
+        if (modal) modal.classList.add('hidden'); 
+    },
     scrollToBottom(containerId) { const container = document.getElementById(containerId); if (container) container.scrollTop = container.scrollHeight; },
 
     sendChatMessage() { 
