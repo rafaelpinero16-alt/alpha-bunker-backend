@@ -251,6 +251,42 @@
         </div>
     </div>
 
+    <!-- VIEW 3: UPLOAD POST (PUBLICAR CONTENIDO) -->
+    <div id="view-upload" class="hidden min-h-screen flex flex-col items-center justify-center p-6 relative z-10">
+        <button onclick="app.switchView('feed')" class="absolute top-6 left-6 text-[#00f3ff] border border-[#00f3ff] rounded-full px-4 py-2 flex items-center hover:bg-[rgba(0,243,255,0.1)] transition text-sm font-bold z-50">
+            <i class="fa-solid fa-arrow-left mr-2"></i> <span class="btn-back-text">VOLVER</span>
+        </button>
+        <i class="fa-solid fa-cloud-arrow-up text-6xl text-[#00f3ff] mb-4 drop-shadow-[0_0_15px_#00f3ff] levitate"></i>
+        <h2 class="text-3d-cyan text-3xl text-center mb-6 font-black" id="upload-hdr">SUBIR CONTENIDO</h2>
+        
+        <div class="glass-panel w-full max-w-md p-6 space-y-5 bg-black/80">
+            <div>
+                <label class="block text-xs text-[#00f3ff] mb-2 font-bold uppercase tracking-wider" id="lbl-level">NIVEL REQUERIDO PARA VER 👀</label>
+                <select id="admin-level" class="cyber-input text-sm">
+                    <option value="0" id="opt-0">🆓 Público (Todos los Visitantes)</option>
+                    <option value="1" id="opt-1">🎖️ Bloquear para SOLDIER</option>
+                    <option value="2" id="opt-2">⚔️ Bloquear para VETERAN</option>
+                    <option value="3" id="opt-3">👑 Bloquear para LEGEND</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs text-[#ff00ff] mb-2 font-bold uppercase tracking-wider" id="lbl-file">FOTO O VIDEO (Galería) 📸</label>
+                <div class="relative overflow-hidden border-2 border-dashed border-[#ff00ff] rounded-xl bg-[#ff00ff]/10 hover:bg-[#ff00ff]/20 transition cursor-pointer flex flex-col items-center justify-center py-8" onclick="document.getElementById('post-media-input').click()">
+                    <i class="fa-solid fa-image text-3xl text-[#ff00ff] mb-2"></i>
+                    <span class="text-xs font-bold text-white uppercase tracking-wider" id="txt-upload">Tocar para subir archivo</span>
+                </div>
+                <input type="file" id="post-media-input" class="hidden" accept="image/*,video/*" onchange="app.previewImage(event)">
+            </div>
+            <div>
+                <label class="block text-xs text-[#ffb703] mb-2 font-bold uppercase tracking-wider" id="lbl-desc">TEXTO / DESCRIPCIÓN</label>
+                <textarea id="admin-text-es" rows="3" class="cyber-input border-[#ffb703] focus:border-[#ffb703] text-sm" placeholder="Escribe algo increíble..."></textarea>
+            </div>
+            <button onclick="app.publishPost()" class="w-full btn-neon-cyan py-3.5 rounded-xl font-black text-sm uppercase tracking-wider mt-2">
+                <i class="fa-solid fa-paper-plane mr-2"></i> <span id="btn-pub-text">PUBLICAR AL MURO</span>
+            </button>
+        </div>
+    </div>
+
     <!-- MODAL: PERFIL DEL USUARIO -->
     <div id="modal-profile" class="hidden fixed inset-0 z-[65] flex items-end justify-center bg-black bg-opacity-90 backdrop-blur-sm transition-opacity duration-300">
         <div class="glass-panel w-full max-w-md h-[85vh] rounded-t-3xl p-6 flex flex-col relative border-b-0 overflow-y-auto">
@@ -282,6 +318,41 @@
                 <div class="mt-3 flex items-center gap-2 bg-neutral-900 border border-neutral-700 px-3 py-1.5 rounded-full">
                     <span class="text-xs text-neutral-300 font-bold" id="lbl-prof-status">Estado:</span>
                     <button onclick="app.toggleOnlineStatus()" id="profile-status-toggle" class="text-xs font-black text-emerald-400 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/50">● ONLINE</button>
+                </div>
+            </div>
+
+            <!-- 🪙 BILLETERA Y ESTADO KYC -->
+            <div class="w-full bg-neutral-900 border border-[#00f3ff]/30 rounded-2xl p-4 mb-5 shadow-inner">
+                <div class="flex items-center justify-between mb-3 border-b border-neutral-800 pb-3">
+                    <div>
+                        <h4 class="text-[10px] text-[#00f3ff] font-black uppercase tracking-widest" id="prof-alpha-title">BILLETERA $ALPHA</h4>
+                        <p class="text-xl font-black text-[#ffb703]" id="prof-alpha-balance">0 $ALPHA</p>
+                    </div>
+                    <button onclick="app.openCatalogPackages()" class="bg-[#00f3ff]/20 border border-[#00f3ff] text-[#00f3ff] px-3 py-1.5 rounded-xl text-[10px] font-black uppercase hover:bg-[#00f3ff]/40 transition">
+                        <i class="fa-solid fa-plus"></i> <span id="btn-recharge-text">RECARGAR</span>
+                    </button>
+                </div>
+                
+                <div class="flex flex-col gap-1">
+                    <h4 class="text-[10px] text-[#ff00ff] font-black uppercase tracking-widest" id="txt-kyc-title">ESTADO KYC (+18)</h4>
+                    <p id="prof-kyc-status" class="text-xs font-black uppercase text-neutral-400">NO VERIFICADO ⚠️</p>
+                    <p id="prof-kyc-desc" class="text-[9px] text-neutral-500 font-bold mt-0.5">Verifica tu documento oficial para publicar y monetizar.</p>
+                    <button id="btn-verify-kyc" onclick="app.openKYCModal()" class="w-full bg-[#ff00ff] hover:bg-[#ff00ff]/80 text-black font-black py-2 px-4 rounded-xl text-[10px] shadow-[0_0_10px_rgba(255,0,255,0.4)] transition uppercase mt-2 hidden">VERIFICAR CUENTA AHORA</button>
+                </div>
+            </div>
+
+            <!-- 🌟 HERRAMIENTAS DE CREADOR / FAVORITOS -->
+            <div id="prof-creator-tools" class="w-full mb-5">
+                <button onclick="app.openFavoritesModal()" class="w-full bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 font-black py-3 rounded-xl text-xs shadow-[0_0_15px_rgba(0,243,255,0.4)] transition uppercase tracking-wider flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-star"></i> <span id="txt-edit-tips">MIS CREADORES FAVORITOS</span>
+                </button>
+                <div id="prof-creator-subscription-box" class="hidden mt-3 bg-gradient-to-r from-neutral-900 to-black border border-[#ff00ff]/50 rounded-2xl p-4">
+                    <h4 class="text-[10px] font-black text-[#ff00ff] uppercase tracking-widest mb-1" id="txt-b2b-title">MEMBRESÍA CREADOR B2B</h4>
+                    <p class="text-[9px] text-neutral-400 mb-3" id="txt-b2b-desc">Desbloquea la edición de tu Tip Menu y monetización activa.</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="app.subscribeCreatorTier('soldier_creator')" class="bg-neutral-800 border border-neutral-600 text-white hover:border-[#ff00ff] px-2 py-2 rounded-xl text-[9px] font-black uppercase transition"><span id="txt-soldier-title">SOLDIER CREATOR</span> <br><span class="text-[#ff00ff]">$4.99/mes</span></button>
+                        <button onclick="app.subscribeCreatorTier('icon_creator')" class="bg-neutral-800 border border-neutral-600 text-white hover:border-[#00f3ff] px-2 py-2 rounded-xl text-[9px] font-black uppercase transition"><span id="txt-icon-title">ICON CREATOR</span> <br><span class="text-[#00f3ff]">$7.99/mes</span></button>
+                    </div>
                 </div>
             </div>
 
@@ -348,6 +419,19 @@
                         <p id="txt-settings-status-lock" class="text-[10px] text-amber-400 mt-2 font-semibold">⚠️ Requiere rango Soldier o superior para activar modo oculto (OFFLINE). Los agentes Espía (SPY) siempre permanecen visibles.</p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CATÁLOGO DE RANGOS -->
+    <div id="modal-catalog" class="hidden fixed inset-0 z-[80] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="glass-panel w-11/12 max-w-lg h-[85vh] rounded-3xl p-0 flex flex-col relative border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] overflow-hidden">
+            <div class="p-4 border-b border-[#00f3ff]/30 flex justify-between items-center bg-black/60">
+                <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider" id="cat-title"><i class="fa-solid fa-store mr-2"></i> UPGRADE PLAN</h3>
+                <button onclick="app.closeModals()" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4" id="catalog-packages-list">
+                <!-- Se llena dinámicamente -->
             </div>
         </div>
     </div>
@@ -474,11 +558,11 @@
     <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
     <div id="toast" class="toast cursor-pointer hover:opacity-80 transition-opacity">¡Copiado! 📋</div>
     
-    <script src="js/security.js?v=25"></script>
-    <script src="js/translations.js?v=25"></script>
-    <script src="js/api.js?v=25"></script>
-    <script src="js/chat.js?v=25"></script>
-    <script src="js/app.js?v=25" defer></script>
+    <script src="js/security.js?v=27"></script>
+    <script src="js/translations.js?v=27"></script>
+    <script src="js/api.js?v=27"></script>
+    <script src="js/chat.js?v=27"></script>
+    <script src="js/app.js?v=27" defer></script>
 
     <script>
         if ('serviceWorker' in navigator) {

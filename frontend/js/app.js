@@ -489,22 +489,19 @@ const app = {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
         const currentSavedId = localStorage.getItem("alpha_user_id");
         
-        let newId;
+        let newId = currentSavedId;
+
         if (tgUser && tgUser.id) {
             newId = tgUser.id.toString();
-        } else {
-            const phoneAlias = localStorage.getItem('alpha_user_name');
-            if (phoneAlias && phoneAlias.startsWith('Tel:')) {
-                newId = phoneAlias.replace('Tel: ', '').trim();
-            } else {
-                newId = currentSavedId || ("99" + Math.floor(100000 + Math.random() * 900000));
+            // Limpieza radical SOLO si el ID de Telegram cambió (Multicuenta estricta sin afectar Chrome)
+            if (currentSavedId && currentSavedId !== newId) {
+                localStorage.clear(); 
+                console.log("Cambio de cuenta de Telegram detectado. Entorno limpiado.");
             }
-        }
-
-        // 🔄 LIMPIEZA RADICAL MULTICUENTA: Si el ID cambia, destruir la sesión anterior por completo
-        if (currentSavedId && currentSavedId !== newId) {
-            localStorage.clear(); 
-            console.log("Cambio de cuenta detectado. Entorno limpiado.");
+        } else {
+            if (!newId) {
+                newId = "99" + Math.floor(100000 + Math.random() * 900000);
+            }
         }
 
         this.userId = newId; 
@@ -515,7 +512,7 @@ const app = {
         const myAdminPhone = "+573150213065"; 
         
         const isTelegramAdmin = (this.userId === myAdminTelegramID);
-        const isPhoneAdmin = (this.userId === myAdminPhone || (localStorage.getItem('alpha_user_name') && localStorage.getItem('alpha_user_name') === `Tel: ${myAdminPhone}`));
+        const isPhoneAdmin = (localStorage.getItem('alpha_user_name') === `Tel: ${myAdminPhone}`);
 
         if (isTelegramAdmin || isPhoneAdmin) {
             this.userData.role = 'admin';
