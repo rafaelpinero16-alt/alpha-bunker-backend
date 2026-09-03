@@ -484,7 +484,6 @@ const app = {
         if (viewsEl) viewsEl.innerText = views.toLocaleString();
     },
 
-    // 🛡️ AISLAMIENTO MULTICUENTA Y CREDENCIALES DE ADMINISTRADOR SUPREMO
     initUserId() {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
         const currentSavedId = localStorage.getItem("alpha_user_id");
@@ -493,10 +492,8 @@ const app = {
 
         if (tgUser && tgUser.id) {
             newId = tgUser.id.toString();
-            // Limpieza radical SOLO si el ID de Telegram cambió (Multicuenta estricta sin afectar Chrome)
             if (currentSavedId && currentSavedId !== newId) {
                 localStorage.clear(); 
-                console.log("Cambio de cuenta de Telegram detectado. Entorno limpiado.");
             }
         } else {
             if (!newId) {
@@ -507,7 +504,6 @@ const app = {
         this.userId = newId; 
         localStorage.setItem("alpha_user_id", this.userId);
         
-        // 👑 LLAVE MAESTRA ADMIN
         const myAdminTelegramID = "8269470905"; 
         const myAdminPhone = "+573150213065"; 
         
@@ -516,7 +512,7 @@ const app = {
 
         if (isTelegramAdmin || isPhoneAdmin) {
             this.userData.role = 'admin';
-            this.userData.access_tier = 4; // ICON LEGEND Automático
+            this.userData.access_tier = 4;
             localStorage.setItem('alpha_user_role', 'admin');
         }
 
@@ -1298,8 +1294,15 @@ const app = {
                     }); 
                 } catch(e) {}
                 this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
-            } else if (hasConsent === 'true') { this.switchView('login'); } else { this.switchView('consent'); }
-        } catch (e) {}
+            } else if (hasConsent === 'true') { 
+                this.switchView('login'); 
+            } else { 
+                this.switchView('consent'); 
+            }
+        } catch (e) {
+            console.error("Error crítico en checkSession:", e);
+            this.switchView('consent');
+        }
     },
 
     exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
@@ -1776,7 +1779,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (typeof app === 'undefined') return;
     app.checkSession(); app.generateCaptcha();
     
-    // 🌐 DETECCIÓN DE ENTORNO: ¿Telegram o Navegador Web / APK?
     const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
     
     const applyPrivacyBlackout = () => { if (isTelegram) document.body.classList.add('privacy-blur'); };
@@ -1787,7 +1789,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.addEventListener('blur', applyPrivacyBlackout);
         window.addEventListener('focus', removePrivacyBlackout);
     } else {
-        removePrivacyBlackout(); // Desbloquea la pantalla en Chrome y APKs
+        removePrivacyBlackout();
     }
 
     document.addEventListener('contextmenu', event => event.preventDefault());
