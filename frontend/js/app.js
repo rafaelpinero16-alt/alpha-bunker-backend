@@ -71,28 +71,47 @@ const app = {
         }, 1500);
     },
 
+    // 🛡️ MODO CLARO / OSCURO (CON SWITCH DESLIZANTE)
     toggleTheme() {
         this.haptic('light');
         const body = document.body;
         body.classList.toggle('light-theme');
         const isLight = body.classList.contains('light-theme');
         localStorage.setItem('alpha_theme', isLight ? 'light' : 'dark');
+        
         const icon = document.getElementById('theme-icon');
         if (icon) icon.className = isLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        
+        const themeSwitch = document.getElementById('theme-switch');
+        if(themeSwitch) themeSwitch.checked = isLight;
+        
         this.showToast(isLight ? '☀️ Modo Claro Activado' : '🌙 Modo Oscuro Activado');
     },
 
     initTheme() {
         const savedTheme = localStorage.getItem('alpha_theme') || 'dark';
-        if (savedTheme === 'light') {
+        const isLight = savedTheme === 'light';
+        if (isLight) {
             document.body.classList.add('light-theme');
             const icon = document.getElementById('theme-icon');
             if (icon) icon.className = 'fa-solid fa-sun';
         }
+        const themeSwitch = document.getElementById('theme-switch');
+        if(themeSwitch) themeSwitch.checked = isLight;
     },
 
+    // 🛡️ ESTADO OPERATIVO CON CANDADO DE RANGO (SPY SIEMPRE ONLINE)
     toggleOnlineStatus() {
         this.haptic('medium');
+        
+        // CANDADO: El rango Spy (Nivel 0) no puede ocultarse
+        if (this.userData.access_tier === 0 && !this.isAdminUser()) {
+            this.userData.isOnline = true;
+            this.showToast('⚠️ Requiere rango Soldier o superior para modo OFFLINE.');
+            this.updateOnlineStatusUI();
+            return;
+        }
+
         this.userData.isOnline = !this.userData.isOnline;
         localStorage.setItem('alpha_user_online', this.userData.isOnline);
         this.updateOnlineStatusUI();
@@ -105,8 +124,14 @@ const app = {
         const settingsBtnText = document.getElementById('settings-status-text');
         const settingsIndicator = document.getElementById('settings-status-indicator');
         const settingsBtn = document.getElementById('settings-status-btn');
+        const profileDot = document.getElementById('profile-neon-dot');
+        const feedDot = document.getElementById('feed-neon-dot');
         
         const isOnline = this.userData.isOnline !== false;
+        
+        // Puntos Neón Visuales
+        if(profileDot) profileDot.style.display = isOnline ? 'block' : 'none';
+        if(feedDot) feedDot.style.display = isOnline ? 'block' : 'none';
         
         if (badge) {
             badge.innerText = isOnline ? '● ONLINE' : '○ OFFLINE';
@@ -140,6 +165,11 @@ const app = {
             const savedName = localStorage.getItem('alpha_user_name') || 'mastertom';
             if (nameInput) nameInput.value = savedName;
             this.updateOnlineStatusUI();
+            
+            // Sincronizar UI del Switch
+            const isLight = document.body.classList.contains('light-theme');
+            const themeSwitch = document.getElementById('theme-switch');
+            if(themeSwitch) themeSwitch.checked = isLight;
         }
     },
 
@@ -167,7 +197,7 @@ const app = {
             return;
         }
 
-        // GUARDADO LOCAL Y SINCRONIZACIÓN CON BACKEND (EVITA RESETEO)
+        // GUARDADO LOCAL Y SINCRONIZACIÓN
         localStorage.setItem('alpha_user_name', newName);
         localStorage.setItem('alpha_last_name_change', now.toString());
         this.userData.name = newName;
@@ -187,22 +217,36 @@ const app = {
 
     updatePasswordSettings() {
         this.haptic('medium');
-        const oldPass = document.getElementById('settings-old-pass')?.value.trim();
-        const newPass = document.getElementById('settings-new-pass')?.value.trim();
+        const oldPassInput = document.getElementById('settings-old-pass');
+        const newPassInput = document.getElementById('settings-new-pass');
+        const oldPass = oldPassInput?.value.trim();
+        const newPass = newPassInput?.value.trim();
+        
+        const currentSavedPass = localStorage.getItem('alpha_user_pass') || '';
 
         if (!oldPass || !newPass) {
             this.showToast('⚠️ Completa ambos campos de contraseña.');
             return;
         }
+        
+        if (currentSavedPass && oldPass !== currentSavedPass) {
+            this.showToast('⚠️ La contraseña actual no coincide.');
+            return;
+        }
+        
         if (newPass.length < 6) {
             this.showToast('⚠️ La nueva contraseña debe tener al menos 6 caracteres.');
             return;
         }
 
         localStorage.setItem('alpha_user_pass', newPass);
-        this.showToast('🔒 ¡Contraseña actualizada correctamente!');
-        document.getElementById('settings-old-pass').value = '';
-        document.getElementById('settings-new-pass').value = '';
+        
+        // Notificación Multiidioma
+        const successMsg = this.getTrans('pwd_changed_success') || 'SU CONTRASEÑA NUEVA HA SIDO CAMBIADA';
+        this.showToast(`🔒 ${successMsg}`);
+        
+        oldPassInput.value = '';
+        newPassInput.value = '';
         this.closeSettingsModal();
     },
 
@@ -315,7 +359,6 @@ const app = {
                     localStorage.setItem('alpha_kyc_status', data.kyc_status);
                     if (data.role) { this.userData.role = data.role; localStorage.setItem('alpha_user_role', data.role); }
                     
-                    // PREVIENE QUE EL BACKEND BORRE EL NOMBRE SI EN LOCAL YA LO CAMBIASTE, O VICEVERSA
                     const localName = localStorage.getItem('alpha_user_name');
                     if (data.name && data.name !== 'USER' && !data.name.startsWith('Tel:')) { 
                         this.userData.name = data.name; 
@@ -352,9 +395,9 @@ const app = {
         const rankDisplay = document.getElementById('prof-rank'), rankFeed = document.getElementById('rank-feed');
         const rankInfo = this.getRankBadge(this.userData?.access_tier || 0);
         
-        const rankHTML = `<div class="relative inline-block w-6 h-6 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[8px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle font-black">${rankInfo.name}</span>`;
+        const rankHTML = `<div class="relative inline-block w-6 h-6 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[8px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle font-black">${rankInfo.name}</span>`;
         if (rankDisplay) rankDisplay.innerHTML = rankHTML;
-        if (rankFeed) rankFeed.innerHTML = `<div class="relative inline-block w-4 h-4 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[6px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle text-xs font-black">${rankInfo.name}</span>`;
+        if (rankFeed) rankFeed.innerHTML = `<div class="relative inline-block w-4 h-4 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[6px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle text-xs font-black">${rankInfo.name}</span>`;
 
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const kycStatusEl = document.getElementById('prof-kyc-status'), kycDescEl = document.getElementById('prof-kyc-desc'), kycBtn = document.getElementById('btn-verify-kyc');
@@ -387,7 +430,7 @@ const app = {
             } else if (kycStatus === 'verified' || isAdminUser) {
                 kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">VERIFICADO (+18) ✅ ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
-                if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
+                if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total attivo.';
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else {
                 if (userRole === 'fan') {
@@ -453,7 +496,6 @@ const app = {
         if (tgUser && tgUser.id) {
             const savedId = localStorage.getItem("alpha_user_id");
             if (savedId && savedId != tgUser.id) {
-                // BLINDADO: Solo resetea cosas menores si cambia de usuario, no destruye todo
                 ['alpha_user_bio', 'alpha_user_avatar', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
             }
             this.userId = tgUser.id; localStorage.setItem("alpha_user_id", this.userId);
@@ -469,7 +511,6 @@ const app = {
     async initTonConnect() {
         if (!this.tonConnectUI && window.TON_CONNECT_UI) {
             try {
-                // BLINDADO: Usamos una ruta absoluta/relativa segura que no se rompe en el iframe de Telegram
                 const originRaw = window.location.origin;
                 const safeOrigin = (originRaw === "null" || originRaw === "file://" || !originRaw) ? "" : originRaw;
                 
@@ -493,9 +534,7 @@ const app = {
                         this.updateProfileUI();
                     }
                 });
-            } catch (err) {
-                console.error("Error iniciando TON Connect UI", err);
-            }
+            } catch (err) {}
         }
     },
 
@@ -522,7 +561,6 @@ const app = {
             }
         } catch (err) {
             this.showToast('⚠️ Error al abrir pasarela TON.');
-            console.error(err);
         }
     },
 
@@ -894,7 +932,7 @@ const app = {
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-amber-400 text-sm">@${this.escapeHtml(post.author || 'mastertom')}</span>
                             <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
-                                <div class="relative inline-block w-4 h-4 mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div>
+                                <div class="relative inline-block w-4 h-4 mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div>
                                 <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
                                 ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
@@ -1095,7 +1133,6 @@ const app = {
         if (avatarImg) { avatarImg.src = avatarUrl; avatarImg.classList.remove('hidden'); }
         if (avatarFeed) avatarFeed.src = avatarUrl;
         
-        // SINCRONIZA FOTO AL BACKEND SI APLICA (OPCIONAL EN TU ARQUITECTURA)
         try { await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: this.userData.name, avatar: avatarUrl }) }); } catch(e) {}
         
         this.showToast('¡Foto de perfil actualizada! 📸');
@@ -1108,7 +1145,6 @@ const app = {
         if (newName) { this.userData.name = newName; localStorage.setItem('alpha_user_name', newName); }
         if (newBio) { localStorage.setItem('alpha_user_bio', newBio); }
         
-        // SINCRONIZACIÓN FUERTE CON EL BACKEND PARA EVITAR RESETEOS
         try {
             await fetch(`${this.backendUrl}/users/sync`, { 
                 method: "POST", headers: { "Content-Type": "application/json" }, 
@@ -1160,7 +1196,6 @@ const app = {
         const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
         if (!phone && !email) { this.showToast('⚠️ Ingresa al menos un número o correo.'); return; }
         
-        // NO BORRAMOS EL NOMBRE SI YA EXISTE
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
         
@@ -1183,7 +1218,6 @@ const app = {
         this.haptic('medium'); const phone = document.getElementById('phone-input')?.value.trim();
         if (!phone) { this.showToast('⚠️ Ingresa tu número de teléfono.'); return; }
         
-        // EVITAMOS DESTRUIR EL ALIAS GUARDADO AL ENTRAR CON TELÉFONO
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
         
@@ -1227,7 +1261,6 @@ const app = {
             if (tgUser && tgUser.id) { 
                 localStorage.setItem('alpha_logged_in', 'true'); 
                 localStorage.setItem('alpha_consent', 'true'); 
-                // SOLO TOMA EL NOMBRE DE TELEGRAM SI ESTÁ EN BLANCO Y NO ES UN NÚMERO
                 if (!localStorage.getItem('alpha_user_name') || localStorage.getItem('alpha_user_name').startsWith('Tel:')) { 
                     localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User'); 
                 } 
@@ -1337,7 +1370,7 @@ const app = {
     async openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('chat-messages'); await this.loadChatHistory(); BunkerChat.initCRM(this.userId, this.backendUrl); },
     async loadChatHistory() { const container = document.getElementById('chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); this.scrollToBottom('chat-messages'); } } } catch (err) {} },
     
-    // 🛡️ CHAT GLOBAL & VIDEO BÚNKER (ESTILO GRUPO DE TELEGRAM CON RADAR)
+    // 🛡️ CHAT GLOBAL & VIDEO BÚNKER (RADAR LATERAL DERECHO)
     async openGlobalChat() { 
         this.closeModals(); 
         document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
@@ -1348,14 +1381,26 @@ const app = {
     },
     
     updateOnlineUsersRadar() {
-        const chipsContainer = document.getElementById('online-users-chips');
+        const chipsContainerChat = document.getElementById('online-users-chips');
+        const chipsContainerVideo = document.getElementById('bunker-video-active-members');
         const countSpan = document.getElementById('online-users-count');
         const userName = localStorage.getItem('alpha_user_name') || 'mastertom';
+        
         if (countSpan) countSpan.innerText = '1';
-        if (chipsContainer) {
-            chipsContainer.innerHTML = `
-                <div class="flex items-center gap-1 bg-black px-2.5 py-1 rounded-full border border-emerald-500/40 text-[10px] font-bold text-emerald-300">
-                    <i class="fa-solid fa-circle text-[5px] text-emerald-500"></i> @${this.escapeHtml(userName)} (Tú)
+        
+        // Chip en Radar de Chat
+        if (chipsContainerChat) {
+            chipsContainerChat.innerHTML = `
+                <div class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate">
+                    <i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${this.escapeHtml(userName)} (Tú)
+                </div>
+            `;
+        }
+        // Chip en Radar de Video
+        if(chipsContainerVideo) {
+            chipsContainerVideo.innerHTML = `
+                <div class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate">
+                    <i class="fa-solid fa-circle text-[4px] text-amber-500"></i> @${this.escapeHtml(userName)}
                 </div>
             `;
         }
@@ -1451,9 +1496,9 @@ const app = {
             html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             setTimeout(() => { const el = document.getElementById(msgId); if(el) { el.style.transition = 'all 0.4s ease'; el.style.opacity = '0'; el.style.height = '0px'; el.style.margin = '0px'; setTimeout(() => el.remove(), 400); } }, 1500); 
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">TÚ • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">TÚ • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         } else {
-            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
     },
@@ -1493,10 +1538,11 @@ const app = {
         if (userTier < 4 && !isAdminUser) { this.showToast('⚠️ Acceso denegado. Requiere rango ICON LEGEND.'); this.openCatalogPackages(); return; }
         const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
         if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
-        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
         if(btnGoLive) btnGoLive.classList.remove('hidden');
         if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
         await this.requestAndLoadMedia();
+        this.updateOnlineUsersRadar(); // Actualizar radar lateral al entrar
     },
 
     async requestAndLoadMedia() {
@@ -1536,8 +1582,8 @@ const app = {
 
     updateMediaTogglesUI() {
         const btnMic = document.getElementById('btn-toggle-mic'), btnCam = document.getElementById('btn-toggle-cam');
-        if(btnMic) { if(this.isMicMuted) { btnMic.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>'; btnMic.className = 'w-12 h-12 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-xl'; } else { btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i>'; btnMic.className = 'w-12 h-12 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-xl'; } }
-        if(btnCam) { if(this.isCamOff) { btnCam.innerHTML = '<i class="fa-solid fa-video-slash"></i>'; btnCam.className = 'w-12 h-12 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-xl'; } else { btnCam.innerHTML = '<i class="fa-solid fa-video"></i>'; btnCam.className = 'w-12 h-12 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-xl'; } }
+        if(btnMic) { if(this.isMicMuted) { btnMic.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>'; btnMic.className = 'w-11 h-11 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-lg'; } else { btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i>'; btnMic.className = 'w-11 h-11 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-lg'; } }
+        if(btnCam) { if(this.isCamOff) { btnCam.innerHTML = '<i class="fa-solid fa-video-slash"></i>'; btnCam.className = 'w-11 h-11 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-lg'; } else { btnCam.innerHTML = '<i class="fa-solid fa-video"></i>'; btnCam.className = 'w-11 h-11 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-lg'; } }
     },
 
     openAVSettings() { this.haptic('light'); document.getElementById('modal-av-settings')?.classList.remove('hidden'); },
@@ -1563,7 +1609,7 @@ const app = {
     startLiveTransmission() {
         this.haptic('heavy');
         const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
-        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-red-600 text-white text-[9px] font-black px-2 py-0.5 rounded animate-pulse shadow-md'; badge.innerText = 'EN VIVO'; }
+        if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-red-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded animate-pulse shadow-md uppercase'; badge.innerText = 'EN VIVO'; }
         if(btnGoLive) btnGoLive.classList.add('hidden'); if(btnCancel) btnCancel.classList.remove('hidden');
         if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: this.getTrans('stream_announce'), media_url: null })); }
     },
@@ -1571,7 +1617,7 @@ const app = {
     cancelLiveTransmission() {
         this.haptic('medium');
         const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
-        if(badge) { badge.className = 'absolute top-2 left-2 z-20 bg-amber-500 text-black text-[9px] font-black px-2 py-0.5 rounded shadow-md'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
         if(btnCancel) btnCancel.classList.add('hidden'); if(btnGoLive) btnGoLive.classList.remove('hidden');
     },
 
@@ -1675,7 +1721,7 @@ const app = {
                                 <span class="font-bold text-amber-400 text-sm">@${safeAuthor}</span>
                             </div>
                             <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
-                                <div class="relative inline-block w-4 h-4 mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"></div>
+                                <div class="relative inline-block w-4 h-4 mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div>
                                 <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
                                 ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>

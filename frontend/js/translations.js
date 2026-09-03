@@ -31,7 +31,27 @@ window.t = {
         level_up_title: "¡NUEVO RANGO!", level_up_sub: "Privilegios Desbloqueados", warnings_label: "ADVERTENCIAS",
         recurring_billing_label: "HABILITAR SUSCRIPCIÓN MENSUAL RECURRENTE",
         recurring_billing_desc: "Se procesará el cobro automático de tu rango cada 30 días. Recibirás una alerta 3 días antes.",
-        payment_log_title: "REGISTRO DE PAGOS B2C / B2B"
+        payment_log_title: "REGISTRO DE PAGOS B2C / B2B",
+        
+        // ⚙️ AJUSTES / SETTINGS & RADAR LATERAL
+        settings_title: "AJUSTES DEL BÚNKER",
+        settings_lbl_username: "Cambiar Alias (1 vez al mes)",
+        settings_name_warn: "⚠️ Solo puedes cambiar tu nombre una vez cada 30 días por seguridad del Búnker.",
+        settings_btn_update_name: "Actualizar Alias",
+        settings_lbl_pwd: "Cambiar Contraseña",
+        settings_ph_old_pass: "Contraseña actual",
+        settings_ph_new_pass: "Nueva contraseña (mín. 6 caracteres)",
+        settings_pwd_note: "Recibirás confirmación directa en tu cuenta al actualizar.",
+        settings_btn_update_pwd: "Actualizar Contraseña",
+        settings_lbl_theme: "Modo Oscuro / Claro",
+        settings_lbl_status: "Estado Operativo",
+        settings_status_spy_lock: "⚠️ Requiere rango Soldier o superior para activar modo oculto (OFFLINE). Los agentes Espía (SPY) siempre permanecen visibles.",
+        pwd_changed_success: "SU CONTRASEÑA NUEVA HA SIDO CAMBIADA",
+        users_online_label: "USERS ONLINE",
+        radar_title: "RADAR",
+        welcome_chat_msg: "¡Bienvenido al Chat Global y Video Búnker!",
+        lbl_prof_status: "Estado:",
+        lbl_change_photo: "CAMBIAR"
     },
     en: { 
         warn_title: "WARNING", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "This space contains explicit material.", warn_p2: "By entering, you confirm you are of legal age (18+).", btn_accept: "I ACCEPT", btn_exit: "EXIT", btn_back: "BACK", login_title: "VAULT ACCESS", login_desc: "Log in or create your account.", lbl_phone: "PHONE NUMBER", btn_phone_login: "LOGIN WITH NUMBER", or_direct: "OR DIRECTLY WITH", btn_tg_login: "LOGIN WITH TELEGRAM", no_account: "Don't have an account yet?", btn_create_acc: "CREATE NEW ACCOUNT", cap_title: "HUMAN VERIFICATION", cap_desc: "Solve the security code to enter.", btn_new_code: "Generate another code", btn_verify: "VERIFY ACCESS", reg_title: "NEW ACCOUNT", reg_desc: "Register to get access.", lbl_email: "EMAIL ADDRESS", btn_register: "REGISTER", or_fast: "OR FAST WITH", have_account: "Already have an account?", btn_login_link: "Log In", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -64,7 +84,27 @@ window.t = {
         level_up_title: "NEW RANK!", level_up_sub: "Privileges Unlocked", warnings_label: "WARNINGS",
         recurring_billing_label: "ENABLE RECURRING MONTHLY SUBSCRIPTION",
         recurring_billing_desc: "Your rank will be automatically charged every 30 days. You will receive an alert 3 days prior.",
-        payment_log_title: "B2C / B2B PAYMENT LOG"
+        payment_log_title: "B2C / B2B PAYMENT LOG",
+        
+        // ⚙️ SETTINGS & LATERAL RADAR
+        settings_title: "BUNKER SETTINGS",
+        settings_lbl_username: "Change Username (Once a month)",
+        settings_name_warn: "⚠️ You can only change your username once every 30 days for Bunker security.",
+        settings_btn_update_name: "Update Username",
+        settings_lbl_pwd: "Change Password",
+        settings_ph_old_pass: "Current password",
+        settings_ph_new_pass: "New password (min. 6 characters)",
+        settings_pwd_note: "You will receive direct confirmation on your account upon updating.",
+        settings_btn_update_pwd: "Update Password",
+        settings_lbl_theme: "Dark / Light Mode",
+        settings_lbl_status: "Operative Status",
+        settings_status_spy_lock: "⚠️ Requires Soldier rank or higher to activate stealth mode (OFFLINE). Spy agents always remain visible.",
+        pwd_changed_success: "YOUR NEW PASSWORD HAS BEEN CHANGED",
+        users_online_label: "USERS ONLINE",
+        radar_title: "RADAR",
+        welcome_chat_msg: "Welcome to Global Chat & Video Bunker!",
+        lbl_prof_status: "Status:",
+        lbl_change_photo: "CHANGE"
     },
     it: { 
         warn_title: "AVVERTENZA", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Questo spazio contiene materiale esplicito.", warn_p2: "Entrando, confermi di essere maggiorenne.", btn_accept: "ACCETTO", btn_exit: "ESCI", btn_back: "INDIETRO", login_title: "ACCESSO AL VAULT", login_desc: "Accedi o crea il tuo account.", lbl_phone: "NUMERO DI TELEFONO", btn_phone_login: "ACCEDI CON NUMERO", or_direct: "O DIRETTAMENTE CON", btn_tg_login: "LOGIN CON TELEGRAM", no_account: "Non hai ancora un account?", btn_create_acc: "CREA NUOVO ACCOUNT", cap_title: "VERIFICA UMANA", cap_desc: "Risolvi il codice di sicurezza.", btn_new_code: "Genera altro codice", btn_verify: "VERIFICA ACCESSO", reg_title: "NUOVO ACCOUNT", reg_desc: "Registrati per l'accesso.", lbl_email: "EMAIL", btn_register: "REGISTRATI", or_fast: "O VELOCE CON", have_account: "Hai già un account?", btn_login_link: "Accedi", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -97,7 +137,27 @@ window.t = {
         level_up_title: "NUOVO RANGO!", level_up_sub: "Privilegi Sbloccati", warnings_label: "AVVERTIMENTI",
         recurring_billing_label: "ABILITA ABBONAMENTO MENSILE RICORRENTE",
         recurring_billing_desc: "Il tuo rango verrà addebitato automaticamente ogni 30 giorni. Riceverai un avviso 3 giorni prima.",
-        payment_log_title: "REGISTRO PAGAMENTI B2C / B2B"
+        payment_log_title: "REGISTRO PAGAMENTI B2C / B2B",
+        
+        // ⚙️ IMPOSTAZIONI & RADAR LATERALE
+        settings_title: "IMPOSTAZIONI BUNKER",
+        settings_lbl_username: "Cambia Alias (1 volta al mese)",
+        settings_name_warn: "⚠️ Puoi cambiare il tuo nome solo una volta ogni 30 giorni per sicurezza del Bunker.",
+        settings_btn_update_name: "Aggiorna Alias",
+        settings_lbl_pwd: "Cambia Password",
+        settings_ph_old_pass: "Password attuale",
+        settings_ph_new_pass: "Nuova password (min. 6 caratteri)",
+        settings_pwd_note: "Riceverai una conferma diretta sul tuo account al momento dell'aggiornamento.",
+        settings_btn_update_pwd: "Aggiorna Password",
+        settings_lbl_theme: "Modalità Scura / Chiara",
+        settings_lbl_status: "Stato Operativo",
+        settings_status_spy_lock: "⚠️ Richiede il grado Soldier o superiore per attivare la modalità nascosta (OFFLINE). Le spie (SPY) rimangono sempre visibili.",
+        pwd_changed_success: "LA TUA NUOVA PASSWORD È STATA MODIFICATA",
+        users_online_label: "USERS ONLINE",
+        radar_title: "RADAR",
+        welcome_chat_msg: "Benvenuto nella Chat Globale & Video Bunker!",
+        lbl_prof_status: "Stato:",
+        lbl_change_photo: "CAMBIA"
     },
     pt: { 
         warn_title: "AVISO", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Este espaço contém material explícito.", warn_p2: "Ao entrar, você confirma ser maior de idade (18+).", btn_accept: "ACEITO", btn_exit: "SAIR", btn_back: "VOLTAR", login_title: "ACESSO AO VAULT", login_desc: "Faça login ou crie sua conta.", lbl_phone: "NÚMERO DE TELEFONE", btn_phone_login: "ENTRAR COM NÚMERO", or_direct: "OU DIRETAMENTE COM", btn_tg_login: "LOGIN COM TELEGRAM", no_account: "Ainda não tem conta?", btn_create_acc: "CRIAR NOVA CONTA", cap_title: "VERIFICAÇÃO HUMANA", cap_desc: "Resolva o código de segurança.", btn_new_code: "Gerar outro código", btn_verify: "VERIFICAR ACESSO", reg_title: "NOVA CONTA", reg_desc: "Registre-se para acessar.", lbl_email: "E-MAIL", btn_register: "REGISTRAR", or_fast: "OU RÁPIDO COM", have_account: "Já tem conta?", btn_login_link: "Fazer Login", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -130,7 +190,27 @@ window.t = {
         level_up_title: "NOVO RANGO!", level_up_sub: "Privilégios Desbloqueados", warnings_label: "AVISOS",
         recurring_billing_label: "ATIVAR ASSINATURA MENSAL RECORRENTE",
         recurring_billing_desc: "O seu rango será cobrado automaticamente a cada 30 dias. Você receberá um alerta 3 dias antes.",
-        payment_log_title: "REGISTRO DE PAGAMENTOS B2C / B2B"
+        payment_log_title: "REGISTRO DE PAGAMENTOS B2C / B2B",
+        
+        // ⚙️ CONFIGURAÇÕES & RADAR LATERAL
+        settings_title: "CONFIGURAÇÕES DO BÚNKER",
+        settings_lbl_username: "Mudar Alias (1 vez por mês)",
+        settings_name_warn: "⚠️ Você só pode alterar seu nome uma vez a cada 30 dias para segurança do Búnker.",
+        settings_btn_update_name: "Atualizar Alias",
+        settings_lbl_pwd: "Mudar Senha",
+        settings_ph_old_pass: "Senha atual",
+        settings_ph_new_pass: "Nova senha (mín. 6 caracteres)",
+        settings_pwd_note: "Você receberá confirmação direta na sua conta após a atualização.",
+        settings_btn_update_pwd: "Atualizar Senha",
+        settings_lbl_theme: "Modo Escuro / Claro",
+        settings_lbl_status: "Estado Operativo",
+        settings_status_spy_lock: "⚠️ Requer patente Soldier ou superior para ativar modo oculto (OFFLINE). Agentes Espião (SPY) sempre permanecem visíveis.",
+        pwd_changed_success: "SUA NOVA SENHA FOI ALTERADA",
+        users_online_label: "USERS ONLINE",
+        radar_title: "RADAR",
+        welcome_chat_msg: "Bem-vindo ao Chat Global & Vídeo Búnker!",
+        lbl_prof_status: "Estado:",
+        lbl_change_photo: "MUDAR"
     },
     de: { 
         warn_title: "WARNUNG", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Dieser Raum enthält sexuelles Material.", warn_p2: "Mit dem Betreten bestätigen Sie, dass Sie über 18 Jahre alt sind.", btn_accept: "AKZEPTIEREN", btn_exit: "VERLASSEN", btn_back: "ZURÜCK", login_title: "VAULT ZUGANG", login_desc: "Melden Sie sich an.", lbl_phone: "TELEFONNUMMER", btn_phone_login: "MIT NUMMER ANMELDEN", or_direct: "ODER DIREKT MIT", btn_tg_login: "LOGIN MIT TELEGRAM", no_account: "Noch kein Konto?", btn_create_acc: "NEUES KONTO ERSTELLEN", cap_title: "MENSCHLICHE PRÜFUNG", cap_desc: "Lösen Sie den Sicherheitscode.", btn_new_code: "Neuen Code generieren", btn_verify: "ZUGANG PRÜFEN", reg_title: "NEUES KONTO", reg_desc: "Registrieren.", lbl_email: "E-MAIL", btn_register: "REGISTRAR", or_fast: "ODER SCHNELL MIT", have_account: "Bereits ein Konto?", btn_login_link: "Anmelden", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -163,7 +243,27 @@ window.t = {
         level_up_title: "NEUER RANG!", level_up_sub: "Privilegien Freigeschaltet", warnings_label: "WARNUNGEN",
         recurring_billing_label: "AUTOMATISCHE MONATLICHE ABONNIERUNG AKTIVIEREN",
         recurring_billing_desc: "Ihr Rang wird alle 30 Tage automatisch belastet. Sie erhalten 3 Tage im Voraus eine Benachrichtigung.",
-        payment_log_title: "B2C / B2B ZAHLUNGSPROTOKOLL"
+        payment_log_title: "B2C / B2B ZAHLUNGSPROTOKOLL",
+        
+        // ⚙️ EINSTELLUNGEN & SEITLICHES RADAR
+        settings_title: "BUNKER EINSTELLUNGEN",
+        settings_lbl_username: "Benutzername ändern (1x im Monat)",
+        settings_name_warn: "⚠️ Sie können Ihren Benutzernamen aus Sicherheitsgründen nur alle 30 Tage ändern.",
+        settings_btn_update_name: "Benutzername aktualisieren",
+        settings_lbl_pwd: "Passwort ändern",
+        settings_ph_old_pass: "Aktuelles Passwort",
+        settings_ph_new_pass: "Neues Passwort (mind. 6 Zeichen)",
+        settings_pwd_note: "Sie erhalten nach der Aktualisierung eine direkte Bestätigung.",
+        settings_btn_update_pwd: "Passwort aktualisieren",
+        settings_lbl_theme: "Dunkel- / Hellmodus",
+        settings_lbl_status: "Betriebsstatus",
+        settings_status_spy_lock: "⚠️ Erfordert Rang Soldier oder höher für den Offline-Modus. Spione (SPY) bleiben immer sichtbar.",
+        pwd_changed_success: "IHR NEUES PASSWORT WURDE GEÄNDERT",
+        users_online_label: "USERS ONLINE",
+        radar_title: "RADAR",
+        welcome_chat_msg: "Willkommen im globalen Chat & Video Bunker!",
+        lbl_prof_status: "Status:",
+        lbl_change_photo: "ÄNDERN"
     },
     fr: { 
         warn_title: "AVERTISSEMENT", warn_subtitle: "+18 ADULT CONTENT", warn_p1: "Cet espace contient du matériel explicite.", warn_p2: "En entrant, vous confirmez avoir plus de 18 ans.", btn_accept: "J'ACCEPTE", btn_exit: "SORTIR", btn_back: "RETOUR", login_title: "ACCÈS VAULT", login_desc: "Connectez-vous.", lbl_phone: "NUMÉRO DE TÉLÉPHONE", btn_phone_login: "CONNEXION AVEC NUMÉRO", or_direct: "OU DIRECTEMENT AVEC", btn_tg_login: "CONNEXION TELEGRAM", no_account: "Pas encore de compte ?", btn_create_acc: "CRÉER UN COMPTE", cap_title: "VÉRIFICATION", cap_desc: "Résolvez le code.", btn_new_code: "Générer un autre code", btn_verify: "VÉRIFIER", reg_title: "NOUVEAU COMPTE", reg_desc: "Inscrivez-vous.", lbl_email: "E-MAIL", btn_register: "S'INSCRIRE", or_fast: "OU RAPIDE AVEC", have_account: "Déjà un compte ?", btn_login_link: "Se connecter", lang_title: "WELCOME, USER", lang_subtitle: "CHOOSE LANGUAGE",
@@ -196,7 +296,27 @@ window.t = {
         level_up_title: "NOUVEAU RANGO!", level_up_sub: "Privilégios Débloqués", warnings_label: "AVERTISSEMENTS",
         recurring_billing_label: "ACTIVER L'ABONNEMENT MENSUEL RÉCURRENT",
         recurring_billing_desc: "Votre rang sera facturé automatiquement tous les 30 jours. Vous recevrez une alerte 3 jours avant.",
-        payment_log_title: "JOURNAL DES PAIEMENTS B2C / B2B"
+        payment_log_title: "JOURNAL DES PAIEMENTS B2C / B2B",
+        
+        // ⚙️ PARAMÈTRES & RADAR LATÉRAL
+        settings_title: "PARAMÈTRES DU BUNKER",
+        settings_lbl_username: "Changer d'alias (1 fois par mois)",
+        settings_name_warn: "⚠️ Vous ne pouvez changer votre nom qu'une fois tous les 30 jours par sécurité.",
+        settings_btn_update_name: "Mettre à jour l'alias",
+        settings_lbl_pwd: "Changer le mot de passe",
+        settings_ph_old_pass: "Mot de passe actuel",
+        settings_ph_new_pass: "Nouveau mot de passe (min. 6 caractères)",
+        settings_pwd_note: "Vous recevrez une confirmation directe sur votre compte lors de la mise à jour.",
+        settings_btn_update_pwd: "Mettre à jour le mot de passe",
+        settings_lbl_theme: "Mode Sombre / Clair",
+        settings_lbl_status: "État Opérationnel",
+        settings_status_spy_lock: "⚠️ Nécessite le rang Soldier ou supérieur pour le mode invisible (OFFLINE). Les espions (SPY) restent toujours visibles.",
+        pwd_changed_success: "VOTRE NOUVEAU MOT DE PASSE A ÉTÉ MODIFIÉ",
+        users_online_label: "USERS ONLINE",
+        radar_title: "RADAR",
+        welcome_chat_msg: "Bienvenue sur le Chat Global & Vidéo Bunker !",
+        lbl_prof_status: "Statut :",
+        lbl_change_photo: "CHANGER"
     }
 };
 
@@ -208,12 +328,14 @@ window.applyTranslations = function(lang) {
         'txt-login-title': 'login_title', 'txt-login-desc': 'login_desc', 'lbl-phone': 'lbl_phone', 'btn-phone-text': 'btn_phone_login', 'txt-or-direct': 'or_direct', 'btn-tg-text': 'btn_tg_login', 'txt-no-account': 'no_account', 'btn-create-acc': 'btn_create_acc',
         'txt-cap-title': 'cap_title', 'txt-cap-desc': 'cap_desc', 'btn-new-code': 'btn_new_code', 'btn-verify-text': 'btn_verify',
         'txt-reg-title': 'reg_title', 'txt-reg-desc': 'reg_desc', 'lbl-email': 'lbl_email', 'lbl-reg-phone': 'lbl_phone', 'btn-reg-text': 'btn_register', 'txt-or-fast': 'or_fast', 'txt-have-acc': 'have_account', 'btn-login-link': 'btn_login_link',
+        'lbl-reg-role': 'role_title', 'btn-role-fan-txt': 'role_fan', 'btn-role-creator-txt': 'role_creator',
         'name-lang': 'lang_title', 'txt-lang-sub': 'lang_subtitle',
         'nav-catalog': 'nav_cat', 'nav-communities': 'nav_com', 'nav-post': 'nav_post', 'nav-profile': 'nav_profile', 'nav-support': 'nav_sup',
         'btn-wallet-hdr': 'btn_wallet', 'btn-logout': 'btn_logout', 'rank-feed': 'rank_0',
         'upload-hdr': 'upload_hdr', 'lbl-level': 'lbl_level', 'opt-0': 'opt_0', 'opt-1': 'opt_1', 'opt-2': 'opt_2', 'opt-3': 'opt_3', 'lbl-file': 'lbl_file', 'txt-upload': 'txt_upload', 'lbl-desc': 'lbl_desc', 'btn-pub-text': 'btn_pub',
         
         'prof-title': 'prof_title', 'prof-rank': 'rank_0', 'prof-alpha-title': 'prof_alpha_title', 'prof-alpha-desc': 'prof_alpha_desc', 'btn-recharge-text': 'btn_recharge', 'lbl-alias': 'lbl_alias', 'prof-growth-title': 'prof_growth', 'prof-next-rank': 'prof_next', 'lbl-bio': 'lbl_bio', 'btn-save-bio': 'btn_save_bio', 'btn-pub-content': 'btn_pub_content',
+        'lbl-prof-status': 'lbl_prof_status', 'lbl-change-photo': 'lbl_change_photo',
         'txt-kyc-title': 'prof_kyc_title', 'prof-kyc-desc': 'prof_kyc_desc',
         'txt-b2b-title': 'b2b_main_title', 'txt-b2b-free': 'b2b_free_month', 'txt-b2b-desc': 'b2b_desc',
         'txt-soldier-title': 'b2b_soldier_title', 'txt-soldier-price': 'b2b_soldier_price',
@@ -225,10 +347,23 @@ window.applyTranslations = function(lang) {
         'com-title': 'com_title', 'pay-btn-stars': 'pay_stars', 'btn-stripe': 'btn_stripe', 'txt_pay_proof': 'txt_pay_proof', 'bank-title': 'bank_title', 'copy-global': 'copy_global', 'copy-airtm': 'copy_airtm', 'copy-ton': 'copy_ton',
         'chat-title': 'chat_title', 'chat-routed': 'chat_routed', 'btn-send-proof': 'btn_send_proof', 'chat-welcome': 'chat_welcome',
         'global-chat-title': 'wall_chat_title', 'wall-chat-desc': 'wall_chat_desc', 'btn-wall-chat': 'btn_wall_chat', 'btn-wall-video': 'btn_wall_video',
+        'txt-users-online-label': 'users_online_label', 'txt-radar-title': 'radar_title', 'txt-welcome-chat': 'welcome_chat_msg',
         'watermark-signature': 'watermark_text',
         
         'txt-go-live': 'btn_go_live', 'txt-cancel-stream': 'btn_cancel_stream', 'txt-close-cam': 'btn_close_cam',
-        'av-settings-title': 'av_settings_title', 'lbl-cam': 'lbl_cam', 'lbl-mic': 'lbl_mic', 'btn-apply-av': 'btn_apply_av'
+        'av-settings-title': 'av_settings_title', 'lbl-cam': 'lbl_cam', 'lbl-mic': 'lbl_mic', 'btn-apply-av': 'btn_apply_av',
+        
+        // Mapeo Modal Settings
+        'txt-settings-title': 'settings_title',
+        'lbl-settings-username': 'settings_lbl_username',
+        'name-change-warning': 'settings_name_warn',
+        'btn-settings-update-name': 'settings_btn_update_name',
+        'lbl-settings-pwd': 'settings_lbl_pwd',
+        'txt-settings-pwd-note': 'settings_pwd_note',
+        'btn-settings-update-pwd': 'settings_btn_update_pwd',
+        'lbl-settings-theme': 'settings_lbl_theme',
+        'lbl-settings-status': 'settings_lbl_status',
+        'txt-settings-status-lock': 'settings_status_spy_lock'
     };
 
     Object.keys(map).forEach(id => {
@@ -259,4 +394,10 @@ window.applyTranslations = function(lang) {
     
     const bioInput = document.getElementById('prof-bio');
     if (bioInput) bioInput.placeholder = dict.lbl_bio;
+
+    const oldPass = document.getElementById('settings-old-pass');
+    if (oldPass && dict.settings_ph_old_pass) oldPass.placeholder = dict.settings_ph_old_pass;
+
+    const newPass = document.getElementById('settings-new-pass');
+    if (newPass && dict.settings_ph_new_pass) newPass.placeholder = dict.settings_ph_new_pass;
 };

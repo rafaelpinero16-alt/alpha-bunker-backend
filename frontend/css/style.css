@@ -3,6 +3,7 @@
     --neon-magenta: #ff00ff;
     --neon-gold: #ffb703;
     --neon-red: #ff3333;
+    --neon-green: #00ff66;
     --bg-deep: #050505;
 }
 
@@ -18,6 +19,63 @@ body {
     -ms-user-select: none;
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ☀️ MODO CLARO COMPLETO Y CONTRASTADO */
+body.light-theme {
+    --bg-deep: #f1f5f9;
+    background-color: var(--bg-deep);
+    color: #0f172a;
+}
+body.light-theme .glass-panel {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(0, 243, 255, 0.4);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+}
+body.light-theme .cyber-input {
+    background: rgba(255, 255, 255, 0.9);
+    color: #0f172a;
+    border-color: rgba(0, 180, 216, 0.6);
+}
+body.light-theme .cyber-input::placeholder {
+    color: #64748b;
+}
+body.light-theme .tron-grid {
+    opacity: 0.12;
+    filter: invert(1);
+}
+body.light-theme .grid-fade {
+    background: radial-gradient(circle at center 30%, transparent 0%, #f1f5f9 70%);
+}
+body.light-theme .text-white {
+    color: #0f172a !important;
+}
+body.light-theme .text-gray-200,
+body.light-theme .text-gray-300,
+body.light-theme .text-neutral-300 {
+    color: #334155 !important;
+}
+
+/* 🟢 PUNTO VERDE NEÓN ACTIVO (ONLINE) */
+.neon-green-dot {
+    background-color: var(--neon-green) !important;
+    box-shadow: 0 0 8px var(--neon-green), 0 0 16px var(--neon-green), 0 0 24px rgba(0, 255, 102, 0.8) !important;
+}
+
+/* 📡 RADAR LATERAL DERECHO (CHAT & VIDEO BÚNKER) */
+#radar-lateral-bunker {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 243, 255, 0.3) transparent;
+}
+#radar-lateral-bunker::-webkit-scrollbar {
+    width: 3px;
+}
+#radar-lateral-bunker::-webkit-scrollbar-thumb {
+    background: rgba(0, 243, 255, 0.4);
+    border-radius: 4px;
 }
 
 .privacy-blur > * {
@@ -296,7 +354,7 @@ body {
     animation: fadeInMsg 0.3s ease-out forwards;
 }
 
-/* 🛡️ BLEND MODE MAGICO PARA INSIGNIAS (Elimina fondos negros de los JPGs/PNGs) */
+/* 🛡️ BLEND MODE PARA INSIGNIAS */
 .rank-badge {
     mix-blend-mode: screen;
     background-color: transparent !important;
