@@ -1,5 +1,7 @@
+// Configuración base de la API (Apunta a tu backend en Railway)
 const API_BASE_URL = "https://alpha-bunker-backend-production.up.railway.app";
 
+// 1. Obtener datos de sesión (Soporta Telegram WebApp y APK Standalone)
 function getSessionUser() {
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe?.user) {
         const tgUser = window.Telegram.WebApp.initDataUnsafe.user;
@@ -12,6 +14,7 @@ function getSessionUser() {
         };
     }
     
+    // Fallback para APK Android Standalone
     let localId = localStorage.getItem("alpha_user_id");
     if (!localId) {
         localId = "99" + Math.floor(100000 + Math.random() * 900000);
@@ -28,6 +31,7 @@ function getSessionUser() {
     };
 }
 
+// 2. Sincronizar usuario al entrar a la app
 async function syncUserSession() {
     const user = getSessionUser();
     try {
@@ -48,6 +52,7 @@ async function syncUserSession() {
     }
 }
 
+// 3. Consultar perfil, rango e insignia
 async function fetchUserProfile(userId) {
     try {
         const res = await fetch(`${API_BASE_URL}/users/profile/${userId}`);
@@ -58,6 +63,7 @@ async function fetchUserProfile(userId) {
     }
 }
 
+// 4. Consultar balance de billetera $ALPHA
 async function fetchWalletBalance(userId) {
     try {
         const res = await fetch(`${API_BASE_URL}/wallet/balance/${userId}`);
@@ -74,6 +80,7 @@ async function fetchWalletBalance(userId) {
     }
 }
 
+// 5. Enviar propina en tokens $ALPHA (Sincronizado con backend)
 async function sendAlphaTip(senderId, creatorId, amount, postId = null) {
     try {
         const res = await fetch(`${API_BASE_URL}/wallet/send-tip`, {
@@ -94,6 +101,7 @@ async function sendAlphaTip(senderId, creatorId, amount, postId = null) {
     }
 }
 
+// 6. Recarga directa / Depósito de tokens $ALPHA
 async function depositAlphaCoins(userId, amount) {
     try {
         const res = await fetch(`${API_BASE_URL}/wallet/deposit`, {
@@ -112,6 +120,7 @@ async function depositAlphaCoins(userId, amount) {
     }
 }
 
+// 7. Cargar muro de publicaciones con estado de bloqueo PPV
 async function fetchGlobalFeed(userId) {
     try {
         const res = await fetch(`${API_BASE_URL}/posts/feed/${userId || 0}`);
@@ -123,6 +132,7 @@ async function fetchGlobalFeed(userId) {
     }
 }
 
+// 8. Crear factura oficial de Telegram Stars
 async function buyStarsInvoice(userId, packageSlug) {
     try {
         const res = await fetch(`${API_BASE_URL}/payments/create-invoice`, {
