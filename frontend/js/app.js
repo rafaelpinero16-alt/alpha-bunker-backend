@@ -186,7 +186,6 @@ const app = {
         const now = Date.now();
         const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
-        // Lógica de Alias: Primer cambio libre. Cambios posteriores restringidos a 30 días salvo si es Admin.
         if (lastChange && !this.isAdminUser()) {
             if ((now - parseInt(lastChange)) < thirtyDaysMs) {
                 const daysLeft = Math.ceil((thirtyDaysMs - (now - parseInt(lastChange))) / (1000 * 60 * 60 * 24));
@@ -537,7 +536,7 @@ const app = {
         if (!this.tonConnectUI && TonConnectClass) {
             try {
                 const originRaw = window.location.origin;
-                const safeOrigin = (originRaw === "null" || originRaw === "file://" || !originRaw) ? "" : originRaw;
+                const safeOrigin = (!originRaw || originRaw === "null" || originRaw === "file://") ? "https://alpha-bunker-backend.vercel.app" : originRaw;
                 
                 this.tonConnectUI = new TonConnectClass({ 
                     manifestUrl: safeOrigin + '/tonconnect-manifest.json',
@@ -559,7 +558,9 @@ const app = {
                         this.updateProfileUI();
                     }
                 });
-            } catch (err) {}
+            } catch (err) {
+                console.error("TonConnect init error:", err);
+            }
         }
     },
 
@@ -573,7 +574,7 @@ const app = {
                 const TonConnectClass = window.TonConnectUI || window.TON_CONNECT_UI;
                 if (TonConnectClass) {
                     const originRaw = window.location.origin;
-                    const safeOrigin = (originRaw === "null" || originRaw === "file://" || !originRaw) ? "" : originRaw;
+                    const safeOrigin = (!originRaw || originRaw === "null" || originRaw === "file://") ? "https://alpha-bunker-backend.vercel.app" : originRaw;
                     this.tonConnectUI = new TonConnectClass({ 
                         manifestUrl: safeOrigin + '/tonconnect-manifest.json',
                         uiPreferences: { theme: 'DARK' }
@@ -595,6 +596,7 @@ const app = {
                 await this.tonConnectUI.openModal(); 
             }
         } catch (err) {
+            console.error("TonConnect openModal error:", err);
             this.showToast('⚠️ Error al abrir pasarela TON.');
         }
     },
