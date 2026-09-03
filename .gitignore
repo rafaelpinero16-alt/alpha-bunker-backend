@@ -1,1 +1,29 @@
+# ── Secretos ────────────────────────────────────────────────────
 .env
+.env.*
+!.env.example
+
+# ── Python ──────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# ── Base de datos local ─────────────────────────────────────────
+*.db
+*.sqlite3
+
+# ── Uploads (Railway usa directorio efímero, no commitear) ──────
+uploads/
+
+# ── Editor / OS ─────────────────────────────────────────────────
+.DS_Store
+.vscode/
+.idea/
+Thumbs.db
