@@ -48,6 +48,13 @@ async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
         if not sender or not receiver:
             raise HTTPException(status_code=404, detail="Usuario no encontrado en la base de datos.")
 
+        # 🔒 Bloqueos de seguridad inyectados
+        if data.sender_id == data.receiver_id:
+            raise HTTPException(status_code=400, detail="No puedes enviarte propinas a ti mismo.")
+
+        if data.amount <= 0:
+            raise HTTPException(status_code=400, detail="El monto de la propina debe ser mayor a 0.")
+
         sender_wallet = db.query(Wallet).filter(Wallet.user_id == data.sender_id).first()
         receiver_wallet = db.query(Wallet).filter(Wallet.user_id == data.receiver_id).first()
 
@@ -124,6 +131,10 @@ def connect_ton_wallet(data: TonConnectRequest, db: Session = Depends(get_db)):
 
 @router.post("/recharge")
 def recharge_wallet(data: RechargeRequest, db: Session = Depends(get_db)):
+    # 🔴 NOTA TÁCTICA: Este endpoint aún confía en el cliente. En el futuro, 
+    # se debe verificar el `boc` contra la blockchain de TON para máxima seguridad.
+    if data.amount_ton <= 0 or data.alpha_added <= 0:
+        raise HTTPException(status_code=400, detail="Montos de recarga inválidos.")
     try:
         wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
         if not wallet:
