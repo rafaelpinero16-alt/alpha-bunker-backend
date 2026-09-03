@@ -19,6 +19,7 @@ os.makedirs("uploads", exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("[SERVER] Iniciando secuencias de arranque del Búnker...")
     # Inicializa la base de datos
     init_db()
 
@@ -26,12 +27,14 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         seed_tactical_packages(db)
+        print("[SERVER] Base de datos y paquetes tácticos sincronizados correctamente.")
     except Exception as e:
         print(f"[SEED ERROR] Error al sembrar los paquetes: {e}")
     finally:
         db.close()
 
     yield
+    print("[SERVER] Apagando el ecosistema del Búnker...")
 
 app = FastAPI(title="Alpha Tom Vault API", lifespan=lifespan)
 

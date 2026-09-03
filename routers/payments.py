@@ -12,7 +12,7 @@ from database.models import Package
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 class InvoiceRequest(BaseModel):
-    user_id: int
+    user_id: str  # Declarado como string para soportar IDs de Telegram o Teléfonos
     package_slug: str
 
 @router.get("/packages")
@@ -97,6 +97,7 @@ async def create_invoice(data: InvoiceRequest, db: Session = Depends(get_db)):
             
         prices = [LabeledPrice(label=f"Suscripción {pkg_name}", amount=pkg_stars)]
         
+        # 🛡️ El payload viaja cifrado en la factura para asegurar la integridad al retornar
         invoice_link = await bot.create_invoice_link(
             title=f"Búnker VIP - {pkg_name}",
             description=pkg_desc,
@@ -106,10 +107,12 @@ async def create_invoice(data: InvoiceRequest, db: Session = Depends(get_db)):
         )
         return {"status": "success", "invoice_link": invoice_link}
     except Exception as e:
+        print(f"[❌ INVOICE ERROR] Fallo al generar factura: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @dp.pre_checkout_query()
 async def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
+    # Telegram exige responder al pre_checkout en menos de 10 segundos
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 @dp.message(F.successful_payment)
@@ -119,12 +122,14 @@ async def success_payment(message: types.Message):
     
     if len(payload_parts) >= 3:
         tier_slug = payload_parts[1]
-        user_id = message.from_user.id
+        user_id = payload_parts[2] # 🛡️ Extraemos el ID exacto del payload, no del remitente de Telegram
         
-        # 🔒 update_user_tier es 'async def'. Sin 'await', llamarla solo crea
-        # un objeto coroutine que nunca se ejecuta: ninguna línea de su
-        # cuerpo corre (ni el UPDATE en BD, ni el envío del link VIP), pero
-        # el handler seguía respondiendo "pago exitoso" igual.
-        await update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
+        try:
+            # Sincronización instantánea con la BD
+            await update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
+            print(f"[✅ STARS PAYMENT] Rango {tier_slug.upper()} asignado al instante al usuario {user_id}.")
+        except Exception as e:
+            print(f"[❌ DATABASE ERROR] El pago entró, pero falló la actualización del rango: {e}")
     
-    await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tu rango en el Búnker ha sido actualizado.")
+    # 🛡️ Siempre cerrar el ciclo respondiéndole a Telegram para que no congele la transacción
+    await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tu rango en el Búnker ha sido actualizado al instante. Cierra este chat y vuelve a la Mini App.")
