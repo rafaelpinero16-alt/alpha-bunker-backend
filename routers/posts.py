@@ -1,3 +1,4 @@
+import os
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -7,6 +8,9 @@ from database.models import Post, UnlockedPost, User, Wallet, Transaction, ChatM
 from routers.chat import manager
 
 router = APIRouter(prefix="/posts", tags=["Posts y Contenido"])
+
+# 🔒 ID configurable por variable de entorno para mayor seguridad (reemplaza el ID hardcodeado)
+ADMIN_TELEGRAM_ID = int(os.getenv("ADMIN_TELEGRAM_ID", "0"))
 
 class PostCreateRequest(BaseModel):
     user_id: int
@@ -147,8 +151,8 @@ def delete_post(data: dict, db: Session = Depends(get_db)):
         if not post:
             raise HTTPException(status_code=404, detail="Post no encontrado")
             
-        ADMIN_ID = 8269470905
-        if post.creator_id != user_id and user_id != ADMIN_ID:
+        # 🔒 Validación segura usando la variable de entorno
+        if post.creator_id != user_id and user_id != ADMIN_TELEGRAM_ID:
             raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este post.")
             
         db.delete(post)
