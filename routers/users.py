@@ -18,6 +18,11 @@ class UserSyncSchema(BaseModel):
     init_data: Optional[str] = None
     is_telegram: Optional[bool] = False
 
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+
 def verify_telegram_auth(init_data: str) -> bool:
     try:
         token = bot.token
@@ -37,12 +42,15 @@ def verify_telegram_auth(init_data: str) -> bool:
 
 @router.post("/sync")
 async def sync_user(data: UserSyncSchema, db: Session = Depends(get_db)):
+    # 🔒 Seguridad inyectada: Validación HMAC de Telegram
     if data.is_telegram and data.init_data:
         if not verify_telegram_auth(data.init_data):
             raise HTTPException(status_code=403, detail="Firma de Telegram inválida o alterada.")
             
     user = db.query(User).filter(User.user_id == data.user_id).first()
     if not user:
+        # 🔒 FIX CRÍTICO: Los usuarios nuevos entran en nivel 0 (ESPÍA).
+        # Evita regalar el tier SOLDIER (de pago) a cualquiera que abra la Mini App.
         user = User(
             user_id=data.user_id, 
             name=data.name, 
@@ -74,17 +82,17 @@ async def get_user_profile(user_id: int, db: Session = Depends(get_db)):
     return user
 
 @router.put("/{user_id}")
-async def update_user_profile(user_id: int, data: dict, db: Session = Depends(get_db)):
+async def update_user_profile(user_id: int, data: ProfileUpdate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    if "name" in data and data["name"] is not None:
-        user.name = data["name"]
-    if "bio" in data and data["bio"] is not None:
-        user.bio = data["bio"]
-    if "avatar_url" in data and data["avatar_url"] is not None:
-        user.avatar_url = data["avatar_url"]
+    if data.name is not None:
+        user.name = data.name
+    if data.bio is not None:
+        user.bio = data.bio
+    if data.avatar_url is not None:
+        user.avatar_url = data.avatar_url
         
     db.commit()
     db.refresh(user)
