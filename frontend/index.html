@@ -207,7 +207,7 @@
         </header>
 
         <!-- BANNER CHAT GLOBAL & VIDEO BÚNKER -->
-        <div class="mx-2 mt-2 bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border-2 border-[#00f3ff] rounded-2xl p-3.5 shadow-[0_0_15px_rgba(0,243,255,0.2)] flex items-center justify-between shrink-0">
+        <div class="mx-2 mt-2 bg-gradient-to-r from-neutral-900 via-neutral-900 to-black border-2 border-[#00f3ff] rounded-2xl p-3.5 shadow-[0_0_15px_rgba(0,243,255,0.2)] flex items-center justify-between shrink-0" id="banner-chat-global">
             <div class="flex items-center gap-3">
                 <div class="w-11 h-11 rounded-xl bg-[#00f3ff]/20 border border-[#00f3ff] flex items-center justify-center text-[#00f3ff] text-xl animate-pulse shrink-0">
                     <i class="fa-solid fa-video"></i>
@@ -488,12 +488,20 @@
                         <button onclick="app.clearChatMedia('global')" class="text-red-400 hover:text-white text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
                     </div>
 
-                    <!-- INPUT DEL CHAT CON BOTÓN DE CLIP MULTIMEDIA -->
-                    <div class="p-2.5 bg-[#050505] border-t border-neutral-800 flex items-center gap-2 pb-4">
-                        <button onclick="document.getElementById('global-media-upload').click()" class="w-10 h-10 shrink-0 rounded-full bg-neutral-900 border border-[#00f3ff]/50 text-[#00f3ff] flex items-center justify-center hover:bg-[#00f3ff]/20 transition shadow-[0_0_10px_rgba(0,243,255,0.3)] text-sm" title="Adjuntar multimedia">
+                    <!-- INPUT DEL CHAT CON MENÚ DESPLEGABLE MULTIMEDIA (CLIP) -->
+                    <div class="p-2.5 bg-[#050505] border-t border-neutral-800 flex items-center gap-2 pb-4 relative">
+                        <!-- Menú Desplegable Multimedia -->
+                        <div id="global-media-menu" class="hidden absolute bottom-14 left-2 bg-neutral-900 border border-[#00f3ff] rounded-2xl p-2 shadow-[0_0_20px_rgba(0,243,255,0.3)] flex flex-col gap-1.5 z-50 w-48">
+                            <button onclick="app.triggerGlobalMediaUpload('image/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-image text-[#00f3ff]"></i> Imagen / Foto</button>
+                            <button onclick="app.triggerGlobalMediaUpload('video/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-video text-[#ff00ff]"></i> Video Corto</button>
+                            <button onclick="app.triggerGlobalMediaUpload('audio/*')" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-microphone text-[#ffb703]"></i> Nota de Voz</button>
+                            <button onclick="app.startGlobalSelfieCam()" class="flex items-center gap-2.5 text-xs text-white hover:bg-[#00f3ff]/20 px-3 py-2 rounded-xl transition text-left font-bold"><i class="fa-solid fa-camera-retro text-emerald-400"></i> Video Selfie</button>
+                        </div>
+
+                        <button onclick="document.getElementById('global-media-menu').classList.toggle('hidden')" class="w-10 h-10 shrink-0 rounded-full bg-neutral-900 border border-[#00f3ff]/50 text-[#00f3ff] flex items-center justify-center hover:bg-[#00f3ff]/20 transition shadow-[0_0_10px_rgba(0,243,255,0.3)] text-sm" title="Opciones Multimedia">
                             <i class="fa-solid fa-paperclip"></i>
                         </button>
-                        <input type="file" id="global-media-upload" class="hidden" accept="image/*,video/*" onchange="app.handleChatMediaPreview(event, 'global')">
+                        <input type="file" id="global-media-upload" class="hidden" onchange="app.handleChatMediaPreview(event, 'global')">
                         
                         <input type="text" id="global-chat-input" class="flex-1 cyber-input rounded-full text-xs py-2.5 px-3 border-[#00f3ff] focus:border-[#00f3ff]" placeholder="Escribe en el chat global..." onkeypress="app.handleGlobalChatKeyPress(event)">
                         
@@ -515,6 +523,17 @@
                     </div>
                 </aside>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL LIGHTBOX PARA ZOOM DE IMÁGENES Y REPRODUCCIÓN DE VIDEOS -->
+    <div id="media-lightbox-modal" class="hidden fixed inset-0 z-[250] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-4">
+        <button onclick="app.closeLightbox()" class="absolute top-6 right-6 text-white bg-red-600 rounded-full w-10 h-10 flex items-center justify-center font-bold text-lg shadow-[0_0_15px_red] z-50">
+            <i class="fa-solid fa-times"></i>
+        </button>
+        <div class="relative w-full max-w-4xl max-h-[85vh] flex items-center justify-center">
+            <img id="lightbox-img" class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl hidden" alt="Lightbox Image">
+            <video id="lightbox-video" class="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl hidden" controls autoplay playsinline></video>
         </div>
     </div>
 
@@ -575,11 +594,11 @@
     <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
     <div id="toast" class="toast cursor-pointer hover:opacity-80 transition-opacity">¡Copiado! 📋</div>
     
-    <script src="js/security.js?v=28"></script>
-    <script src="js/translations.js?v=28"></script>
-    <script src="js/api.js?v=28"></script>
-    <script src="js/chat.js?v=28"></script>
-    <script src="js/app.js?v=28" defer></script>
+    <script src="js/security.js?v=29"></script>
+    <script src="js/translations.js?v=29"></script>
+    <script src="js/api.js?v=29"></script>
+    <script src="js/chat.js?v=29"></script>
+    <script src="js/app.js?v=29" defer></script>
 
     <script>
         if ('serviceWorker' in navigator) {
