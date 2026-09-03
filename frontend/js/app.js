@@ -71,7 +71,6 @@ const app = {
         }, 1500);
     },
 
-    // 🛡️ MODO CLARO / OSCURO
     toggleTheme() {
         this.haptic('light');
         const body = document.body;
@@ -92,7 +91,6 @@ const app = {
         }
     },
 
-    // 🛡️ ESTADO OPERATIVO (ONLINE / OFFLINE CON BOTÓN ROJO/VERDE)
     toggleOnlineStatus() {
         this.haptic('medium');
         this.userData.isOnline = !this.userData.isOnline;
@@ -133,7 +131,6 @@ const app = {
         }
     },
 
-    // 🛡️ GESTIÓN DE SETTINGS Y RESTRICCIÓN MENSUAL DE CAMBIO DE NOMBRE
     openSettingsModal() {
         this.haptic('light');
         const modal = document.getElementById('modal-settings');
@@ -151,7 +148,7 @@ const app = {
         document.getElementById('modal-settings')?.classList.add('hidden');
     },
 
-    updateUsernameSettings() {
+    async updateUsernameSettings() {
         this.haptic('medium');
         const input = document.getElementById('settings-username-input');
         const newName = input ? input.value.trim() : '';
@@ -170,11 +167,21 @@ const app = {
             return;
         }
 
+        // GUARDADO LOCAL Y SINCRONIZACIÓN CON BACKEND (EVITA RESETEO)
         localStorage.setItem('alpha_user_name', newName);
         localStorage.setItem('alpha_last_name_change', now.toString());
         this.userData.name = newName;
+        
+        try {
+            const initData = window.Telegram?.WebApp?.initData || "";
+            await fetch(`${this.backendUrl}/users/sync`, { 
+                method: "POST", headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({ user_id: this.userId || 0, name: newName, init_data: initData, is_telegram: !!initData }) 
+            });
+        } catch(e) {}
+
         this.updateProfileUI();
-        this.showToast('✅ ¡Alias actualizado con éxito!');
+        this.showToast('✅ ¡Alias actualizado de forma permanente!');
         this.closeSettingsModal();
     },
 
@@ -307,7 +314,16 @@ const app = {
                 if (data.kyc_status) {
                     localStorage.setItem('alpha_kyc_status', data.kyc_status);
                     if (data.role) { this.userData.role = data.role; localStorage.setItem('alpha_user_role', data.role); }
-                    if (data.name && data.name !== 'USER') { this.userData.name = data.name; localStorage.setItem('alpha_user_name', data.name); }
+                    
+                    // PREVIENE QUE EL BACKEND BORRE EL NOMBRE SI EN LOCAL YA LO CAMBIASTE, O VICEVERSA
+                    const localName = localStorage.getItem('alpha_user_name');
+                    if (data.name && data.name !== 'USER' && !data.name.startsWith('Tel:')) { 
+                        this.userData.name = data.name; 
+                        localStorage.setItem('alpha_user_name', data.name); 
+                    } else if (localName) {
+                        this.userData.name = localName;
+                    }
+
                     if (data.access_level !== undefined) this.userData.access_tier = data.access_level;
                     if (data.warnings_count !== undefined) this.userData.warnings = data.warnings_count;
                     this.updateProfileUI();
@@ -436,7 +452,10 @@ const app = {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
         if (tgUser && tgUser.id) {
             const savedId = localStorage.getItem("alpha_user_id");
-            if (savedId && savedId != tgUser.id) ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+            if (savedId && savedId != tgUser.id) {
+                // BLINDADO: Solo resetea cosas menores si cambia de usuario, no destruye todo
+                ['alpha_user_bio', 'alpha_user_avatar', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+            }
             this.userId = tgUser.id; localStorage.setItem("alpha_user_id", this.userId);
         } else {
             let localId = localStorage.getItem("alpha_user_id");
@@ -450,10 +469,15 @@ const app = {
     async initTonConnect() {
         if (!this.tonConnectUI && window.TON_CONNECT_UI) {
             try {
+                // BLINDADO: Usamos una ruta absoluta/relativa segura que no se rompe en el iframe de Telegram
+                const originRaw = window.location.origin;
+                const safeOrigin = (originRaw === "null" || originRaw === "file://" || !originRaw) ? "" : originRaw;
+                
                 this.tonConnectUI = new TON_CONNECT_UI.TonConnectUI({ 
-                    manifestUrl: window.location.origin + '/tonconnect-manifest.json',
+                    manifestUrl: safeOrigin + '/tonconnect-manifest.json',
                     uiPreferences: { theme: 'DARK' }
                 });
+                
                 this.tonConnectUI.onStatusChange(async (wallet) => {
                     const btnHdr = document.getElementById('btn-wallet-hdr');
                     if (wallet?.account) {
@@ -469,7 +493,9 @@ const app = {
                         this.updateProfileUI();
                     }
                 });
-            } catch (err) {}
+            } catch (err) {
+                console.error("Error iniciando TON Connect UI", err);
+            }
         }
     },
 
@@ -478,8 +504,9 @@ const app = {
             this.haptic('medium'); 
             this.initUserId(); 
             await this.initTonConnect();
+            
             if (!this.tonConnectUI) {
-                this.showToast('⚠️ TON Connect UI no disponible.');
+                this.showToast('⚠️ TON Connect cargando. Intenta de nuevo.');
                 return;
             }
             if (this.tonConnectUI.connected) {
@@ -494,7 +521,8 @@ const app = {
                 await this.tonConnectUI.openModal(); 
             }
         } catch (err) {
-            this.showToast('⚠️ Error al abrir TON Connect.');
+            this.showToast('⚠️ Error al abrir pasarela TON.');
+            console.error(err);
         }
     },
 
@@ -1057,6 +1085,7 @@ const app = {
     },
 
     triggerAvatarInput() { this.haptic('light'); const input = document.getElementById('avatar-file-input'); if (input) input.click(); },
+    
     async handleAvatarChange(event) {
         const file = event.target.files[0]; if (!file) return;
         this.haptic('light'); this.showToast('Optimizando foto... 📸');
@@ -1065,16 +1094,30 @@ const app = {
         const avatarImg = document.getElementById('prof-avatar-img'), avatarFeed = document.getElementById('avatar-feed');
         if (avatarImg) { avatarImg.src = avatarUrl; avatarImg.classList.remove('hidden'); }
         if (avatarFeed) avatarFeed.src = avatarUrl;
+        
+        // SINCRONIZA FOTO AL BACKEND SI APLICA (OPCIONAL EN TU ARQUITECTURA)
+        try { await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: this.userData.name, avatar: avatarUrl }) }); } catch(e) {}
+        
         this.showToast('¡Foto de perfil actualizada! 📸');
     },
 
-    saveProfile() {
+    async saveProfile() {
         this.haptic('medium');
         const aliasInput = document.getElementById('prof-alias'), bioInput = document.getElementById('prof-bio');
         const newName = aliasInput ? aliasInput.value.trim() : '', newBio = bioInput ? bioInput.value.trim() : '';
         if (newName) { this.userData.name = newName; localStorage.setItem('alpha_user_name', newName); }
         if (newBio) { localStorage.setItem('alpha_user_bio', newBio); }
-        this.showToast('¡Perfil guardado correctamente! 🛡️'); this.updateProfileUI();
+        
+        // SINCRONIZACIÓN FUERTE CON EL BACKEND PARA EVITAR RESETEOS
+        try {
+            await fetch(`${this.backendUrl}/users/sync`, { 
+                method: "POST", headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({ user_id: this.userId || 0, name: newName, bio: newBio }) 
+            });
+        } catch(e) {}
+
+        this.showToast('¡Perfil guardado correctamente! 🛡️'); 
+        this.updateProfileUI();
     },
 
     openKYCModal() { this.closeModals(); document.getElementById('modal-kyc')?.classList.remove('hidden'); },
@@ -1116,20 +1159,42 @@ const app = {
         this.haptic('medium');
         const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
         if (!phone && !email) { this.showToast('⚠️ Ingresa al menos un número o correo.'); return; }
-        ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
-        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.initUserId();
+        
+        // NO BORRAMOS EL NOMBRE SI YA EXISTE
+        const existingName = localStorage.getItem('alpha_user_name');
+        ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        
+        this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
+        this.initUserId();
         const isCreator = this.registerRoleSelected === 'creator';
-        this.userData.role = this.registerRoleSelected; this.userData.name = phone || email.split('@')[0] || (isCreator ? "mastertom" : "VIP Fan");
-        localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_user_name', this.userData.name); localStorage.setItem('alpha_user_role', this.registerRoleSelected);
+        this.userData.role = this.registerRoleSelected; 
+        
+        if(!existingName) {
+            this.userData.name = phone || email.split('@')[0] || (isCreator ? "mastertom" : "VIP Fan");
+            localStorage.setItem('alpha_user_name', this.userData.name); 
+        }
+
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        localStorage.setItem('alpha_user_role', this.registerRoleSelected);
         this.switchView('feed'); this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
     },
 
     async loginWithPhone() {
         this.haptic('medium'); const phone = document.getElementById('phone-input')?.value.trim();
         if (!phone) { this.showToast('⚠️ Ingresa tu número de teléfono.'); return; }
-        ['alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
-        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.initUserId();
-        localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
+        
+        // EVITAMOS DESTRUIR EL ALIAS GUARDADO AL ENTRAR CON TELÉFONO
+        const existingName = localStorage.getItem('alpha_user_name');
+        ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        
+        this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
+        this.initUserId();
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        
+        if(!existingName || existingName === 'USER') {
+            localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
+        }
+        
         this.switchView('feed'); await this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
     },
 
@@ -1158,7 +1223,16 @@ const app = {
             const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
             const activeLogin = localStorage.getItem('alpha_logged_in'), hasConsent = localStorage.getItem('alpha_consent'), tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-            if (tgUser && tgUser.id) { localStorage.setItem('alpha_logged_in', 'true'); localStorage.setItem('alpha_consent', 'true'); if (!localStorage.getItem('alpha_user_name')) { localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User'); } }
+            
+            if (tgUser && tgUser.id) { 
+                localStorage.setItem('alpha_logged_in', 'true'); 
+                localStorage.setItem('alpha_consent', 'true'); 
+                // SOLO TOMA EL NOMBRE DE TELEGRAM SI ESTÁ EN BLANCO Y NO ES UN NÚMERO
+                if (!localStorage.getItem('alpha_user_name') || localStorage.getItem('alpha_user_name').startsWith('Tel:')) { 
+                    localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User'); 
+                } 
+            }
+            
             if (activeLogin === 'true' || (tgUser && tgUser.id)) { 
                 this.switchView('feed'); 
                 try { 
@@ -1654,4 +1728,4 @@ document.addEventListener("DOMContentLoaded", () => {
         if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('CONTENIDO PROTEGIDO BÚNKER'); app.showToast('⚠️ Capturas bloqueadas.'); }
         if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
     });
-});// FORZAR PUSH
+});
