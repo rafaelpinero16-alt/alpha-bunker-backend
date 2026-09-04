@@ -141,7 +141,8 @@ const app = {
                 ? 'bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5' 
                 : 'bg-red-600/20 border border-red-500 text-red-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5';
         }
-    }
+    },
+
     openSettingsModal() {
         this.haptic('light');
         const modal = document.getElementById('modal-settings');
@@ -212,7 +213,6 @@ const app = {
         this.closeSettingsModal();
     },
 
-    // 🛡️ LÓGICA DE INICIO CORREGIDA (Alpha App -> +18 -> Captcha -> Feed/Login)
     async checkSession() {
         try {
             this.initUserId(); 
@@ -225,7 +225,6 @@ const app = {
             if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
-            // Inyectar la pantalla Alpha App si no existe
             if (!document.getElementById('view-splash')) {
                 const splashHTML = `
                     <div id="view-splash" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-1000">
@@ -257,7 +256,7 @@ const app = {
                     this.switchView('captcha'); 
                     this.generateCaptcha();
                 }
-            }, 2500); // 2.5 Segundos de Branding
+            }, 2500);
             
         } catch (e) {
             console.error("[SESSION ERROR]:", e);
@@ -265,7 +264,6 @@ const app = {
         }
     },
 
-    // 🛡️ Ejecutor Automático Post-Captcha
     async executeAutoLogin() {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
         try { 
@@ -301,7 +299,6 @@ const app = {
         this.currentCaptcha = code; const display = document.getElementById('captcha-display'); if (display) display.innerText = code;
     },
 
-    // 🛡️ CAPTCHA OBLIGATORIO: Filtro antes de entrar
     verifyCaptcha() {
         this.haptic('medium');
         const now = Date.now();
@@ -335,7 +332,8 @@ const app = {
             if (input) input.value = '';
             this.generateCaptcha();
         }
-    }
+    },
+
     switchView(viewName) {
         ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
         const targetView = document.getElementById(`view-${viewName}`);
@@ -571,12 +569,6 @@ const app = {
         }
         this.updateOnlineStatusUI();
     },
-    updateViewsCounter() {
-        let views = parseInt(localStorage.getItem('alpha_real_views') || '0') + 1;
-        localStorage.setItem('alpha_real_views', views.toString());
-        const viewsEl = document.getElementById('views-counter');
-        if (viewsEl) viewsEl.innerText = views.toLocaleString();
-    },
 
     initUserId() {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -663,8 +655,7 @@ const app = {
             modal = document.getElementById('modal-payment-methods');
         }
         modal.classList.remove('hidden');
-    },
-    
+    }
     openFavoritesModal() {
         this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-favorites-edit');
@@ -802,10 +793,6 @@ const app = {
                                 <input type="text" id="payout-account-details" placeholder="Ingresa tu dirección, email o número" class="bg-black border border-neutral-700 rounded-xl px-4 py-3 text-sm w-full text-white focus:border-emerald-500 outline-none font-bold" />
                             </div>
                         </div>
-                        <div class="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl mt-4 flex items-start gap-2">
-                            <i class="fa-solid fa-clock text-emerald-400 mt-0.5"></i>
-                            <p class="text-[10px] text-emerald-300 font-medium leading-tight">Tu solicitud entrará en el período de seguridad y retención de 90 días antes de ser liquidada, según los términos B2B.</p>
-                        </div>
                         <div class="mt-5">
                             <button onclick="app.submitPayoutRequest()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-3.5 rounded-xl uppercase transition shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95">ENVIAR SOLICITUD</button>
                         </div>
@@ -815,7 +802,6 @@ const app = {
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             modal = document.getElementById('modal-payout-request');
         }
-
         try {
             const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}`);
             if (res.ok) {
@@ -835,7 +821,6 @@ const app = {
         const amountInput = document.getElementById('payout-amount-input');
         const methodSelect = document.getElementById('payout-method-select');
         const detailsInput = document.getElementById('payout-account-details');
-        
         const amount = parseInt(amountInput.value || '0');
         const method = methodSelect.value;
         const details = detailsInput.value.trim();
@@ -860,7 +845,6 @@ const app = {
     async viewCreatorProfile(creatorId, creatorName) {
         this.haptic('medium'); this.closeModals();
         this.showToast(this.getTrans('toast_profile_connecting').replace('{name}', creatorName));
-        
         let avatarHtml = `<i class="fa-solid fa-user-astronaut text-4xl text-[#ffb703]"></i>`;
         try {
             const uRes = await fetch(`${this.backendUrl}/users/profile/${creatorId}`);
@@ -881,17 +865,14 @@ const app = {
                         </div>
                         <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-10">
                             <div class="flex flex-col items-center mb-6 mt-2">
-                                <div id="creator-profile-avatar" class="w-24 h-24 rounded-full border-2 border-[#ffb703] overflow-hidden bg-black flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(255,183,3,0.4)]">
-                                </div>
-                                <button id="btn-dynamic-tip-menu" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-black py-3 px-8 rounded-xl text-sm shadow-[0_0_15px_rgba(255,183,3,0.5)] transition active:scale-95 uppercase">
-                                    <i class="fa-solid fa-coins mr-1"></i> Tip Menu (Propinas)
-                                </button>
+                                <div id="creator-profile-avatar" class="w-24 h-24 rounded-full border-2 border-[#ffb703] overflow-hidden bg-black flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(255,183,3,0.4)]"></div>
+                                <button id="btn-dynamic-tip-menu" class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-black py-3 px-8 rounded-xl text-sm uppercase"><i class="fa-solid fa-coins mr-1"></i> Tip Menu</button>
                             </div>
                             <h4 class="text-[#00f3ff] font-bold text-sm border-b border-neutral-800 pb-2 mb-2 uppercase tracking-widest">Publicaciones en el Búnker</h4>
                             <div id="creator-posts-container" class="space-y-4"></div>
                         </div>
                         <div class="p-3 border-t border-[#00f3ff]/30 bg-black flex justify-end">
-                            <button onclick="app.closeModals();" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-6 py-2.5 rounded-xl text-sm font-black transition uppercase">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.closeModals();" class="bg-neutral-800 text-white px-6 py-2.5 rounded-xl text-sm font-black uppercase">${this.getTrans('btn_back')}</button>
                         </div>
                     </div>
                 </div>
@@ -899,7 +880,6 @@ const app = {
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             modal = document.getElementById('modal-creator-profile');
         }
-
         document.getElementById('creator-profile-name').innerText = `@${creatorName}`;
         document.getElementById('creator-profile-avatar').innerHTML = avatarHtml;
         const tipBtn = document.getElementById('btn-dynamic-tip-menu');
@@ -908,55 +888,35 @@ const app = {
         
         const container = document.getElementById('creator-posts-container');
         container.innerHTML = `<div class="text-center text-neutral-500 mt-4 text-xs font-bold">${this.getTrans('msg_loading_bunker')}</div>`;
-
         try {
             const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
             const data = res.ok ? await res.json() : {};
             const allPosts = data.posts || [];
             const creatorPosts = allPosts.filter(p => p.creator_id == creatorId);
-
             if (creatorPosts.length === 0) {
                 container.innerHTML = `<div class="text-center text-neutral-500 mt-4 text-xs font-bold uppercase tracking-widest bg-black/50 p-4 rounded-xl">${this.getTrans('msg_no_posts')}</div>`;
                 return;
             }
-
             const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
-            const isAdminUser = this.isAdminUser();
-
             container.innerHTML = creatorPosts.map(post => {
                 const isLiked = likedPosts.includes(post.id);
-                const isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
+                const isOwnerOrAdmin = (this.userId == post.creator_id || this.isAdminUser());
                 const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
                 const rankInfo = this.getRankBadge(post.levelRequired);
-                
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-amber-400 text-sm">@${this.escapeHtml(post.author || 'mastertom')}</span>
                             <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
-                                <div class="relative inline-block w-4 h-4 mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div>
                                 <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
                                 ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
                         ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${this.escapeHtml(post.content)}</p>` : ''}
-                        ${post.is_locked ? `
-                            <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
-                                <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
-                                <p class="text-sm font-bold text-amber-300">${this.getTrans('txt_protected_content')}</p>
-                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">
-                                    🔓 ${this.getTrans('btn_unlock')} (${post.price_alpha || 20} $ALPHA)
-                                </button>
-                            </div>
-                        ` : (post.media_url ? `<img src="${this.sanitizeUrl(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
-                        
+                        ${post.is_locked ? `<div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3"><i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">🔓 Desbloquear (${post.price_alpha || 20} $ALPHA)</button></div>` : (post.media_url ? `<img src="${this.sanitizeUrl(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
-                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
-                                <i class="fa-solid fa-heart"></i> <span id="like-count-prof-${post.id}">${post.likes_count || 0}</span>
-                            </button>
-                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
-                                🪙 ${this.getTrans('btn_tip')}
-                            </button>
+                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}"><i class="fa-solid fa-heart"></i> ${post.likes_count || 0}</button>
+                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">🪙 Tip</button>
                         </div>
                     </div>
                 `;
@@ -978,7 +938,7 @@ const app = {
                         <p class="text-center font-bold text-white mb-4 uppercase tracking-widest text-sm">Apoya a <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
                         <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-4"></div>
                         <div class="mt-4 pt-4 border-t border-[#ffb703]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 text-white py-3 rounded-xl text-sm font-black uppercase">${this.getTrans('btn_back')}</button>
                         </div>
                     </div>
                 </div>
@@ -986,10 +946,8 @@ const app = {
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             modal = document.getElementById('modal-fan-tip-menu');
         }
-
         document.getElementById('fan-tip-creator-name').innerText = `@${creatorName}`;
         modal.classList.remove('hidden');
-
         const container = document.getElementById('fan-tip-slots-container');
         container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold">${this.getTrans('msg_loading')}</div>`;
         const slots = await this.loadTipMenu(creatorId);
@@ -1037,7 +995,6 @@ const app = {
         const MASTER_TON_WALLET = "UQAAnX4bGBzI0ujk35-XChap_wZ7x67NeJ85C_M1YIvLbYUF"; 
         const nanoTonAmount = Math.round(priceTon * 1e9).toString();
         const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: MASTER_TON_WALLET, amount: nanoTonAmount }] };
-
         try {
             this.showToast('Abriendo pasarela TON... 💎');
             const result = await this.tonConnectUI.sendTransaction(transaction);
@@ -1123,29 +1080,17 @@ const app = {
         let modal = document.getElementById('modal-external-checkout');
         if (!modal) {
             const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-            const t1     = esc(this.getTrans('checkout_title_1click'));
-            const t2     = esc(this.getTrans('checkout_desc_1click'));
-            const lSkrill = esc(this.getTrans('btn_pay_skrill'));
-            const lBinance = esc(this.getTrans('btn_pay_binance'));
-            const lPayoneer = esc(this.getTrans('btn_pay_payoneer'));
-            const lManual = esc(this.getTrans('btn_pay_manual'));
-            const lTon    = esc(this.getTrans('btn_connect_ton'));
-
             const modalHTML = `
                 <div id="modal-external-checkout" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
                     <div class="glass-panel border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative max-h-[90vh] overflow-y-auto">
                         <button onclick="app.closeCheckout()" class="absolute top-4 right-4 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
-                        <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">${t1}</h2>
-                        <p class="text-center text-gray-300 mb-6 text-[10px] uppercase font-bold tracking-widest">${t2}</p>
+                        <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">Recarga Táctica</h2>
                         <div class="space-y-3">
-                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] hover:bg-[#601a3e] text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(128,42,85,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-solid fa-wallet text-xl"></i> ${lSkrill}</button>
-                            <button onclick="app.processOneClickPay('binance')" class="w-full bg-[#f3ba2f] hover:bg-[#d9a322] text-black font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(243,186,47,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-brands fa-bitcoin text-xl"></i> ${lBinance}</button>
-                            <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-[#ff4800] hover:bg-[#cc3900] text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(255,72,0,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-brands fa-paypal text-xl"></i> ${lPayoneer}</button>
+                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] text-white font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Skrill</button>
+                            <button onclick="app.processOneClickPay('binance')" class="w-full bg-[#f3ba2f] text-black font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Binance Pay</button>
+                            <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-[#ff4800] text-white font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Payoneer</button>
                             <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
-                                <button onclick="app.openManualPayment()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-[#00f3ff] border border-[#00f3ff]/50 font-black py-3.5 rounded-xl shadow-[0_0_10px_rgba(0,243,255,0.2)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-solid fa-building-columns text-xl"></i> ${lManual}</button>
-                            </div>
-                            <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
-                                <button onclick="app.connectWallet()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-brands fa-telegram text-xl"></i> ${lTon}</button>
+                                <button onclick="app.openManualPayment()" class="w-full bg-neutral-800 text-[#00f3ff] border border-[#00f3ff]/50 font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Pago Manual</button>
                             </div>
                         </div>
                     </div>
@@ -1160,14 +1105,14 @@ const app = {
     processOneClickPay(gateway) {
         if (!this.currentCheckoutPackage) { this.showToast('⚠️ Selecciona un plan primero.'); return; }
         const paymentLinks = {
-            skrill: { 'spy': 'https://skrill.me/rq/Felipe%20Rafael/2/USD?key=IorUWBDdPFS9AfS3GMIdlPa9KD4', 'soldier': 'https://skrill.me/rq/Felipe%20Rafael/4.99/USD?key=7AR7OlqodIdbV_WU4hSXJ435Na1', 'veteran': 'https://skrill.me/rq/Felipe%20Rafael/10.99/USD?key=Z06Cz-iVWCYDSILhZWO6R_qkLk_', 'legend': 'https://skrill.me/rq/Felipe%20Rafael/25/USD?key=6bBEAZr3PQhwTGbf_jW6yhRLknf', 'icon-legend': 'https://skrill.me/rq/Felipe%20Rafael/53/USD?key=hzBmtkvlrYlvYcH3MTpcQXQ_HG-' },
-            binance: { 'spy': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452404659499556864&billType=request_a_payment', 'soldier': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405181270605824&billType=request_a_payment', 'veteran': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405438875680768&billType=request_a_payment', 'legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405771899920384&billType=request_a_payment', 'icon-legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452406167061315584&billType=request_a_payment' },
+            skrill: { 'soldier': 'https://skrill.me/rq/Felipe%20Rafael/4.99/USD?key=7AR7OlqodIdbV_WU4hSXJ435Na1', 'veteran': 'https://skrill.me/rq/Felipe%20Rafael/10.99/USD?key=Z06Cz-iVWCYDSILhZWO6R_qkLk_', 'legend': 'https://skrill.me/rq/Felipe%20Rafael/25/USD?key=6bBEAZr3PQhwTGbf_jW6yhRLknf', 'icon-legend': 'https://skrill.me/rq/Felipe%20Rafael/53/USD?key=hzBmtkvlrYlvYcH3MTpcQXQ_HG-' },
+            binance: { 'soldier': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405181270605824&billType=request_a_payment', 'veteran': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405438875680768&billType=request_a_payment', 'legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405771899920384&billType=request_a_payment', 'icon-legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452406167061315584&billType=request_a_payment' },
             payoneer: { 'legend': 'https://link.payoneer.com/Token?t=569B904EC3D94618B6563B0574CF479F&src=mobile', 'icon-legend': 'https://link.payoneer.com/Token?t=FA9D867359624921B264A059D1ADA74F&src=mobile' }
         };
         const targetUrl = paymentLinks[gateway] ? paymentLinks[gateway][this.currentCheckoutPackage] : null;
         if (!targetUrl) { this.showToast(this.getTrans('toast_gateway_unsupported')); return; }
         this.haptic('heavy');
-        this.showToast(this.getTrans('toast_redirecting').replace('{gateway}', gateway.toUpperCase()));
+        this.showToast('Redirigiendo a pasarela...');
         setTimeout(() => { window.open(targetUrl, '_blank', 'noopener,noreferrer'); this.closeCheckout(); }, 1500);
     },
 
@@ -1175,27 +1120,18 @@ const app = {
         this.closeModals();
         let modal = document.getElementById('modal-manual-payment');
         if (!modal) {
-            const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-            const title = esc(this.getTrans('manual_payment_title'));
-            const desc = esc(this.getTrans('manual_payment_desc'));
-            const btnBack = esc(this.getTrans('btn_back'));
             const modalHTML = `
                 <div id="modal-manual-payment" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
                         <button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
-                        <h2 class="text-xl font-black text-[#00f3ff] mb-2 uppercase tracking-wider text-center"><i class="fa-solid fa-building-columns mr-2"></i> ${title}</h2>
-                        <p class="text-xs text-neutral-300 mb-6 text-center">${desc}</p>
+                        <h2 class="text-xl font-black text-[#00f3ff] mb-2 uppercase tracking-wider text-center">Pago Manual Bancario</h2>
                         <div class="bg-black border border-neutral-700 rounded-xl p-4 space-y-3 text-xs font-mono">
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Moneda:</span><strong class="text-[#00f3ff]">USD</strong></div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Tipo:</span><strong class="text-[#00f3ff]">CORRIENTE</strong></div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Beneficiario:</span><strong class="text-white text-right max-w-[150px] truncate" title="FELIPE RAFAEL SANCHEZ PIÑEROS">FELIPE RAFAEL SANCHEZ PIÑEROS</strong></div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Banco:</span><strong class="text-white">Lead Bank</strong></div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Cuenta:</span><div class="flex items-center gap-2"><strong class="text-[#ffb703]">215069784455</strong><button onclick="app.copyText('215069784455')" class="text-neutral-400 hover:text-white"><i class="fa-regular fa-copy"></i></button></div></div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Routing:</span><div class="flex items-center gap-2"><strong class="text-[#ffb703]">101019644</strong><button onclick="app.copyText('101019644')" class="text-neutral-400 hover:text-white"><i class="fa-regular fa-copy"></i></button></div></div>
-                            <div class="flex flex-col gap-1"><span class="text-neutral-500">Dirección Banco:</span><strong class="text-white text-[10px]">1801 Main St., Kansas City, MO 64108</strong></div>
-                            <div class="flex flex-col gap-1 mt-2"><span class="text-neutral-500">Dirección Beneficiario:</span><strong class="text-white text-[10px]">13-55 Calle 43, Apto 1606, Bucaramanga, Santander 680006, CO</strong></div>
+                            <p><b>Banco:</b> Lead Bank</p>
+                            <p><b>Titular:</b> FELIPE RAFAEL SANCHEZ PIÑEROS</p>
+                            <p><b>Cuenta:</b> 215069784455</p>
+                            <p><b>Routing:</b> 101019644</p>
                         </div>
-                        <div class="mt-6"><button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-black py-3 rounded-xl uppercase transition">${btnBack}</button></div>
+                        <div class="mt-6"><button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="w-full bg-neutral-800 text-white py-3 rounded-xl uppercase">Cerrar</button></div>
                     </div>
                 </div>
             `;
@@ -1207,11 +1143,10 @@ const app = {
 
     closeCheckout() {
         this.haptic('light');
-        const quickModal = document.getElementById('modal-external-checkout');
-        if (quickModal) quickModal.classList.add('hidden');
-        const oldModal = document.getElementById('checkoutModal');
-        if (oldModal) oldModal.classList.add('hidden');
+        document.getElementById('modal-external-checkout')?.classList.add('hidden');
+        document.getElementById('checkoutModal')?.classList.add('hidden');
     },
+
     triggerGlobalMediaUpload(acceptType) {
         document.getElementById('global-media-menu')?.classList.add('hidden');
         const fileInput = document.getElementById('global-media-upload');
@@ -1225,8 +1160,7 @@ const app = {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
             let mediaRecorder; let chunks = [];
             try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
-
-            this.showToast(this.getTrans('toast_recording_selfie'));
+            this.showToast('Grabando selfie...');
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'video/webm' });
@@ -1234,35 +1168,26 @@ const app = {
                 reader.onload = (e) => {
                     this.tempChatMediaData = e.target.result;
                     const previewContainer = document.getElementById('global-chat-preview-container');
-                    const previewVideo = document.getElementById('global-chat-preview-video');
-                    const previewImg = document.getElementById('global-chat-preview-img');
-                    const previewName = document.getElementById('global-chat-preview-name');
-                    if (previewContainer) {
-                        previewContainer.classList.remove('hidden');
-                        if (previewImg) previewImg.classList.add('hidden');
-                        if (previewVideo) { previewVideo.src = e.target.result; previewVideo.classList.remove('hidden'); previewVideo.play(); }
-                        if (previewName) previewName.innerText = `${this.getTrans('media_video_selfie')} 📸`;
-                    }
-                    this.showToast(this.getTrans('toast_selfie_ready'));
+                    if (previewContainer) previewContainer.classList.remove('hidden');
+                    this.showToast('Selfie lista 📸');
                 };
                 reader.readAsDataURL(blob);
                 stream.getTracks().forEach(track => track.stop());
             };
             mediaRecorder.start();
             setTimeout(() => { if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); } }, 5000);
-        } catch (err) { this.showToast(this.getTrans('toast_cam_error')); }
+        } catch (err) { this.showToast('Error de cámara'); }
     },
     
     async startAudioRecorder(type) {
-        if (type === 'global') { this.showToast('🚫 Notas de voz desactivadas en el Chat Global para evitar spam.'); return; }
+        if (type === 'global') { this.showToast('🚫 Notas de voz desactivadas en el Chat Global.'); return; }
         document.getElementById('global-media-menu')?.classList.add('hidden');
         this.haptic('medium');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             let mediaRecorder; let chunks = [];
             try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
-
-            this.showToast('🎙️ Grabando nota de voz...');
+            this.showToast('🎙️ Grabando...');
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'audio/webm' });
@@ -1270,38 +1195,29 @@ const app = {
                 reader.onload = (e) => {
                     this.tempChatMediaData = e.target.result;
                     const previewContainer = document.getElementById(`${type}-chat-preview-container`);
-                    const previewVideo = document.getElementById(`${type}-chat-preview-video`);
-                    const previewImg = document.getElementById(`${type}-chat-preview-img`);
-                    const previewName = document.getElementById(`${type}-chat-preview-name`);
-                    if (previewContainer) {
-                        previewContainer.classList.remove('hidden');
-                        if (previewImg) previewImg.classList.add('hidden');
-                        if (previewVideo) { previewVideo.src = ""; previewVideo.classList.add('hidden'); }
-                        if (previewName) previewName.innerHTML = `<i class="fa-solid fa-microphone text-[#ffb703] mr-1"></i> Nota de voz lista 🎵`;
-                    }
-                    this.showToast('✅ Audio listo para enviar');
+                    if (previewContainer) previewContainer.classList.remove('hidden');
+                    this.showToast('Audio listo');
                 };
                 reader.readAsDataURL(blob);
                 stream.getTracks().forEach(track => track.stop());
             };
             mediaRecorder.start();
             setTimeout(() => { if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); } }, 15000); 
-        } catch (err) { this.showToast('⚠️ Error al acceder al micrófono.'); }
+        } catch (err) { this.showToast('Error de micrófono'); }
     },
 
-    triggerAvatarInput() { this.haptic('light'); const input = document.getElementById('avatar-file-input'); if (input) input.click(); },
+    triggerAvatarInput() { this.haptic('light'); document.getElementById('avatar-file-input')?.click(); },
     
     async handleAvatarChange(event) {
         const file = event.target.files[0]; if (!file) return;
-        this.haptic('light'); this.showToast(this.getTrans('toast_optimizing_photo'));
+        this.haptic('light'); this.showToast('Optimizando foto...');
         const avatarUrl = await this.compressImage(file, 400, 0.8);
         localStorage.setItem('alpha_user_avatar', avatarUrl);
         const avatarImg = document.getElementById('prof-avatar-img'), avatarFeed = document.getElementById('avatar-feed');
         if (avatarImg) { avatarImg.src = avatarUrl; avatarImg.classList.remove('hidden'); }
         if (avatarFeed) avatarFeed.src = avatarUrl;
-        
         try { await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: this.userData.name, avatar: avatarUrl }) }); } catch(e) {}
-        this.showToast(this.getTrans('toast_avatar_updated'));
+        this.showToast('Avatar actualizado');
     },
 
     async saveProfile() {
@@ -1313,30 +1229,27 @@ const app = {
         try {
             await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: newName, bio: newBio, avatar: localStorage.getItem('alpha_user_avatar') }) });
         } catch(e) {}
-        this.showToast(this.getTrans('toast_profile_saved')); 
-        this.updateProfileUI();
+        this.showToast('Perfil guardado'); this.updateProfileUI();
     },
 
     openKYCModal() { this.closeModals(); document.getElementById('modal-kyc')?.classList.remove('hidden'); },
     async handleKYCDocPreview(event) {
         const file = event.target.files[0]; if (!file) return;
         this.tempKYCDoc = await this.compressImage(file, 1200, 0.75);
-        const label = document.getElementById('kyc-doc-label'); if (label) label.innerText = `✅ ${this.getTrans('txt_doc_ready')}`;
     },
     async handleKYCSelfiePreview(event) {
         const file = event.target.files[0]; if (!file) return;
         this.tempKYCSelfie = await this.compressImage(file, 1024, 0.75);
-        const label = document.getElementById('kyc-selfie-label'); if (label) label.innerText = `✅ ${this.getTrans('txt_selfie_ready')}`;
     },
 
     async submitKYC() {
         this.haptic('medium');
         const legalName = document.getElementById('kyc-legal-name')?.value.trim();
-        if (!legalName || !this.tempKYCDoc || !this.tempKYCSelfie) { this.showToast(this.getTrans('toast_kyc_empty')); return; }
-        this.initUserId(); this.showToast(this.getTrans('toast_kyc_sending'));
+        if (!legalName || !this.tempKYCDoc || !this.tempKYCSelfie) { this.showToast('Completa los campos KYC'); return; }
+        this.initUserId(); this.showToast('Enviando KYC...');
         try {
             const res = await fetch(`${this.backendUrl}/kyc/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, legal_name: legalName, document_base64: this.tempKYCDoc, selfie_base64: this.tempKYCSelfie }) });
-            if (res.ok) { localStorage.setItem('alpha_kyc_status', 'pending'); this.showToast(this.getTrans('toast_kyc_sent')); this.closeModals(); this.updateProfileUI(); }
+            if (res.ok) { localStorage.setItem('alpha_kyc_status', 'pending'); this.showToast('KYC enviado'); this.closeModals(); this.updateProfileUI(); }
         } catch (err) {}
     },
 
@@ -1355,7 +1268,7 @@ const app = {
     registerWithData() {
         this.haptic('medium');
         const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
-        if (!phone && !email) { this.showToast(this.getTrans('toast_reg_empty')); return; }
+        if (!phone && !email) { this.showToast('Ingresa teléfono o email'); return; }
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
         this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
@@ -1373,13 +1286,13 @@ const app = {
 
     async loginWithPhone() {
         this.haptic('medium'); const phone = document.getElementById('phone-input')?.value.trim();
-        if (!phone) { this.showToast(this.getTrans('toast_login_empty')); return; }
+        if (!phone) { this.showToast('Ingresa tu teléfono'); return; }
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
         this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
         this.initUserId();
         localStorage.setItem('alpha_logged_in', 'true'); 
-        if(!existingName || existingName === 'USER') localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
+        if(!existingName || existingName === 'USER') localStorage.setItem('alpha_user_name`, `Tel: ${phone}`);
         this.switchView('feed'); await this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
     },
 
@@ -1389,7 +1302,7 @@ const app = {
             const initData = window.Telegram?.WebApp?.initData || "";
             const res = await fetch(`${this.backendUrl}/users/sync`, { 
                 method: "POST", headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || this.getTrans('default_agent'), bio: this.getTrans('default_bio_tg'), avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
+                body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || 'Agente Búnker', bio: 'Operativo', avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
             }); 
             const data = await res.json();
             if(res.ok && data.user) {
@@ -1439,7 +1352,6 @@ const app = {
         BunkerChat.initGlobal(this.userId, this.backendUrl); 
     },
 
-    // 📡 RADAR Y SEÑAL DE CONEXIÓN P2P MESH
     handleRadarUpdate(data) {
         const chipsChat = document.getElementById('online-users-chips');
         const chipsVideo = document.getElementById('bunker-video-active-members');
@@ -1570,8 +1482,8 @@ const app = {
         const isAudio = file.type.startsWith('audio/');
         
         if (type === 'global' && !isAdminUser && !isCreator) {
-            if (userTier < 2) { this.showToast(this.getTrans('toast_tier_req_photo')); return; }
-            if (isVideo && userTier < 3) { this.showToast(this.getTrans('toast_tier_req_video')); return; }
+            if (userTier < 2) { this.showToast('Requiere Veteran'); return; }
+            if (isVideo && userTier < 3) { this.showToast('Requiere Legend'); return; }
         }
         
         this.haptic('light'); 
@@ -1582,7 +1494,7 @@ const app = {
         const previewName = document.getElementById(`${type}-chat-preview-name`);
         
         if (isVideo) {
-            if (file.size > 5 * 1024 * 1024) { this.showToast(this.getTrans('toast_max_video_size')); this.clearChatMedia(type); return; }
+            if (file.size > 5 * 1024 * 1024) { this.showToast('Video muy pesado'); this.clearChatMedia(type); return; }
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 this.tempChatMediaData = e.target.result; 
@@ -1590,14 +1502,14 @@ const app = {
                     previewContainer.classList.remove('hidden'); 
                     if(previewImg) previewImg.classList.add('hidden'); 
                     if(previewVideo) { previewVideo.src = e.target.result; previewVideo.classList.remove('hidden'); }
-                    if(previewName) previewName.innerText = `${this.getTrans('txt_video')}: ${file.name.substring(0,12)}...`; 
+                    if(previewName) previewName.innerText = `Video adjunto`; 
                 } 
                 if (inputEl) inputEl.focus(); 
-                this.showToast(this.getTrans('toast_video_attached')); 
+                this.showToast('Video adjunto'); 
             }; 
             reader.readAsDataURL(file);
         } else if (isAudio) {
-            if (file.size > 2 * 1024 * 1024) { this.showToast(this.getTrans('toast_max_audio_size')); this.clearChatMedia(type); return; }
+            if (file.size > 2 * 1024 * 1024) { this.showToast('Audio muy pesado'); this.clearChatMedia(type); return; }
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 this.tempChatMediaData = e.target.result; 
@@ -1605,10 +1517,10 @@ const app = {
                     previewContainer.classList.remove('hidden'); 
                     if(previewImg) previewImg.classList.add('hidden'); 
                     if(previewVideo) { previewVideo.src = ""; previewVideo.classList.add('hidden'); }
-                    if(previewName) previewName.innerHTML = `<i class="fa-solid fa-microphone text-[#ffb703] mr-1"></i> ${this.getTrans('txt_audio')}: ${file.name.substring(0,12)}...`; 
+                    if(previewName) previewName.innerHTML = `Audio adjunto`; 
                 } 
                 if (inputEl) inputEl.focus(); 
-                this.showToast(this.getTrans('toast_audio_attached')); 
+                this.showToast('Audio adjunto'); 
             }; 
             reader.readAsDataURL(file);
         } else {
@@ -1617,10 +1529,10 @@ const app = {
                 previewContainer.classList.remove('hidden'); 
                 if(previewVideo) { previewVideo.classList.add('hidden'); previewVideo.src = ""; }
                 if(previewImg) { previewImg.src = this.tempChatMediaData; previewImg.classList.remove('hidden'); }
-                if(previewName) previewName.innerText = `${this.getTrans('txt_photo')}: ${file.name.substring(0,12)}...`; 
+                if(previewName) previewName.innerText = `Foto adjunta`; 
             }
             if (inputEl) inputEl.focus(); 
-            this.showToast(this.getTrans('toast_photo_attached'));
+            this.showToast('Foto adjunta');
         }
     },
 
@@ -1632,7 +1544,7 @@ const app = {
 
     async deleteChatMessage(msgId, btnElement, realMsgId) {
         this.haptic('medium');
-        if(confirm(this.getTrans('confirm_delete_chat'))) {
+        if(confirm('¿Eliminar mensaje?')) {
             try {
                 if (realMsgId) {
                     await fetch(`${this.backendUrl}/chat/delete_message`, {
@@ -1645,16 +1557,15 @@ const app = {
                     bubble.style.transition = 'all 0.3s ease'; bubble.style.opacity = '0'; bubble.style.height = '0px';
                     setTimeout(() => bubble.remove(), 300);
                 }
-                this.showToast(this.getTrans('toast_chat_deleted'));
-            } catch(e) { console.error(e); }
+                this.showToast('Mensaje eliminado');
+            } catch(e) {}
         }
     },
 
     reportChatMessage(msgId, btnElement) {
         this.haptic('light');
-        const menu = document.getElementById(`media-menu-${msgId}`);
-        if(menu) menu.classList.add('hidden');
-        this.showToast(this.getTrans('toast_chat_reported'));
+        document.getElementById(`media-menu-${msgId}`)?.classList.add('hidden');
+        this.showToast('Reportado');
     },
 
     appendChatMessage(msg, containerId) {
@@ -1668,42 +1579,30 @@ const app = {
         
         if (contentObj.media_url) {
             const encodedUrl = encodeURI(this.sanitizeUrl(contentObj.media_url));
-            if (!encodedUrl) { safeMedia = ''; } else {
-            const uniqueId = msg.id || Math.random().toString(36).substr(2,9);
-            const isOwner = msg.user_id == this.userId;
-            
-            let menuHtml = `
-                <div class="absolute top-2 right-2 z-10" onclick="event.stopPropagation();">
-                    <button onclick="document.getElementById('media-menu-${uniqueId}').classList.toggle('hidden')" class="bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-[#00f3ff]/40 border border-transparent hover:border-[#00f3ff] backdrop-blur-md transition shadow-[0_0_10px_rgba(0,0,0,0.8)]">
-                        <i class="fa-solid fa-ellipsis-vertical"></i>
-                    </button>
-                    <div id="media-menu-${uniqueId}" class="hidden absolute right-0 mt-2 w-36 bg-neutral-900 border border-neutral-700 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col z-20">
-                        ${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this, ${msg.id})" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800 transition flex items-center"><i class="fa-solid fa-trash-can mr-2"></i> ${this.getTrans('btn_delete')}</button>` : ''}
-                        <button onclick="app.reportChatMessage('${uniqueId}', this)" class="px-4 py-3 text-xs font-black text-amber-400 hover:bg-neutral-800 text-left w-full transition flex items-center"><i class="fa-solid fa-flag mr-2"></i> ${this.getTrans('btn_report')}</button>
-                    </div>
-                </div>
-            `;
-
-            if (contentObj.media_url.startsWith('data:video') || contentObj.media_url.includes('.mp4') || contentObj.media_url.includes('.webm')) { 
-                safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" autoplay muted loop playsinline></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none"><i class="fa-solid fa-expand text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>${menuHtml}</div>`; 
-            } else if (contentObj.media_url.startsWith('data:audio') || contentObj.media_url.includes('.mp3') || contentObj.media_url.includes('.wav') || contentObj.media_url.includes('.ogg')) {
-                safeMedia = `<div class="relative mt-2 mb-1"><audio src="${encodedUrl}" controls class="w-full h-10 rounded-full" controlsList="nodownload"></audio>${menuHtml}</div>`;
-            } else { 
-                safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none no-download" /><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-xl drop-shadow-[0_0_5px_black]"></i></div>${menuHtml}</div>`; 
+            if (encodedUrl) {
+                const uniqueId = msg.id || Math.random().toString(36).substr(2,9);
+                const isOwner = msg.user_id == this.userId;
+                let menuHtml = `<div class="absolute top-2 right-2 z-10" onclick="event.stopPropagation();"><button onclick="document.getElementById('media-menu-${uniqueId}').classList.toggle('hidden')" class="bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-ellipsis-vertical"></i></button><div id="media-menu-${uniqueId}" class="hidden absolute right-0 mt-2 w-36 bg-neutral-900 border border-neutral-700 rounded-xl shadow-lg overflow-hidden flex flex-col z-20">${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this, ${msg.id})" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800">Eliminar</button>` : ''}</div></div>`;
+                if (contentObj.media_url.startsWith('data:video') || contentObj.media_url.includes('.mp4')) { 
+                    safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none" autoplay muted loop playsinline></video>${menuHtml}</div>`; 
+                } else if (contentObj.media_url.startsWith('data:audio')) {
+                    safeMedia = `<div class="relative mt-2 mb-1"><audio src="${encodedUrl}" controls class="w-full h-10 rounded-full" controlsList="nodownload"></audio>${menuHtml}</div>`;
+                } else { 
+                    safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none" />${menuHtml}</div>`; 
+                }
             }
-        }}
+        }
 
         const safeAuthorName = this.escapeHtml(msg.author_name);
         let html = '';
         if (msg.is_system) {
-            try { const sysData = JSON.parse(contentObj.text); if (sysData.code === 'SYS_WARN_SPAM') { let template = this.getTrans('sys_warn_spam'); safeText = template.replace('{user}', this.escapeHtml(sysData.user)).replace('{warn}', sysData.warnings).replace('{penalty}', sysData.penalty); } } catch(e) {}
-            const msgId = `sys-msg-${msg.id || Date.now()}-${Math.random().toString(36).substr(2,9)}`;
-            html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
-            setTimeout(() => { const el = document.getElementById(msgId); if(el) { el.style.transition = 'all 0.4s ease'; el.style.opacity = '0'; el.style.height = '0px'; el.style.margin = '0px'; setTimeout(() => el.remove(), 400); } }, 1500); 
+            const msgId = `sys-msg-${msg.id || Date.now()}`;
+            html = `<div id="${msgId}" class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
+            setTimeout(() => { const el = document.getElementById(msgId); if(el) el.remove(); }, 3000);
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">${this.getTrans('txt_you')} • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">Tú • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         } else {
-            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black cursor-pointer hover:underline" onclick="app.viewCreatorProfile(${msg.user_id}, '${safeAuthorName}')">@${safeAuthorName}</span> • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black cursor-pointer hover:underline" onclick="app.viewCreatorProfile(${msg.user_id}, '${safeAuthorName}')">@${safeAuthorName}</span> • ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
     },
@@ -1736,7 +1635,7 @@ const app = {
         this.haptic('light'); const input = document.getElementById('chat-input'); const text = input ? input.value.trim() : '';
         if (!text && !this.tempChatMediaData) return;
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
-        if (BunkerChat.sendCRM(payload)) { if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('crm'); } else { BunkerChat.initCRM(this.userId, this.backendUrl); setTimeout(() => { BunkerChat.sendCRM(payload); if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('crm'); }, 500); }
+        if (BunkerChat.sendCRM(payload)) { if (input) { input.value = ''; } this.clearChatMedia('crm'); } else { BunkerChat.initCRM(this.userId, this.backendUrl); setTimeout(() => { BunkerChat.sendCRM(payload); if (input) { input.value = ''; } this.clearChatMedia('crm'); }, 500); }
     },
 
     sendGlobalChatMessage() {
@@ -1744,10 +1643,10 @@ const app = {
         const userRole = this.userData?.role || 'fan', kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified', isAdminUser = this.isAdminUser();
         const input = document.getElementById('global-chat-input'); const text = input ? input.value.trim() : '';
         if (!text && !this.tempChatMediaData) return;
-        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast(this.getTrans('toast_kyc_interact')); this.openKYCModal(); return; }
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast('KYC requerido'); this.openKYCModal(); return; }
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
-        if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { BunkerChat.initGlobal(this.userId, this.backendUrl); setTimeout(() => { if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { BunkerChat.sendGlobal(payload); if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('global'); } }, 1500); return; }
-        if (BunkerChat.sendGlobal(payload)) { if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('global'); }
+        if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { BunkerChat.initGlobal(this.userId, this.backendUrl); setTimeout(() => { if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { BunkerChat.sendGlobal(payload); if (input) input.value = ''; this.clearChatMedia('global'); } }, 1500); return; }
+        if (BunkerChat.sendGlobal(payload)) { if (input) input.value = ''; this.clearChatMedia('global'); }
     },
 
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
@@ -1756,9 +1655,9 @@ const app = {
     async joinVideoBunker() {
         this.haptic('medium'); this.initUserId();
         const isAdminUser = this.isAdminUser(), userTier = this.userData?.access_tier || 0;
-        if (userTier < 4 && !isAdminUser) { this.showToast(this.getTrans('toast_tier_req_bunker')); this.openCatalogPackages(); return; }
+        if (userTier < 4 && !isAdminUser) { this.showToast('Requiere Icon Legend'); this.openCatalogPackages(); return; }
         const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
-        if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-transform duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
+        if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
         if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
         if(btnGoLive) btnGoLive.classList.remove('hidden');
         if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
@@ -1775,7 +1674,7 @@ const app = {
             if (placeholder) { placeholder.classList.add('hidden'); }
             await this.populateMediaDevices(stream);
             if (typeof BunkerChat !== 'undefined') BunkerChat.sendGlobal(JSON.stringify({ type: 'join_video' }));
-        } catch (err) { const placeholder = document.getElementById('cam-loading-placeholder'); if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i>`; } }
+        } catch (err) {}
     },
 
     async populateMediaDevices(currentStream) {
@@ -1785,21 +1684,18 @@ const app = {
         if (selectCam) {
             selectCam.innerHTML = ''; let seen = new Set(), obsFound = false;
             videoDevices.forEach((device, index) => {
-                let original = device.label.toLowerCase(), cleanLabel = `${this.getTrans('cam_front')} #${index + 1}`;
-                if (original.includes('obs') || original.includes('virtual')) { cleanLabel = `🎥 ${this.getTrans('cam_obs')}`; obsFound = true; } 
-                else if (original.includes('front')) { cleanLabel = `📱 ${this.getTrans('cam_front')}`; } 
-                else if (original.includes('back')) { cleanLabel = `📱 ${this.getTrans('cam_back')}`; } 
+                let original = device.label.toLowerCase(), cleanLabel = `Cámara #${index + 1}`;
+                if (original.includes('obs') || original.includes('virtual')) { cleanLabel = `🎥 OBS Virtual`; obsFound = true; } 
+                else if (original.includes('front')) { cleanLabel = `📱 Frontal`; } 
+                else if (original.includes('back')) { cleanLabel = `📱 Trasera`; } 
                 else if (device.label) { cleanLabel = device.label; }
-                
                 if (!seen.has(cleanLabel)) { seen.add(cleanLabel); const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = cleanLabel; selectCam.appendChild(opt); }
             });
-            if(!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = `🎥 ${this.getTrans('cam_force_obs')}`; selectCam.appendChild(optObs); }
-            if (currentStream) { const currentTrack = currentStream.getVideoTracks()[0]; if (currentTrack) { const currentSettings = currentTrack.getSettings(); if (currentSettings.deviceId) selectCam.value = currentSettings.deviceId; } }
+            if(!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = `🎥 Forzar OBS`; selectCam.appendChild(optObs); }
         }
         if (selectMic) {
-            selectMic.innerHTML = `<option value="none">🔇 ${this.getTrans('mic_none')}</option>`;
-            audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `${this.getTrans('txt_mic')} #${index + 1}`; selectMic.appendChild(opt); });
-            if (currentStream && currentStream.getAudioTracks().length > 0) { const currentTrack = currentStream.getAudioTracks()[0]; const currentSettings = currentTrack.getSettings(); if (currentSettings.deviceId) selectMic.value = currentSettings.deviceId; }
+            selectMic.innerHTML = `<option value="none">🔇 Silenciar</option>`;
+            audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `Micrófono #${index + 1}`; selectMic.appendChild(opt); });
         }
     },
 
@@ -1808,8 +1704,8 @@ const app = {
 
     updateMediaTogglesUI() {
         const btnMic = document.getElementById('btn-toggle-mic'), btnCam = document.getElementById('btn-toggle-cam');
-        if(btnMic) { if(this.isMicMuted) { btnMic.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>'; btnMic.className = 'w-11 h-11 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-lg'; } else { btnMic.innerHTML = '<i class="fa-solid fa-microphone"></i>'; btnMic.className = 'w-11 h-11 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-lg'; } }
-        if(btnCam) { if(this.isCamOff) { btnCam.innerHTML = '<i class="fa-solid fa-video-slash"></i>'; btnCam.className = 'w-11 h-11 rounded-full bg-red-600 border border-red-400 text-white flex items-center justify-center transition shadow-[0_0_10px_rgba(255,0,0,0.4)] text-lg'; } else { btnCam.innerHTML = '<i class="fa-solid fa-video"></i>'; btnCam.className = 'w-11 h-11 rounded-full bg-neutral-800 border border-neutral-600 text-white flex items-center justify-center hover:bg-neutral-700 transition shadow-[0_0_10px_rgba(255,255,255,0.1)] text-lg'; } }
+        if(btnMic) { btnMic.innerHTML = this.isMicMuted ? '<i class="fa-solid fa-microphone-slash"></i>' : '<i class="fa-solid fa-microphone"></i>'; btnMic.className = this.isMicMuted ? 'w-11 h-11 rounded-full bg-red-600 text-white flex items-center justify-center text-lg' : 'w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg'; }
+        if(btnCam) { btnCam.innerHTML = this.isCamOff ? '<i class="fa-solid fa-video-slash"></i>' : '<i class="fa-solid fa-video"></i>'; btnCam.className = this.isCamOff ? 'w-11 h-11 rounded-full bg-red-600 text-white flex items-center justify-center text-lg' : 'w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg'; }
     },
 
     openAVSettings() { this.haptic('light'); document.getElementById('modal-av-settings')?.classList.remove('hidden'); },
@@ -1822,7 +1718,7 @@ const app = {
         let constraints = { video: true, audio: false };
         if (camId === 'obs-fallback') constraints.video = true; else if (camId) constraints.video = { deviceId: { exact: camId } };
         if (micId && micId !== 'none') constraints.audio = { deviceId: { exact: micId } }; else if (micId === 'none') constraints.audio = false;
-        try { this.activeWebcamStream = await navigator.mediaDevices.getUserMedia(constraints); const videoElem = document.getElementById('bunker-webcam-feed'); if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); } this.isMicMuted = false; this.isCamOff = false; this.updateMediaTogglesUI(); this.closeAVSettings(); } catch(e) { }
+        try { this.activeWebcamStream = await navigator.mediaDevices.getUserMedia(constraints); const videoElem = document.getElementById('bunker-webcam-feed'); if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); } this.isMicMuted = false; this.isCamOff = false; this.updateMediaTogglesUI(); this.closeAVSettings(); } catch(e) {}
     },
 
     toggleMinimizeVideo() {
@@ -1837,7 +1733,7 @@ const app = {
         const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
         if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-red-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded animate-pulse shadow-md uppercase'; badge.innerText = 'EN VIVO'; }
         if(btnGoLive) btnGoLive.classList.add('hidden'); if(btnCancel) btnCancel.classList.remove('hidden');
-        if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: this.getTrans('stream_announce'), media_url: null })); }
+        if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: '📡 ¡Transmisión en vivo iniciada en el Búnker!', media_url: null })); }
     },
 
     cancelLiveTransmission() {
@@ -1867,17 +1763,8 @@ const app = {
         const isAdminUser = this.isAdminUser();
         const walletConnected = this.tonConnectUI?.connected || localStorage.getItem('alpha_ton_connected') === 'true';
 
-        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { 
-            this.showToast(this.getTrans('toast_kyc_post_creator')); 
-            this.openKYCModal(); 
-            return; 
-        }
-        if (userRole === 'fan' && !walletConnected && !isAdminUser) {
-            this.showToast(this.getTrans('toast_wallet_req_post')); 
-            this.openPaymentMethods();
-            return;
-        }
-        
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.openKYCModal(); return; }
+        if (userRole === 'fan' && !walletConnected && !isAdminUser) { this.openPaymentMethods(); return; }
         this.closeModals(); this.switchView('upload'); 
     },
 
@@ -1893,19 +1780,16 @@ const app = {
         this.haptic('light'); localStorage.setItem('alpha_lang', lang); this.currentLang = lang;
         const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = lang.toUpperCase();
         if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
-        
         this.updateProfileUI();
-        if(!document.getElementById('modal-catalog')?.classList.contains('hidden')) {
-            this.openCatalogPackages();
-        }
+        if(!document.getElementById('modal-catalog')?.classList.contains('hidden')) this.openCatalogPackages();
     },
 
-    toggleAdminSecret() { this.haptic('light'); this.initUserId(); const isAdminUser = this.isAdminUser(); if (isAdminUser) { this.isAdmin = !this.isAdmin; } },
+    toggleAdminSecret() { this.haptic('light'); this.initUserId(); if (this.isAdminUser()) this.isAdmin = !this.isAdmin; },
     
     async previewImage(event) { 
         const file = event.target.files[0]; if (!file) return; 
         this.tempPostMedia = await this.compressImage(file, 1200, 0.75); 
-        document.getElementById('txt-upload').innerText = this.getTrans('toast_image_loaded').replace('{name}', file.name); 
+        document.getElementById('txt-upload').innerText = `Imagen cargada: ${file.name}`; 
     },
 
     async publishPost() {
@@ -1916,10 +1800,10 @@ const app = {
         try {
             const res = await fetch(`${this.backendUrl}/posts/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, author: this.userData?.name || "mastertom", text_es: content, image_url: this.tempPostMedia, levelRequired: tierRequired, is_ppv: false, price_alpha: 0 }) });
             const data = await res.json(); if (res.ok && data.status === "success") { this.switchView('feed'); await this.renderFeed(); }
-        } catch (err) { }
+        } catch (err) {}
     },
 
-    async deletePost(postId) { if (!confirm(this.getTrans('confirm_delete_post'))) return; try { await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); this.renderFeed(); } catch (e) {} },
+    async deletePost(postId) { if (!confirm('¿Eliminar publicación?')) return; try { await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); this.renderFeed(); } catch (e) {} },
     
     async unlockPostContent(postId, priceAlpha) { 
         try { 
@@ -1932,7 +1816,6 @@ const app = {
         this.haptic('light');
         let liked = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
         const isLiking = !liked.includes(postId);
-        
         if (isLiking) liked.push(postId); else liked = liked.filter(id => id !== postId);
         localStorage.setItem('alpha_user_liked_posts', JSON.stringify(liked)); 
         
@@ -1943,7 +1826,6 @@ const app = {
                 el.innerText = isLiking ? currentCount + 1 : Math.max(0, currentCount - 1);
             }
         });
-        
         try {
             await fetch(`${this.backendUrl}/posts/like`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1960,7 +1842,7 @@ const app = {
             const data = res.ok ? await res.json() : {}; const posts = data.posts || [];
             const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
             if (posts.length === 0) { 
-                feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">${this.getTrans('msg_no_posts')}</div>`; 
+                feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">No hay publicaciones disponibles</div>`; 
                 return; 
             }
             feedContainer.innerHTML = posts.map(post => {
@@ -1977,28 +1859,15 @@ const app = {
                                 <span class="font-bold text-amber-400 text-sm">@${safeAuthor}</span>
                             </div>
                             <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
-                                <div class="relative inline-block w-4 h-4 mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div>
                                 <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
                                 ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
                         ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${this.escapeHtml(post.content)}</p>` : ''}
-                        ${post.is_locked ? `
-                            <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
-                                <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
-                                <p class="text-sm font-bold text-amber-300">${this.getTrans('txt_protected_content')}</p>
-                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">
-                                    🔓 ${this.getTrans('btn_unlock')} (${post.price_alpha || 20} $ALPHA)
-                                </button>
-                            </div>
-                        ` : (post.media_url ? `<img src="${this.sanitizeUrl(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
+                        ${post.is_locked ? `<div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3"><i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">🔓 Desbloquear (${post.price_alpha || 20} $ALPHA)</button></div>` : (post.media_url ? `<img src="${this.sanitizeUrl(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
-                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
-                                <i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
-                            </button>
-                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
-                                🪙 ${this.getTrans('btn_tip')}
-                            </button>
+                            <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}"><i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span></button>
+                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">🪙 Tip</button>
                         </div>
                     </div>
                 `;
@@ -2026,7 +1895,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.addEventListener('focus', removePrivacyBlackout);
         document.addEventListener('contextmenu', event => event.preventDefault());
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText(app.getTrans('txt_protected_content')); app.showToast(app.getTrans('toast_screenshots_blocked')); }
+            if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('Contenido protegido'); app.showToast('Capturas bloqueadas'); }
             if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
         });
     } else {
