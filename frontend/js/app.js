@@ -1904,24 +1904,40 @@ window.app = app;
 
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof app === 'undefined') return;
-    app.checkSession(); app.generateCaptcha();
+    app.checkSession(); 
+    app.generateCaptcha();
     
     const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
     
-    const applyPrivacyBlackout = () => { if (isTelegram) document.body.classList.add('privacy-blur'); };
-    const removePrivacyBlackout = () => document.body.classList.remove('privacy-blur');
+    // 🛡️ Blindaje: solo aplicar pantalla negra si estamos estrictamente dentro de Telegram móvil
+    const applyPrivacyBlackout = () => { 
+        if (isTelegram) document.body.classList.add('privacy-blur'); 
+    };
+    const removePrivacyBlackout = () => {
+        document.body.classList.remove('privacy-blur');
+    };
 
     if (isTelegram) {
-        document.addEventListener('visibilitychange', () => { if (document.hidden) applyPrivacyBlackout(); else removePrivacyBlackout(); });
+        document.addEventListener('visibilitychange', () => { 
+            if (document.hidden) applyPrivacyBlackout(); 
+            else removePrivacyBlackout(); 
+        });
         window.addEventListener('blur', applyPrivacyBlackout);
         window.addEventListener('focus', removePrivacyBlackout);
     } else {
+        // En navegador de escritorio siempre removemos el blackout
         removePrivacyBlackout();
     }
 
-    document.addEventListener('contextmenu', event => event.preventDefault());
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText(app.getTrans('txt_protected_content')); app.showToast(app.getTrans('toast_screenshots_blocked')); }
-        if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
-    });
+    // Permitir clic derecho y teclas F12 para desarrollo si no es Telegram nativo
+    if (isTelegram) {
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'PrintScreen' || e.keyCode === 44) { 
+                navigator.clipboard.writeText(app.getTrans('txt_protected_content')); 
+                app.showToast(app.getTrans('toast_screenshots_blocked')); 
+            }
+            if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
+        });
+    }
 });
