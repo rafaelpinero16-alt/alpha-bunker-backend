@@ -7,6 +7,7 @@ from core.config import bot, dp
 from database.db import get_db
 from routers.logic import update_user_tier
 from database.models import Package, Wallet, Transaction
+from datetime import datetime
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -27,7 +28,7 @@ async def get_packages(db: Session = Depends(get_db)):
             "badge": "🎖️ CREADOR PRO",
             "price_usd": 2.99,
             "price_stars": 150,
-            "price_ton": 0.05,
+            "price_ton": 1.5,
             "alpha_total": 150,
             "bonus_percentage": 0,
             "description": "Herramientas de Creador (1 Mes Prueba Gratis)."
@@ -38,7 +39,7 @@ async def get_packages(db: Session = Depends(get_db)):
             "badge": "⚔️ CREADOR ÉLITE",
             "price_usd": 5.99,
             "price_stars": 300,
-            "price_ton": 0.10,
+            "price_ton": 3.0,
             "alpha_total": 330,
             "bonus_percentage": 10,
             "description": "Contenido avanzado y pagos Wompi/Skrill."
@@ -49,7 +50,7 @@ async def get_packages(db: Session = Depends(get_db)):
             "badge": "👑 NIVEL 4",
             "price_usd": 25.00,
             "price_stars": 1250,
-            "price_ton": 0.18,
+            "price_ton": 12.5,
             "alpha_total": 650,
             "bonus_percentage": 15,
             "description": "Acceso total VIP y funciones máximas."
@@ -60,7 +61,7 @@ async def get_packages(db: Session = Depends(get_db)):
             "badge": "💎 NIVEL MÁXIMO",
             "price_usd": 53.00,
             "price_stars": 2650,
-            "price_ton": 0.40,
+            "price_ton": 26.5,
             "alpha_total": 1500,
             "bonus_percentage": 25,
             "description": "Acceso total + Cámaras en videollamadas."
@@ -100,7 +101,6 @@ async def create_invoice(data: InvoiceRequest, db: Session = Depends(get_db)):
         print(f"[❌ INVOICE ERROR] Fallo al generar factura: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
-# 🛡️ Endpoint Puente: Inyecta los $ALPHA al instante confirmados por el frontend
 @router.post("/verify-stars")
 async def verify_stars_payment(data: VerifyStarsRequest, db: Session = Depends(get_db)):
     try:
@@ -131,24 +131,3 @@ async def verify_stars_payment(data: VerifyStarsRequest, db: Session = Depends(g
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
-
-@dp.pre_checkout_query()
-async def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
-    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
-
-@dp.message(F.successful_payment)
-async def success_payment(message: types.Message):
-    payment = message.successful_payment
-    payload_parts = payment.invoice_payload.split('_')
-    
-    if len(payload_parts) >= 3:
-        tier_slug = payload_parts[1]
-        user_id = payload_parts[2]
-        
-        try:
-            await update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
-            print(f"[✅ STARS PAYMENT] Rango {tier_slug.upper()} asignado.")
-        except Exception as e:
-            print(f"[❌ DATABASE ERROR] {e}")
-    
-    await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tus $ALPHA han sido recargados y tu rango actualizado. Vuelve a la Mini App.")

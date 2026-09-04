@@ -55,13 +55,11 @@ const app = {
     showToast(msg) {
         let oldToast = document.getElementById('alpha-dynamic-toast');
         if (oldToast) oldToast.remove();
-
         const toast = document.createElement('div');
         toast.id = 'alpha-dynamic-toast';
         toast.className = 'fixed top-6 left-1/2 transform -translate-x-1/2 scale-95 opacity-0 bg-black/95 border-2 border-amber-500 text-amber-400 text-[10px] font-black uppercase tracking-widest px-5 py-2.5 rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.6)] z-[9999] pointer-events-none flex items-center gap-2 max-w-[90%] text-center transition-all duration-300';
         toast.innerHTML = `<i class="fa-solid fa-triangle-exclamation animate-pulse"></i> <span>${this.escapeHtml(msg)}</span>`;
         document.body.appendChild(toast);
-
         setTimeout(() => { toast.classList.remove('scale-95', 'opacity-0'); toast.classList.add('scale-100', 'opacity-100'); }, 10);
         setTimeout(() => {
             if (document.body.contains(toast)) {
@@ -77,10 +75,8 @@ const app = {
         body.classList.toggle('light-theme');
         const isLight = body.classList.contains('light-theme');
         localStorage.setItem('alpha_theme', isLight ? 'light' : 'dark');
-        
         const themeSwitch = document.getElementById('theme-switch');
         if(themeSwitch) themeSwitch.checked = isLight;
-        
         this.showToast(isLight ? this.getTrans('toast_theme_light') : this.getTrans('toast_theme_dark'));
     },
 
@@ -114,7 +110,6 @@ const app = {
         const settingsBtn = document.getElementById('settings-status-btn');
         const profileDot = document.getElementById('profile-neon-dot');
         const feedDot = document.getElementById('feed-neon-dot');
-        
         const isOnline = this.userData.isOnline !== false;
         
         if(profileDot) profileDot.style.display = isOnline ? 'block' : 'none';
@@ -122,24 +117,16 @@ const app = {
         
         if (badge) {
             badge.innerText = isOnline ? '● ONLINE' : '○ OFFLINE';
-            badge.className = isOnline 
-                ? 'text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30' 
-                : 'text-[9px] font-bold text-neutral-400 bg-neutral-800 px-2 py-0.5 rounded-full border border-neutral-700';
+            badge.className = isOnline ? 'text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30' : 'text-[9px] font-bold text-neutral-400 bg-neutral-800 px-2 py-0.5 rounded-full border border-neutral-700';
         }
         if (toggleBtn) {
             toggleBtn.innerText = isOnline ? '● ONLINE' : '○ OFFLINE';
-            toggleBtn.className = isOnline 
-                ? 'text-xs font-black text-emerald-400 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/50' 
-                : 'text-xs font-black text-neutral-400 bg-neutral-800 px-2.5 py-0.5 rounded-full border border-neutral-700';
+            toggleBtn.className = isOnline ? 'text-xs font-black text-emerald-400 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/50' : 'text-xs font-black text-neutral-400 bg-neutral-800 px-2.5 py-0.5 rounded-full border border-neutral-700';
         }
         if (settingsBtnText && settingsIndicator && settingsBtn) {
             settingsBtnText.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
-            settingsIndicator.className = isOnline 
-                ? 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse' 
-                : 'w-2.5 h-2.5 rounded-full bg-red-500';
-            settingsBtn.className = isOnline 
-                ? 'bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5' 
-                : 'bg-red-600/20 border border-red-500 text-red-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5';
+            settingsIndicator.className = isOnline ? 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse' : 'w-2.5 h-2.5 rounded-full bg-red-500';
+            settingsBtn.className = isOnline ? 'bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5' : 'bg-red-600/20 border border-red-500 text-red-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5';
         }
     },
 
@@ -193,9 +180,7 @@ const app = {
             });
         } catch(e) {}
 
-        this.updateProfileUI(); 
-        this.showToast(this.getTrans('toast_alias_updated')); 
-        this.closeSettingsModal();
+        this.updateProfileUI(); this.showToast(this.getTrans('toast_alias_updated')); this.closeSettingsModal();
     },
 
     updatePasswordSettings() {
@@ -204,9 +189,7 @@ const app = {
         const newPassInput = document.getElementById('settings-new-pass');
         const confirmPassInput = document.getElementById('settings-confirm-pass');
         
-        const oldPass = oldPassInput?.value.trim(); 
-        const newPass = newPassInput?.value.trim(); 
-        const confirmPass = confirmPassInput?.value.trim();
+        const oldPass = oldPassInput?.value.trim(); const newPass = newPassInput?.value.trim(); const confirmPass = confirmPassInput?.value.trim();
         const currentSavedPass = localStorage.getItem('alpha_user_pass') || '';
 
         if (!oldPass || !newPass || !confirmPass) { this.showToast(this.getTrans('toast_pwd_empty')); return; }
@@ -216,17 +199,15 @@ const app = {
 
         localStorage.setItem('alpha_user_pass', newPass);
         this.showToast(`🔒 ${this.getTrans('pwd_changed_success')}`);
-        oldPassInput.value = ''; 
-        newPassInput.value = ''; 
-        if (confirmPassInput) confirmPassInput.value = '';
+        oldPassInput.value = ''; newPassInput.value = ''; if (confirmPassInput) confirmPassInput.value = '';
         this.closeSettingsModal();
     },
 
     async checkSession() {
         try {
             this.initUserId(); 
+            this.initTonConnect().catch(e => console.log(e)); 
             this.initTheme();
-            this.initTonConnect().catch(e => console.warn('[TON] Esperando interacción de wallet:', e));
             
             const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
             this.currentLang = savedLang;
@@ -234,17 +215,28 @@ const app = {
             if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
-            const splash = document.getElementById('view-splash');
-            if (splash) splash.classList.remove('hidden');
-
-            document.querySelectorAll('[id^="view-"]').forEach(el => { 
-                if(el.id !== 'view-splash') el.classList.add('hidden'); 
-            });
+            if (!document.getElementById('view-splash')) {
+                const splashHTML = `
+                    <div id="view-splash" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-1000">
+                        <img src="./assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-40 h-40 object-cover rounded-full shadow-[0_0_30px_#00f3ff] animate-pulse mb-6">
+                        <h1 class="text-3xl font-black text-[#00f3ff] tracking-widest uppercase" style="font-family: 'Orbitron', sans-serif; text-shadow: 0 0 15px #00f3ff;">Alpha App</h1>
+                        <div class="mt-8 flex items-center justify-center gap-2">
+                            <div class="w-3 h-3 bg-[#ff00ff] rounded-full animate-bounce"></div>
+                            <div class="w-3 h-3 bg-[#00f3ff] rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                            <div class="w-3 h-3 bg-[#ffb703] rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('afterbegin', splashHTML);
+            }
+            
+            document.querySelectorAll('[id^="view-"]').forEach(el => { if(el.id !== 'view-splash') el.classList.add('hidden'); });
 
             setTimeout(() => {
+                const splash = document.getElementById('view-splash');
                 if (splash) {
                     splash.classList.add('opacity-0');
-                    setTimeout(() => splash.classList.add('hidden'), 500);
+                    setTimeout(() => splash.classList.add('hidden'), 1000);
                 }
                 
                 const activeLogin = localStorage.getItem('alpha_logged_in');
@@ -298,13 +290,9 @@ const app = {
     },
 
     generateCaptcha() {
-        this.haptic('light'); 
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
-        let code = '';
+        this.haptic('light'); const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
         for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-        this.currentCaptcha = code; 
-        const display = document.getElementById('captcha-display'); 
-        if (display) display.innerText = code;
+        this.currentCaptcha = code; const display = document.getElementById('captcha-display'); if (display) display.innerText = code;
     },
 
     verifyCaptcha() {
@@ -341,18 +329,10 @@ const app = {
             this.generateCaptcha();
         }
     },
-
     switchView(viewName) {
-        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { 
-            const el = document.getElementById(`view-${v}`); 
-            if (el) el.classList.add('hidden'); 
-        });
+        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
         const targetView = document.getElementById(`view-${viewName}`);
-        if (targetView) { 
-            targetView.classList.remove('hidden'); 
-            window.scrollTo(0, 0); 
-            if (viewName !== 'lang') this.lastView = viewName; 
-        }
+        if (targetView) { targetView.classList.remove('hidden'); window.scrollTo(0, 0); if (viewName !== 'lang') this.lastView = viewName; }
     },
 
     showLevelUpAnimation(rankLevel) {
@@ -470,11 +450,11 @@ const app = {
         const bioInput = document.getElementById('prof-bio');
         const savedBio = localStorage.getItem('alpha_user_bio');
         
-        if (aliasInput && savedName) { aliasInput.value = savedName; this.userData.name = savedName; }
+        if (aliasInput && savedName && !savedName.startsWith('Tel:')) { aliasInput.value = savedName; this.userData.name = savedName; }
         if (bioInput && savedBio) { bioInput.value = savedBio; }
 
         const nameFeed = document.getElementById('name-feed');
-        if (nameFeed && savedName) nameFeed.innerText = savedName;
+        if (nameFeed && savedName && !savedName.startsWith('Tel:')) nameFeed.innerText = savedName;
 
         const savedAvatar = localStorage.getItem('alpha_user_avatar');
         const avatarImg = document.getElementById('prof-avatar-img');
@@ -552,26 +532,6 @@ const app = {
                     btn.classList.replace('bg-[#00f3ff]', 'bg-[#ff00ff]');
                     btn.classList.replace('text-[#00f3ff]', 'text-[#ff00ff]');
                 });
-
-                let payoutInfoBox = document.getElementById('creator-payout-terms-card');
-                if (!payoutInfoBox && creatorSubBox) {
-                    payoutInfoBox = document.createElement('div');
-                    payoutInfoBox.id = 'creator-payout-terms-card';
-                    payoutInfoBox.className = 'bg-neutral-900 border border-[#ff00ff]/40 p-4 rounded-2xl mt-4 shadow-[0_0_15px_rgba(255,0,255,0.15)] text-left flex flex-col gap-3';
-                    payoutInfoBox.innerHTML = `
-                        <div>
-                            <div class="flex items-center gap-2 mb-2">
-                                <i class="fa-solid fa-shield-halved text-[#ff00ff]"></i>
-                                <h5 class="text-xs font-black text-[#ff00ff] uppercase tracking-wider">Términos B2B</h5>
-                            </div>
-                            <p class="text-[11px] text-neutral-300 leading-relaxed font-bold" id="dynamic-payout-terms-text">${this.getTrans('payout_terms_desc') || 'Regla 85/15 activa.'}</p>
-                        </div>
-                        <button onclick="app.openPayoutModal()" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-black font-black py-3 rounded-xl text-xs shadow-[0_0_15px_rgba(16,185,129,0.4)] transition active:scale-95 uppercase flex justify-center items-center gap-2 mt-1">
-                            <i class="fa-solid fa-money-bill-transfer text-lg"></i> SOLICITAR RETIRO
-                        </button>
-                    `;
-                    creatorSubBox.appendChild(payoutInfoBox);
-                }
             } else {
                 if (creatorSubBox) creatorSubBox.classList.add('hidden'); 
                 dynamicButtons.forEach(btn => {
@@ -645,8 +605,7 @@ const app = {
 
     async connectWallet() {
         try {
-            this.haptic('medium'); 
-            this.initUserId(); 
+            this.haptic('medium'); this.initUserId(); 
             if (!this.tonConnectUI) await this.initTonConnect();
             if (!this.tonConnectUI) { this.showToast(this.getTrans('toast_ton_not_loaded')); return; }
             if (this.tonConnectUI.connected) {
@@ -664,24 +623,42 @@ const app = {
         this.haptic('light');
         if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
         if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment', 'modal-payout-request', 'modal-av-settings'].forEach(m => {
+        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment', 'modal-payout-request', 'modal-av-settings', 'modal-communities-links'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
 
-    openProfile() { 
-        this.closeModals(); 
-        document.getElementById('modal-profile')?.classList.remove('hidden'); 
-        this.syncKYCStatus(); 
-        this.updateProfileUI(); 
-        this.refreshUserData(); 
-    },
-
+    openProfile() { this.closeModals(); document.getElementById('modal-profile')?.classList.remove('hidden'); this.syncKYCStatus(); this.updateProfileUI(); this.refreshUserData(); },
+    
     openMenuModal() { this.openCatalogPackages(); },
-
-    openCommunitiesModal() { 
-        this.closeModals(); 
-        this.showToast('Accediendo al canal de la comunidad...'); 
+    openCommunitiesModal() {
+        this.closeModals();
+        let modal = document.getElementById('modal-communities-links');
+        if(!modal) {
+            const modalHTML = `
+                <div id="modal-communities-links" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#ff00ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(255,0,255,0.3)]">
+                        <h3 class="text-xl font-black text-[#ff00ff] mb-4 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> ECOSISTEMA</h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6">Únete a nuestros canales y grupos oficiales.</p>
+                        <div class="space-y-3">
+                            <button onclick="app.openLink('https://t.me/therealonetom')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 rounded-xl uppercase flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20">
+                                <i class="fa-brands fa-telegram text-lg"></i> Soporte Oficial
+                            </button>
+                            <button onclick="app.openLink('https://t.me/TheCloudyVIPBunker')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 rounded-xl uppercase flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-[#ff00ff]/20">
+                                <i class="fa-solid fa-tower-broadcast text-lg"></i> The Cloudy VIP Bunker
+                            </button>
+                            <button onclick="app.openLink('https://t.me/AlphaAdMosphere')" class="w-full bg-black border border-[#ffb703] text-[#ffb703] font-black py-3 rounded-xl uppercase flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(255,183,3,0.4)] transition hover:bg-[#ffb703]/20">
+                                <i class="fa-solid fa-bullhorn text-lg"></i> Alpha AdMosphere
+                            </button>
+                        </div>
+                        <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition">Cerrar</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-communities-links');
+        }
+        modal.classList.remove('hidden');
     },
 
     openPaymentMethods() {
@@ -703,9 +680,9 @@ const app = {
         }
         modal.classList.remove('hidden');
     },
+
     openFavoritesModal() {
-        this.closeModals(); 
-        this.initUserId();
+        this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-favorites-edit');
         if (!modal) {
             const modalHTML = `
@@ -758,8 +735,7 @@ const app = {
     },
 
     async openTipMenuManagementModal() {
-        this.closeModals(); 
-        this.initUserId();
+        this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-tip-menu-edit');
         if (!modal) {
             const modalHTML = `
@@ -793,9 +769,7 @@ const app = {
     },
 
     async saveAllTipSlots() {
-        this.haptic('heavy'); 
-        this.initUserId(); 
-        this.showToast(this.getTrans('toast_tip_saving'));
+        this.haptic('heavy'); this.initUserId(); this.showToast(this.getTrans('toast_tip_saving'));
         let successCount = 0;
         for (let i = 1; i <= 10; i++) {
             const title = document.getElementById(`tip-title-${i}`)?.value.trim() || '';
@@ -812,8 +786,7 @@ const app = {
     },
 
     async openPayoutModal() {
-        this.closeModals(); 
-        this.initUserId();
+        this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-payout-request');
         if (!modal) {
             const modalHTML = `
@@ -869,8 +842,7 @@ const app = {
     },
 
     async submitPayoutRequest() {
-        this.haptic('heavy'); 
-        this.initUserId();
+        this.haptic('heavy'); this.initUserId();
         const amountInput = document.getElementById('payout-amount-input');
         const methodSelect = document.getElementById('payout-method-select');
         const detailsInput = document.getElementById('payout-account-details');
@@ -890,15 +862,13 @@ const app = {
             const data = await res.json();
             if (res.ok && data.status === 'success') {
                 this.showToast('✅ Solicitud enviada (Sujeta a 90 días de retención).');
-                this.closeModals(); 
-                this.refreshUserData();
+                this.closeModals(); this.refreshUserData();
             } else { this.showToast(`⚠️ Error: ${data.detail || 'No se pudo procesar'}`); }
         } catch (err) { this.showToast('⚠️ Error de conexión con el servidor.'); }
     },
 
     async viewCreatorProfile(creatorId, creatorName) {
-        this.haptic('medium'); 
-        this.closeModals();
+        this.haptic('medium'); this.closeModals();
         this.showToast(this.getTrans('toast_profile_connecting').replace('{name}', creatorName));
         let avatarHtml = `<i class="fa-solid fa-user-astronaut text-4xl text-[#ffb703]"></i>`;
         try {
@@ -980,8 +950,7 @@ const app = {
     },
 
     async openFanTipMenu(creatorId, postId, creatorName) {
-        this.closeModals(); 
-        this.initUserId();
+        this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-fan-tip-menu');
         if (!modal) {
             const modalHTML = `
@@ -1016,8 +985,7 @@ const app = {
     },
 
     async buyPackageStars(packageSlug, targetLevel = null) {
-        this.haptic('medium'); 
-        this.initUserId();
+        this.haptic('medium'); this.initUserId();
         this.showToast(this.getTrans('toast_invoice_gen'));
         try {
             const res = await fetch(`${this.backendUrl}/payments/create-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug }) });
@@ -1047,8 +1015,7 @@ const app = {
     },
 
     async rechargeAlphaCoins(priceTon, alphaTotal, targetLevel = null) {
-        this.haptic('medium'); 
-        this.initUserId();
+        this.haptic('medium'); this.initUserId();
         if (!this.tonConnectUI || !this.tonConnectUI.connected) { this.showToast(this.getTrans('toast_connect_ton_req') || '⚠️ Conecta tu billetera TON primero.'); this.openPaymentMethods(); return; }
         const MASTER_TON_WALLET = "UQAAnX4bGBzI0ujk35-XChap_wZ7x67NeJ85C_M1YIvLbYUF"; 
         const nanoTonAmount = Math.round(priceTon * 1e9).toString();
@@ -1064,11 +1031,9 @@ const app = {
                 });
                 const data = await res.json();
                 if (res.ok && data.status === 'success') {
-                    this.haptic('heavy'); 
-                    this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
+                    this.haptic('heavy'); this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
                     setTimeout(async () => {
-                        await this.syncKYCStatus(); 
-                        await this.refreshUserData();
+                        await this.syncKYCStatus(); await this.refreshUserData();
                         let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
                         if (finalLevel > this.userData.access_tier) this.showLevelUpAnimation(finalLevel);
                     }, 1500);
@@ -1139,17 +1104,18 @@ const app = {
         
         let modal = document.getElementById('modal-external-checkout');
         if (!modal) {
+            // 🛡️ REESTRUCTURACIÓN DE BOTONES NEÓN (SKRILL, BINANCE, PAYONEER, MANUAL)
             const modalHTML = `
                 <div id="modal-external-checkout" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
                     <div class="glass-panel border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative max-h-[90vh] overflow-y-auto">
                         <button onclick="app.closeCheckout()" class="absolute top-4 right-4 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
                         <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">Recarga Táctica</h2>
                         <div class="space-y-3 mt-4">
-                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] text-white font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Skrill</button>
-                            <button onclick="app.processOneClickPay('binance')" class="w-full bg-[#f3ba2f] text-black font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Binance Pay</button>
-                            <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-[#ff4800] text-white font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Payoneer</button>
+                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-black border-2 border-[#ff00ff] text-[#ff00ff] font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(255,0,255,0.6)] transition hover:bg-[#ff00ff]/20 active:scale-95"><i class="fa-solid fa-wallet text-xl"></i> Skrill</button>
+                            <button onclick="app.processOneClickPay('binance')" class="w-full bg-black border-2 border-[#f3ba2f] text-[#f3ba2f] font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(243,186,47,0.6)] transition hover:bg-[#f3ba2f]/20 active:scale-95"><i class="fa-brands fa-bitcoin text-xl"></i> Binance Pay</button>
+                            <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-black border-2 border-[#ff4800] text-[#ff4800] font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(255,72,0,0.6)] transition hover:bg-[#ff4800]/20 active:scale-95"><i class="fa-brands fa-paypal text-xl"></i> Payoneer</button>
                             <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
-                                <button onclick="app.openManualPayment()" class="w-full bg-neutral-800 text-[#00f3ff] border border-[#00f3ff]/50 font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Pago Manual</button>
+                                <button onclick="app.openManualPayment()" class="w-full bg-black border-2 border-[#00f3ff] text-[#00f3ff] font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(0,243,255,0.6)] transition hover:bg-[#00f3ff]/20 active:scale-95"><i class="fa-solid fa-building-columns text-xl"></i> Pago Manual Bancario</button>
                             </div>
                         </div>
                     </div>
@@ -1179,18 +1145,31 @@ const app = {
         this.closeModals();
         let modal = document.getElementById('modal-manual-payment');
         if (!modal) {
+            // 🛡️ REESTRUCTURACIÓN DEL PAGO MANUAL (Con Botones de Copia Rápidos)
             const modalHTML = `
                 <div id="modal-manual-payment" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
                         <button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
-                        <h2 class="text-xl font-black text-[#00f3ff] mb-2 uppercase tracking-wider text-center">Pago Manual Bancario</h2>
+                        <h2 class="text-xl font-black text-[#00f3ff] mb-4 uppercase tracking-wider text-center">Pago Manual Bancario</h2>
                         <div class="bg-black border border-neutral-700 rounded-xl p-4 space-y-3 text-xs font-mono">
-                            <p><b>Banco:</b> Lead Bank</p>
-                            <p><b>Titular:</b> FELIPE RAFAEL SANCHEZ PIÑEROS</p>
-                            <p><b>Cuenta:</b> 215069784455</p>
-                            <p><b>Routing:</b> 101019644</p>
+                            <p class="flex justify-between border-b border-neutral-800 pb-2"><span class="text-neutral-500">Banco:</span><strong class="text-white">Lead Bank</strong></p>
+                            <p class="flex justify-between border-b border-neutral-800 pb-2"><span class="text-neutral-500">Titular:</span><strong class="text-white text-right max-w-[150px] truncate" title="FELIPE RAFAEL SANCHEZ PIÑEROS">FELIPE R. SANCHEZ P.</strong></p>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
+                                <span class="text-neutral-500">Cuenta:</span>
+                                <div class="flex items-center gap-3">
+                                    <strong class="text-[#ffb703] text-sm tracking-widest">215069784455</strong>
+                                    <button onclick="app.copyText('215069784455')" class="text-[#00f3ff] text-lg hover:scale-110 transition active:scale-95 p-1"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-neutral-500">Routing:</span>
+                                <div class="flex items-center gap-3">
+                                    <strong class="text-[#ffb703] text-sm tracking-widest">101019644</strong>
+                                    <button onclick="app.copyText('101019644')" class="text-[#00f3ff] text-lg hover:scale-110 transition active:scale-95 p-1"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </div>
                         </div>
-                        <div class="mt-6"><button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="w-full bg-neutral-800 text-white py-3 rounded-xl uppercase">Cerrar</button></div>
+                        <div class="mt-6"><button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-black py-3 rounded-xl uppercase transition">Cerrar</button></div>
                     </div>
                 </div>
             `;
@@ -1205,7 +1184,6 @@ const app = {
         document.getElementById('modal-external-checkout')?.classList.add('hidden');
         document.getElementById('checkoutModal')?.classList.add('hidden');
     },
-
     triggerGlobalMediaUpload(acceptType) {
         document.getElementById('global-media-menu')?.classList.add('hidden');
         const fileInput = document.getElementById('global-media-upload');
@@ -1217,8 +1195,7 @@ const app = {
         this.haptic('medium');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-            let mediaRecorder; 
-            let chunks = [];
+            let mediaRecorder; let chunks = [];
             try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
             this.showToast('Grabando selfie...');
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
@@ -1245,8 +1222,7 @@ const app = {
         this.haptic('medium');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            let mediaRecorder; 
-            let chunks = [];
+            let mediaRecorder; let chunks = [];
             try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
             this.showToast('🎙️ Grabando...');
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
@@ -1341,22 +1317,31 @@ const app = {
         }
     },
 
+    // 🛡️ RESTRICCIÓN DE NÚMERO DE TELÉFONO EN EL REGISTRO
     registerWithData() {
         this.haptic('medium');
         const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
         if (!phone && !email) { this.showToast('Ingresa teléfono o email'); return; }
+        
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        
         this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
         this.initUserId();
         const isCreator = this.registerRoleSelected === 'creator';
         this.userData.role = this.registerRoleSelected; 
-        if(!existingName) {
-            this.userData.name = phone || email.split('@')[0] || (isCreator ? "mastertom" : "VIP Fan");
-            localStorage.setItem('alpha_user_name', this.userData.name); 
+        
+        // Bloquear uso de número de teléfono como Alias
+        let finalName = existingName;
+        if (!finalName || finalName === 'USER' || finalName.startsWith('Tel:') || finalName.startsWith('+')) {
+            finalName = email ? email.split('@')[0] : (isCreator ? "mastertom" : "VIP Fan");
         }
+        
+        this.userData.name = finalName;
+        localStorage.setItem('alpha_user_name', finalName); 
         localStorage.setItem('alpha_logged_in', 'true'); 
         localStorage.setItem('alpha_user_role', this.registerRoleSelected);
+        
         this.switchView('feed'); 
         this.syncKYCStatus(); 
         this.updateProfileUI(); 
@@ -1369,12 +1354,22 @@ const app = {
         this.haptic('medium'); 
         const phone = document.getElementById('phone-input')?.value.trim();
         if (!phone) { this.showToast('Ingresa tu teléfono'); return; }
+        
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        
         this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
         this.initUserId();
         localStorage.setItem('alpha_logged_in', 'true'); 
-        if(!existingName || existingName === 'USER') localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
+        
+        // Bloquear uso de número de teléfono
+        let finalName = existingName;
+        if (!finalName || finalName === 'USER' || finalName.startsWith('Tel:') || finalName.startsWith('+')) {
+            finalName = "VIP Fan";
+        }
+        this.userData.name = finalName;
+        localStorage.setItem('alpha_user_name', finalName);
+        
         this.switchView('feed'); 
         await this.syncKYCStatus(); 
         this.updateProfileUI(); 
@@ -1927,20 +1922,35 @@ const app = {
         } catch(e) {}
     },
 
+    // 🛡️ REPARACIÓN DEL DESPLAZAMIENTO (PiP FIJO)
     toggleMinimizeVideo() {
         this.haptic('light');
-        const bunker = document.getElementById('floating-video-bunker'), controls = document.getElementById('video-controls-bar'), icon = document.getElementById('icon-minimize');
+        const bunker = document.getElementById('floating-video-bunker');
+        const controls = document.getElementById('video-controls-bar');
+        const icon = document.getElementById('icon-minimize');
+        const dragHandle = document.getElementById('video-drag-handle');
+        const pipControls = document.getElementById('pip-controls');
+        
         this.isVideoMinimized = !this.isVideoMinimized;
+        
         if (this.isVideoMinimized) { 
             bunker.classList.add('pip-mode'); 
             bunker.classList.remove('inset-0'); 
             controls.classList.add('hidden'); 
             icon.className = 'fa-solid fa-expand'; 
+            if(dragHandle) dragHandle.classList.remove('hidden');
+            if(pipControls) pipControls.classList.remove('hidden');
         } else { 
             bunker.classList.remove('pip-mode'); 
             bunker.classList.add('inset-0'); 
+            bunker.style.left = '0px'; 
+            bunker.style.top = '0px'; 
+            bunker.style.width = '100%';
+            bunker.style.height = '100%';
             controls.classList.remove('hidden'); 
             icon.className = 'fa-solid fa-compress'; 
+            if(dragHandle) dragHandle.classList.add('hidden');
+            if(pipControls) pipControls.classList.add('hidden');
         }
     },
 
