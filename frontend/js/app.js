@@ -19,7 +19,6 @@ const app = {
     isCamOff: false,
     isVideoMinimized: false,
 
-    // 🛡️ Variable de estado para el Checkout Externo
     currentCheckoutPackage: null,
 
     isAdminUser() {
@@ -87,7 +86,7 @@ const app = {
         const themeSwitch = document.getElementById('theme-switch');
         if(themeSwitch) themeSwitch.checked = isLight;
         
-        this.showToast(isLight ? '☀️ Modo Claro Activado' : '🌙 Modo Oscuro Activado');
+        this.showToast(isLight ? this.getTrans('toast_theme_light') : this.getTrans('toast_theme_dark'));
     },
 
     initTheme() {
@@ -107,7 +106,7 @@ const app = {
         
         if (this.userData.access_tier === 0 && !this.isAdminUser()) {
             this.userData.isOnline = true;
-            this.showToast('⚠️ Requiere rango Soldier o superior para modo OFFLINE.');
+            this.showToast(this.getTrans('toast_offline_tier_req'));
             this.updateOnlineStatusUI();
             return;
         }
@@ -115,7 +114,7 @@ const app = {
         this.userData.isOnline = !this.userData.isOnline;
         localStorage.setItem('alpha_user_online', this.userData.isOnline);
         this.updateOnlineStatusUI();
-        this.showToast(this.userData.isOnline ? '🟢 Estado: ONLINE' : '🔴 Estado: OFFLINE');
+        this.showToast(this.userData.isOnline ? this.getTrans('toast_status_online') : this.getTrans('toast_status_offline'));
     },
 
     updateOnlineStatusUI() {
@@ -181,7 +180,7 @@ const app = {
         const input = document.getElementById('settings-username-input');
         const newName = input ? input.value.trim() : '';
         if (!newName) {
-            this.showToast('⚠️ Ingresa un alias válido.');
+            this.showToast(this.getTrans('toast_invalid_alias'));
             return;
         }
 
@@ -192,7 +191,7 @@ const app = {
         if (lastChange && !this.isAdminUser()) {
             if ((now - parseInt(lastChange)) < thirtyDaysMs) {
                 const daysLeft = Math.ceil((thirtyDaysMs - (now - parseInt(lastChange))) / (1000 * 60 * 60 * 24));
-                this.showToast(`⏳ Debes esperar ${daysLeft} días para volver a cambiar tu alias.`);
+                this.showToast(this.getTrans('toast_alias_wait').replace('{days}', daysLeft));
                 return;
             }
         }
@@ -210,7 +209,7 @@ const app = {
         } catch(e) {}
 
         this.updateProfileUI();
-        this.showToast('✅ ¡Alias actualizado de forma permanente!');
+        this.showToast(this.getTrans('toast_alias_updated'));
         this.closeSettingsModal();
     },
 
@@ -227,29 +226,28 @@ const app = {
         const currentSavedPass = localStorage.getItem('alpha_user_pass') || '';
 
         if (!oldPass || !newPass || !confirmPass) {
-            this.showToast('⚠️ Completa todos los campos de contraseña.');
+            this.showToast(this.getTrans('toast_pwd_empty'));
             return;
         }
         
         if (currentSavedPass && oldPass !== currentSavedPass) {
-            this.showToast('⚠️ La contraseña actual no coincide.');
+            this.showToast(this.getTrans('toast_pwd_mismatch'));
             return;
         }
         
         if (newPass.length < 6) {
-            this.showToast('⚠️ La nueva contraseña debe tener al menos 6 caracteres.');
+            this.showToast(this.getTrans('toast_pwd_short'));
             return;
         }
 
         if (newPass !== confirmPass) {
-            this.showToast('⚠️ Las nuevas contraseñas no coinciden.');
+            this.showToast(this.getTrans('toast_pwd_not_match'));
             return;
         }
 
         localStorage.setItem('alpha_user_pass', newPass);
         
-        const successMsg = this.getTrans('pwd_changed_success') || 'SU CONTRASEÑA NUEVA HA SIDO CAMBIADA';
-        this.showToast(`🔒 ${successMsg}`);
+        this.showToast(`🔒 ${this.getTrans('pwd_changed_success')}`);
         
         oldPassInput.value = '';
         newPassInput.value = '';
@@ -266,13 +264,13 @@ const app = {
         overlay.className = 'fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500 opacity-0';
         overlay.innerHTML = `
             <div class="levitate flex flex-col items-center text-center">
-                <h2 class="text-4xl font-black text-[#00f3ff] uppercase tracking-widest mb-8 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">${this.getTrans('level_up_title') || '¡NUEVO RANGO!'}</h2>
+                <h2 class="text-4xl font-black text-[#00f3ff] uppercase tracking-widest mb-8 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">${this.getTrans('level_up_title')}</h2>
                 <div class="relative inline-flex w-40 h-40 items-center justify-center mb-8">
                     <div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[25px] opacity-90 animate-pulse"></div>
                     <img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain drop-shadow-[0_0_10px_rgba(0,243,255,1)]" onerror="this.src='./assets/badge_0.png'"> 
                 </div>
                 <p class="text-3xl font-black text-[#ffb703] uppercase tracking-widest drop-shadow-[0_0_10px_rgba(255,183,3,0.8)]">${rankInfo.name}</p>
-                <p class="text-sm font-bold text-neutral-300 mt-4 uppercase tracking-widest">${this.getTrans('level_up_sub') || 'Privilegios Desbloqueados'}</p>
+                <p class="text-sm font-bold text-neutral-300 mt-4 uppercase tracking-widest">${this.getTrans('level_up_sub')}</p>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -284,7 +282,7 @@ const app = {
         }, 4500);
     },
 
-    copyText(text) { navigator.clipboard.writeText(text).then(() => this.showToast('¡Copiado! 📋')); },
+    copyText(text) { navigator.clipboard.writeText(text).then(() => this.showToast(this.getTrans('toast_copied'))); },
     openLink(url) { if (window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url); else window.open(url, '_blank'); },
 
     compressImage(file, maxWidth = 1024, quality = 0.7) {
@@ -416,13 +414,13 @@ const app = {
         const hasPaymentMethod = walletConnected || ccConnected;
 
         let warningText = "";
-        if(this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label') || 'ADVERTENCIAS'}: ${this.userData.warnings}/5`;
+        if(this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label')}: ${this.userData.warnings}/5`;
 
         if (kycStatusEl) {
             if (userRole === 'fan' && hasPaymentMethod) {
-                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('status_wallet_linked') || 'BILLETERA / TARJETA VINCULADA'} ✅ ${warningText}</span>`; 
+                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('status_wallet_linked')} ✅ ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
-                if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc') || 'Método de pago activo. No requieres verificación KYC.';
+                if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc');
                 
                 const sessionValid = localStorage.getItem('alpha_logged_in') === 'true' && this.userId;
                 if (kycBtn && sessionValid) {
@@ -435,28 +433,28 @@ const app = {
                 }
 
             } else if (kycStatus === 'verified' || isAdminUser) {
-                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">VERIFICADO (+18) ✅ ${warningText}</span>`; 
+                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('prof_kyc_verified')} ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
-                if (kycDescEl) kycDescEl.innerText = 'Identidad y mayoría de edad confirmada. Acceso total activo.';
+                if (kycDescEl) kycDescEl.innerText = this.getTrans('prof_kyc_verified_desc');
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else {
                 if (userRole === 'fan') {
-                    kycStatusEl.innerText = `${this.getTrans('status_unlinked') || 'PAGO NO VINCULADO'} ⚠️${warningText}`; 
+                    kycStatusEl.innerText = `${this.getTrans('status_unlinked')} ⚠️${warningText}`; 
                     kycStatusEl.className = `text-xs font-black uppercase text-neutral-400`;
-                    if (kycDescEl) kycDescEl.innerText = this.getTrans('status_unlinked_desc') || 'Conecta tu Wallet o Tarjeta de Crédito para verificar tu cuenta sin hacer KYC.';
+                    if (kycDescEl) kycDescEl.innerText = this.getTrans('status_unlinked_desc');
                     if (kycBtn) {
                         kycBtn.classList.remove('hidden');
-                        kycBtn.innerHTML = this.getTrans('btn_link_payment') || 'VINCULAR PAGO';
+                        kycBtn.innerHTML = this.getTrans('btn_link_payment');
                         kycBtn.className = 'w-full bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 font-black py-3 px-4 rounded-xl text-xs shadow-[0_0_15px_rgba(0,243,255,0.4)] transition mt-2';
                         kycBtn.setAttribute('onclick', 'app.openPaymentMethods()');
                     }
                 } else {
                     kycStatusEl.innerText = `NO VERIFICADO ⚠️${warningText}`; 
                     kycStatusEl.className = `text-xs font-black uppercase text-neutral-400`;
-                    if (kycDescEl) kycDescEl.innerText = 'Verifica tu documento oficial y selfie para publicar y monetizar.';
+                    if (kycDescEl) kycDescEl.innerText = this.getTrans('prof_kyc_desc');
                     if (kycBtn) {
                         kycBtn.classList.remove('hidden');
-                        kycBtn.innerText = 'VERIFICAR CUENTA AHORA';
+                        kycBtn.innerText = this.getTrans('btn_verify_kyc');
                         kycBtn.className = 'w-full bg-[#ff00ff] text-black hover:bg-[#ff00ff]/80 font-black py-3 px-4 rounded-xl text-xs shadow-[0_0_15px_rgba(255,0,255,0.4)] transition uppercase mt-2';
                         kycBtn.setAttribute('onclick', 'app.openKYCModal()');
                     }
@@ -473,7 +471,7 @@ const app = {
             if (userRole === 'creator' || isAdminUser) {
                 if (creatorSubBox) creatorSubBox.classList.remove('hidden');
                 dynamicButtons.forEach(btn => {
-                    btn.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${this.getTrans('b2b_edit_tips') || 'EDITAR MIS 10 SLOTS (TIP MENU)'}`;
+                    btn.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${this.getTrans('b2b_edit_tips')}`;
                     btn.setAttribute('onclick', 'app.openTipMenuManagementModal()');
                     btn.classList.replace('bg-[#00f3ff]', 'bg-[#ff00ff]');
                     btn.classList.replace('text-[#00f3ff]', 'text-[#ff00ff]');
@@ -481,7 +479,7 @@ const app = {
             } else {
                 if (creatorSubBox) creatorSubBox.classList.add('hidden'); 
                 dynamicButtons.forEach(btn => {
-                    btn.innerHTML = `<i class="fa-solid fa-star"></i> ${this.getTrans('btn_my_favorites') || 'MIS CREADORES FAVORITOS'}`;
+                    btn.innerHTML = `<i class="fa-solid fa-star"></i> ${this.getTrans('btn_my_favorites')}`;
                     btn.setAttribute('onclick', 'app.openFavoritesModal()');
                     btn.classList.replace('bg-[#ff00ff]', 'bg-[#00f3ff]'); 
                     btn.classList.replace('text-[#ff00ff]', 'text-[#ff00ff]');
@@ -563,7 +561,7 @@ const app = {
                         this.updateProfileUI();
                     } else { 
                         localStorage.removeItem('alpha_ton_connected');
-                        if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; 
+                        if (btnHdr) btnHdr.innerText = this.getTrans('btn_wallet'); 
                         this.updateProfileUI();
                     }
                 });
@@ -583,15 +581,15 @@ const app = {
             }
 
             if (!this.tonConnectUI) {
-                this.showToast('⚠️ TON Connect no está cargado correctamente. Recarga la app.');
+                this.showToast(this.getTrans('toast_ton_not_loaded'));
                 return;
             }
 
             if (this.tonConnectUI.connected) {
-                if (confirm('¿Desconectar billetera?')) { 
+                if (confirm(this.getTrans('confirm_disconnect_wallet'))) { 
                     await this.tonConnectUI.disconnect(); 
                     const btnHdr = document.getElementById('btn-wallet-hdr'); 
-                    if (btnHdr) btnHdr.innerText = 'CONECTAR WALLET'; 
+                    if (btnHdr) btnHdr.innerText = this.getTrans('btn_wallet'); 
                     localStorage.removeItem('alpha_ton_connected');
                     this.updateProfileUI();
                 }
@@ -600,7 +598,7 @@ const app = {
             }
         } catch (err) {
             console.error("TonConnect openModal error:", err);
-            this.showToast('⚠️ Error al abrir pasarela TON. Intenta nuevamente.');
+            this.showToast(this.getTrans('toast_ton_error'));
         }
     },
 
@@ -611,11 +609,11 @@ const app = {
             const modalHTML = `
                 <div id="modal-payment-methods" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                        <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">${this.getTrans('pay_methods_title') || 'MÉTODOS DE PAGO'}</h3>
-                        <p class="text-xs text-neutral-300 text-center mb-6">${this.getTrans('pay_methods_desc') || 'Vincula tu cuenta para verificar tu perfil B2C de inmediato.'}</p>
-                        <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> ${this.getTrans('btn_connect_ton') || 'Conectar TON Wallet'}</button>
-                        <button onclick="app.connectCreditCard()" class="bg-neutral-800 border border-neutral-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase hover:bg-neutral-700 active:scale-95 transition"><i class="fa-solid fa-credit-card text-xl"></i> ${this.getTrans('btn_credit_card') || 'Tarjeta de Crédito'}</button>
-                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">${this.getTrans('btn_cancel') || 'Cancelar'}</button>
+                        <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">${this.getTrans('pay_methods_title')}</h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6">${this.getTrans('pay_methods_desc')}</p>
+                        <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> ${this.getTrans('btn_connect_ton')}</button>
+                        <button onclick="app.connectCreditCard()" class="bg-neutral-800 border border-neutral-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase hover:bg-neutral-700 active:scale-95 transition"><i class="fa-solid fa-credit-card text-xl"></i> ${this.getTrans('btn_credit_card')}</button>
+                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">${this.getTrans('btn_cancel')}</button>
                     </div>
                 </div>
             `;
@@ -634,32 +632,32 @@ const app = {
                 <div id="modal-cc-form" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
                         <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                            <h3 class="text-lg font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-lock mr-2"></i> ${this.getTrans('cc_modal_title') || 'VINCULAR TARJETA'}</h3>
+                            <h3 class="text-lg font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-lock mr-2"></i> ${this.getTrans('cc_modal_title')}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
                         <div class="space-y-3 flex-1 overflow-y-auto pr-1 mt-2">
                             <div>
-                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_number') || 'NÚMERO DE TARJETA'}</label>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_number')}</label>
                                 <input type="text" id="cc-number" placeholder="4532 1234 5678 8921" maxlength="19" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim()" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
                             </div>
                             <div>
-                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_name') || 'NOMBRE DEL TITULAR'}</label>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_name')}</label>
                                 <input type="text" id="cc-name" placeholder="Felipe Sanchez" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
                             </div>
                             <div class="grid grid-cols-2 gap-2">
                                 <div class="relative">
-                                    <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_expiry') || 'EXPIRACIÓN'}</label>
+                                    <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_expiry')}</label>
                                     <input type="text" id="cc-expiry" placeholder="MM/AA" maxlength="5" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium text-center" />
                                 </div>
                                 <div class="relative">
-                                    <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_cvv') || 'CVV'}</label>
+                                    <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_cvv')}</label>
                                     <input type="password" id="cc-cvv" placeholder="•••" maxlength="4" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium text-center" />
                                 </div>
                             </div>
                             <div>
-                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_bank') || 'BANCO EMISOR'}</label>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_bank')}</label>
                                 <select id="cc-bank" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium">
-                                    <option value="" disabled selected>Selecciona un banco internacional</option>
+                                    <option value="" disabled selected>${this.getTrans('cc_select_bank')}</option>
                                     <option value="JPMorgan Chase">JPMorgan Chase</option>
                                     <option value="Bank of America">Bank of America</option>
                                     <option value="Citibank">Citibank</option>
@@ -676,8 +674,8 @@ const app = {
                             </div>
                         </div>
                         <div class="mt-5 pt-3 border-t border-[#00f3ff]/30 flex gap-2">
-                            <button onclick="app.openPaymentMethods()" class="w-1/2 bg-neutral-800 border border-neutral-600 text-white py-3 rounded-xl text-xs font-black uppercase transition">${this.getTrans('btn_back') || 'Regresar'}</button>
-                            <button onclick="app.saveCreditCardData()" class="w-1/2 bg-[#00f3ff] text-black py-3 rounded-xl text-xs font-black uppercase shadow-[0_0_10px_rgba(0,243,255,0.5)] transition">${this.getTrans('btn_save_bio') || 'Guardar'}</button>
+                            <button onclick="app.openPaymentMethods()" class="w-1/2 bg-neutral-800 border border-neutral-600 text-white py-3 rounded-xl text-xs font-black uppercase transition">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.saveCreditCardData()" class="w-1/2 bg-[#00f3ff] text-black py-3 rounded-xl text-xs font-black uppercase shadow-[0_0_10px_rgba(0,243,255,0.5)] transition">${this.getTrans('btn_save_bio')}</button>
                         </div>
                     </div>
                 </div>
@@ -703,12 +701,12 @@ const app = {
         const bank = bankSelect?.value;
 
         if (!num || !name || !bank || !expiry || !cvv) {
-            this.showToast('⚠️ Completa todos los campos obligatorios y selecciona tu banco.');
+            this.showToast(this.getTrans('toast_cc_empty'));
             return;
         }
 
         if(num.replace(/\D/g,'').length < 13) {
-            this.showToast('⚠️ Número de tarjeta inválido.');
+            this.showToast(this.getTrans('toast_cc_invalid'));
             return;
         }
 
@@ -724,7 +722,7 @@ const app = {
         
         numInput.value = ''; nameInput.value = ''; expiryInput.value = ''; cvvInput.value = ''; bankSelect.selectedIndex = 0;
         
-        this.showToast('¡Tarjeta cifrada y vinculada en tu perfil! 💳✅');
+        this.showToast(this.getTrans('toast_cc_linked'));
         this.closeModals();
         this.updateProfileUI();
     },
@@ -734,15 +732,15 @@ const app = {
         
         const ccData = JSON.parse(localStorage.getItem('alpha_cc_data') || '{}');
         if(!ccData.token) {
-            this.showToast('⚠️ Error de seguridad. Vuelve a vincular tu tarjeta.');
+            this.showToast(this.getTrans('toast_cc_sec_error'));
             this.openPaymentMethods();
             return;
         }
 
-        this.showToast(`Procesando compra segura de ${alphaAmount} $ALPHA con Tarjeta... 💳`);
+        this.showToast(this.getTrans('toast_cc_processing').replace('{amount}', alphaAmount));
         
         setTimeout(() => {
-            this.showToast('¡Pago completado! 💎');
+            this.showToast(this.getTrans('toast_payment_completed'));
             this.triggerFireworks();
             this.refreshUserData();
             setTimeout(async () => {
@@ -763,15 +761,15 @@ const app = {
                 <div id="modal-favorites-edit" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
                         <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-star mr-2"></i> ${this.getTrans('favorites_title') || 'FAVORITOS'}</h3>
+                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-star mr-2"></i> ${this.getTrans('favorites_title')}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">${this.getTrans('favorites_desc') || 'Etiqueta a tus creadores favoritos.'}</p>
+                        <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">${this.getTrans('favorites_desc')}</p>
                         <div id="favorites-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
                         
                         <div class="mt-4 pt-4 border-t border-[#00f3ff]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">${this.getTrans('btn_back') || 'Regresar'}</button>
-                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">${this.getTrans('btn_save_bio') || 'Guardar'}</button>
+                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
                         </div>
                     </div>
                 </div>
@@ -810,7 +808,7 @@ const app = {
             }
         }
         localStorage.setItem('alpha_user_favorites', JSON.stringify(favs));
-        this.showToast('¡Creadores favoritos guardados! 🌟');
+        this.showToast(this.getTrans('toast_favs_saved'));
         this.closeModals();
     },
 
@@ -833,15 +831,15 @@ const app = {
                 <div id="modal-tip-menu-edit" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#ff00ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_20px_rgba(255,0,255,0.3)]">
                         <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ff00ff]/30">
-                            <h3 class="text-xl font-black text-[#ff00ff] uppercase tracking-wider"><i class="fa-solid fa-list-ul mr-2"></i> EDITAR TIP MENU</h3>
+                            <h3 class="text-xl font-black text-[#ff00ff] uppercase tracking-wider"><i class="fa-solid fa-list-ul mr-2"></i> ${this.getTrans('b2b_edit_tips')}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
                         <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">Configura tus 10 opciones de propina. No olvides guardar los cambios.</p>
                         <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
                         
                         <div class="mt-4 pt-4 border-t border-[#ff00ff]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">${this.getTrans('btn_back') || 'Regresar'}</button>
-                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black hover:bg-[#ff00ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">${this.getTrans('btn_save_bio') || 'Guardar'}</button>
+                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black hover:bg-[#ff00ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
                         </div>
                     </div>
                 </div>
@@ -852,7 +850,7 @@ const app = {
 
         modal.classList.remove('hidden');
         const container = document.getElementById('tip-menu-slots-form');
-        container.innerHTML = '<div class="text-center text-neutral-400 mt-10 font-bold">Cargando... ⏳</div>';
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('msg_loading')}</div>`;
 
         const slots = await this.loadTipMenu(this.userId);
         let htmlContent = '';
@@ -877,7 +875,7 @@ const app = {
     async saveAllTipSlots() {
         this.haptic('heavy');
         this.initUserId();
-        this.showToast('Guardando menú completo... ⏳');
+        this.showToast(this.getTrans('toast_tip_saving'));
         let successCount = 0;
 
         for (let i = 1; i <= 10; i++) {
@@ -896,14 +894,14 @@ const app = {
                 } catch (err) {}
             }
         }
-        this.showToast(`¡${successCount} slots actualizados correctamente! 🛡️`);
+        this.showToast(this.getTrans('toast_tip_saved').replace('{count}', successCount));
         if(successCount > 0) this.closeModals();
     },
 
     async viewCreatorProfile(creatorId, creatorName) {
         this.haptic('medium');
         this.closeModals();
-        this.showToast(`Conectando con el perfil de @${creatorName}... 📡`);
+        this.showToast(this.getTrans('toast_profile_connecting').replace('{name}', creatorName));
         
         let modal = document.getElementById('modal-creator-profile');
         if (!modal) {
@@ -930,7 +928,7 @@ const app = {
                         </div>
                         
                         <div class="p-3 border-t border-[#00f3ff]/30 bg-black flex justify-end">
-                            <button onclick="app.closeModals();" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-6 py-2.5 rounded-xl text-sm font-black transition uppercase">Regresar al Muro</button>
+                            <button onclick="app.closeModals();" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-6 py-2.5 rounded-xl text-sm font-black transition uppercase">${this.getTrans('btn_back')}</button>
                         </div>
                     </div>
                 </div>
@@ -945,7 +943,7 @@ const app = {
 
         modal.classList.remove('hidden');
         const container = document.getElementById('creator-posts-container');
-        container.innerHTML = '<div class="text-center text-neutral-500 mt-4 text-xs font-bold">Cargando Búnker... ⏳</div>';
+        container.innerHTML = `<div class="text-center text-neutral-500 mt-4 text-xs font-bold">${this.getTrans('msg_loading_bunker')}</div>`;
 
         try {
             const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
@@ -954,7 +952,7 @@ const app = {
             const creatorPosts = allPosts.filter(p => p.creator_id == creatorId);
 
             if (creatorPosts.length === 0) {
-                container.innerHTML = `<div class="text-center text-neutral-500 mt-4 text-xs font-bold uppercase tracking-widest bg-black/50 p-4 rounded-xl">Sin publicaciones visibles.</div>`;
+                container.innerHTML = `<div class="text-center text-neutral-500 mt-4 text-xs font-bold uppercase tracking-widest bg-black/50 p-4 rounded-xl">${this.getTrans('msg_no_posts')}</div>`;
                 return;
             }
 
@@ -981,26 +979,26 @@ const app = {
                         ${post.is_locked ? `
                             <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
                                 <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
-                                <p class="text-sm font-bold text-amber-300">CONTENIDO EXCLUSIVO BLOQUEADO</p>
+                                <p class="text-sm font-bold text-amber-300">${this.getTrans('txt_protected_content')}</p>
                                 <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">
-                                    🔓 DESBLOQUEAR (${post.price_alpha || 20} $ALPHA)
+                                    🔓 ${this.getTrans('btn_unlock')} (${post.price_alpha || 20} $ALPHA)
                                 </button>
                             </div>
                         ` : (post.media_url ? `<img src="${this.sanitizeUrl(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
                         
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
                             <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
-                                <i class="fa-solid fa-heart"></i> Like
+                                <i class="fa-solid fa-heart"></i> ${this.getTrans('btn_like')}
                             </button>
                             <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
-                                🪙 Propina
+                                🪙 ${this.getTrans('btn_tip')}
                             </button>
                         </div>
                     </div>
                 `;
             }).join('');
         } catch (e) {
-            container.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">Error cargando perfil.</div>`;
+            container.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">${this.getTrans('msg_error_profile')}</div>`;
         }
     },
 
@@ -1021,7 +1019,7 @@ const app = {
                         <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-4"></div>
                         
                         <div class="mt-4 pt-4 border-t border-[#ffb703]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase">Regresar</button>
+                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase">${this.getTrans('btn_back')}</button>
                         </div>
                     </div>
                 </div>
@@ -1034,10 +1032,10 @@ const app = {
         modal.classList.remove('hidden');
 
         const container = document.getElementById('fan-tip-slots-container');
-        container.innerHTML = '<div class="text-center text-neutral-400 mt-4 font-bold">Desplegando menú... ⏳</div>';
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold">${this.getTrans('msg_loading')}</div>`;
         
         const slots = await this.loadTipMenu(creatorId);
-        container.innerHTML = slots.length === 0 ? '<div class="text-center text-neutral-500 mt-10 font-bold bg-black/50 p-4 rounded-xl">El creador aún no configura su Tip Menu.</div>' : slots.map(s => `
+        container.innerHTML = slots.length === 0 ? `<div class="text-center text-neutral-500 mt-10 font-bold bg-black/50 p-4 rounded-xl">${this.getTrans('msg_no_tip_menu')}</div>` : slots.map(s => `
             <button onclick="app.sendTipFromPost(${creatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-4 flex justify-between items-center text-white transition active:scale-95 shadow-md">
                 <span class="font-bold text-sm text-left truncate pr-2">${this.escapeHtml(s.title)}</span>
                 <span class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-xs font-black px-3 py-1.5 rounded-xl shadow-md whitespace-nowrap">${s.price_alpha} $ALPHA</span>
@@ -1045,211 +1043,103 @@ const app = {
         `).join('');
     },
 
-    async buyPackageStars(packageSlug, targetLevel = null) {
-        this.haptic('medium');
-        this.initUserId();
-        this.showToast('Generando factura de Telegram Stars... ⭐');
-        try {
-            const res = await fetch(`${this.backendUrl}/payments/create-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug }) });
-            const data = await res.json();
-            if (res.ok && data.status === 'success' && data.invoice_link) {
-                if (window.Telegram?.WebApp?.openInvoice) {
-                    window.Telegram.WebApp.openInvoice(data.invoice_link, async (status) => {
-                        if (status === 'paid') { 
-                            this.haptic('heavy'); 
-                            this.showToast('¡Pago completado! Actualizando credenciales... 💎'); 
-                            setTimeout(async () => {
-                                await this.syncKYCStatus();
-                                await this.refreshUserData();
-                                let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
-                                this.showLevelUpAnimation(finalLevel);
-                            }, 1500);
-                        }
-                    });
-                } else { window.open(data.invoice_link, '_blank'); }
-            } else { throw new Error(data.detail || 'Error al generar la factura'); }
-        } catch (err) {}
-    },
-
-    async openCatalogPackages() {
-        this.closeModals();
-        const modal = document.getElementById('modal-catalog');
-        if (!modal) return;
-        modal.classList.remove('hidden');
-        const container = document.getElementById('catalog-packages-list');
-        if (!container) return;
-        
-        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('cat_loading') || 'Cargando catálogo... ⏳'}</div>`;
-        try {
-            const res = await fetch(`${this.backendUrl}/payments/packages`);
-            if (res.ok) {
-                const data = await res.json();
-                let packages = data.packages || [];
-                const order = ['spy', 'soldier', 'veteran', 'legend', 'icon-legend'];
-                packages.forEach(p => p.slug = p.slug.replace('_', '-'));
-                packages.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug));
-                
-                const rankMapping = { 'spy': 0, 'soldier': 1, 'veteran': 2, 'legend': 3, 'icon-legend': 4 };
-
-                container.innerHTML = packages.map(pkg => {
-                    const level = rankMapping[pkg.slug] !== undefined ? rankMapping[pkg.slug] : 0;
-                    const badgeInfo = this.getRankBadge(level);
-                    const tagLabel = this.getTrans('cat_official_rank') || 'RANGO OFICIAL';
-                    const descLabel = this.getTrans(`pkg_${pkg.slug.replace('-', '_')}_desc`) || `Membresía oficial ${badgeInfo.name}. Acceso a beneficios tácticos en el Búnker.`;
-                    
-                    return `
-                        <div class="bg-black border-2 ${level === 4 ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : level === 3 ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative mt-4">
-                            <div class="absolute -top-4 right-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-black px-4 py-1 rounded-full text-xs font-black uppercase shadow-lg tracking-widest">${tagLabel}</div>
-                            <div class="flex justify-between items-center mb-2 mt-2">
-                                <h3 class="text-xl font-black text-white flex items-center gap-3">
-                                    <div class="relative inline-flex w-10 h-10 items-center justify-center">
-                                        <div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[10px] opacity-80"></div>
-                                        <img src="${badgeInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain" onerror="this.src='./assets/badge_0.png'"> 
-                                    </div>
-                                    <span class="drop-shadow-[0_0_5px_rgba(0,243,255,0.5)]">${badgeInfo.name}</span>
-                                </h3>
-                                <span class="text-xl font-black text-[#ffb703]">${pkg.alpha_total} $ALPHA</span>
-                            </div>
-                            <p class="text-sm text-gray-300 mb-4 font-medium">${descLabel}</p>
-                            <div class="grid grid-cols-2 gap-2">
-                                <button onclick="app.buyPackageStars('${pkg.slug}', ${level})" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars}</button>
-                                <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total}, ${level})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">💎 ${pkg.price_ton} TON</button>
-                                <!-- 🛡️ BOTÓN INYECTADO: Abre el modal externo para DolarApp/Global66 -->
-                                <button onclick="app.openExternalCheckout('${pkg.slug}')" class="w-full col-span-2 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition mt-1">
-                                    <i class="fa-solid fa-money-bill-transfer"></i> FONDEO ACH / CRIPTO EXTERNO
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error') || 'Error cargando catálogo.'}</div>`; }
-    },
-
     // ============================================================================
-    // 🛡️ MÓDULO DE FONDEO EXTERNO ACH / CRIPTO (INYECCIÓN DE PASARELAS)
+    // 🛡️ MÓDULO DE FONDEO EXTERNO A 1-CLIC (SKRILL, PANDA, TON)
     // ============================================================================
 
     openExternalCheckout(packageSlug) {
         this.closeModals();
-        this.currentCheckoutPackage = packageSlug;
-        const modal = document.getElementById('checkoutModal');
-        if (modal) {
-            modal.classList.remove('hidden');
-            this.showPaymentMethod('dolarapp'); // Pasarela por defecto
+        if (!packageSlug || typeof packageSlug !== 'string') return;
+        
+        // 🔒 Sanitizar el input antes de procesarlo
+        const safeSlug = encodeURIComponent(packageSlug.replace(/[^a-zA-Z0-9_-]/g, ''));
+        this.currentCheckoutPackage = safeSlug;
+        
+        let modal = document.getElementById('modal-external-checkout');
+        if (!modal) {
+            // Se inyecta HTML escapando explícitamente los valores para evitar XSS
+            const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const t1     = esc(this.getTrans('checkout_title_1click'));
+            const t2     = esc(this.getTrans('checkout_desc_1click'));
+            const lSkrill = esc(this.getTrans('btn_pay_skrill'));
+            const lPanda  = esc(this.getTrans('btn_pay_panda'));
+            const lTon    = esc(this.getTrans('btn_connect_ton'));
 
-            // Inyectar botón global de TonConnect en la pestaña cripto si no existe
-            const cryptoTab = document.getElementById('ton-connect-checkout');
-            if (cryptoTab && !cryptoTab.innerHTML.includes('button')) {
-                cryptoTab.innerHTML = `<button onclick="app.connectWallet()" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-6 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] uppercase w-full flex justify-center items-center gap-2 transition"><i class="fa-solid fa-wallet text-xl"></i> Conectar Wallet / Pagar</button>`;
-            }
+            const modalHTML = `
+                <div id="modal-external-checkout" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
+                    <div class="glass-panel border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
+                        <button onclick="app.closeCheckout()" class="absolute top-4 right-4 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
+                        <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">${t1}</h2>
+                        <p class="text-center text-gray-300 mb-6 text-[10px] uppercase font-bold tracking-widest">${t2}</p>
+
+                        <div class="space-y-3">
+                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] hover:bg-[#601a3e] text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(128,42,85,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
+                                <i class="fa-solid fa-wallet text-xl"></i> ${lSkrill}
+                            </button>
+                            <button onclick="app.processOneClickPay('panda')" class="w-full bg-[#11bc76] hover:bg-[#0e945c] text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(17,188,118,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
+                                <i class="fa-solid fa-leaf text-xl"></i> ${lPanda}
+                            </button>
+                            <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
+                                <button onclick="app.connectWallet()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
+                                    <i class="fa-brands fa-telegram text-xl"></i> ${lTon}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-external-checkout');
         }
+        modal.classList.remove('hidden');
+    },
+
+    // 🔒 URLs base de pasarelas centralizadas (Reemplazar con URLs reales del perfil de MasterTom)
+    _gatewayUrls: {
+        skrill: 'https://skrill.com',   
+        panda:  'https://pandapay.com'  
+    },
+
+    processOneClickPay(gateway) {
+        if (!this.currentCheckoutPackage) {
+            this.showToast('⚠️ Selecciona un plan primero.');
+            return;
+        }
+        
+        // 🔒 Whitelist: solo se permiten keys existentes en el objeto _gatewayUrls
+        if (!Object.keys(this._gatewayUrls).includes(gateway)) {
+            console.warn('[CHECKOUT] Gateway no reconocida:', gateway);
+            return;
+        }
+
+        this.haptic('heavy');
+        this.showToast(this.getTrans('toast_redirecting').replace('{gateway}', gateway.toUpperCase()));
+        
+        // 🚀 Redirección dinámica y blindada a pasarelas
+        setTimeout(() => {
+            // El slug ya fue sanitizado en openExternalCheckout
+            const paymentUrl = `${this._gatewayUrls[gateway]}?pkg=${this.currentCheckoutPackage}`;
+            
+            // Abrir en pestaña blindada para que el target no pueda secuestrar la ventana padre
+            window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+            this.closeCheckout();
+        }, 1500);
     },
 
     closeCheckout() {
         this.haptic('light');
-        const modal = document.getElementById('checkoutModal');
-        if (modal) modal.classList.add('hidden');
-    },
-
-    showPaymentMethod(method) {
-        this.haptic('light');
-        
-        // Ocultar todos los contenedores de info
-        document.querySelectorAll('.payment-info').forEach(el => {
-            el.classList.add('hidden');
-        });
-        
-        // Mostrar el seleccionado
-        const activeInfo = document.getElementById(`${method}-info`);
-        if (activeInfo) activeInfo.classList.remove('hidden');
-
-        // Mostrar u ocultar el botón de envío de comprobante (ACH requiere comprobante manual, Cripto es automático)
-        const proofBtn = document.getElementById('send-proof-btn');
-        if (proofBtn) {
-            if (method === 'dolarapp' || method === 'global66') {
-                proofBtn.classList.remove('hidden');
-            } else {
-                proofBtn.classList.add('hidden');
-            }
-        }
-    },
-
-    openSupportChatForProof() {
-        this.haptic('heavy');
-        
-        // Intentar usar la API Nativa de Telegram WebApp para enviar datos ocultos y cerrar la app
-        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
-            window.Telegram.WebApp.sendData(JSON.stringify({ 
-                action: "verify_payment", 
-                package: this.currentCheckoutPackage 
-            }));
-            window.Telegram.WebApp.close();
-        } else {
-            // Fallback (Si abrieron la Mini App por Inline Button, sendData no existe. Abrimos el CRM interno)
-            this.closeCheckout();
-            this.openSupport();
-            this.showToast('📸 Adjunta la captura de tu transferencia ACH aquí para validarla.');
-            
-            const chatInput = document.getElementById('chat-input');
-            if (chatInput) {
-                chatInput.value = `Pago ACH enviado por el paquete: ${this.currentCheckoutPackage}. Adjunto mi comprobante:`;
-                chatInput.focus();
-            }
-        }
+        const quickModal = document.getElementById('modal-external-checkout');
+        if (quickModal) quickModal.classList.add('hidden');
+        // Purgar caché visual del modal viejo por seguridad, si aún existe en el DOM
+        const oldModal = document.getElementById('checkoutModal');
+        if (oldModal) oldModal.classList.add('hidden');
     },
     // ============================================================================
-
-    async rechargeAlphaCoins(amountTon, alphaAmount, targetLevel = null) {
-        try {
-            this.haptic('heavy'); await this.initTonConnect();
-            if (!this.tonConnectUI || !this.tonConnectUI.connected || !this.tonConnectUI.account) { 
-                this.showToast('⚠️ Conecta tu billetera TON.'); 
-                await this.connectWallet(); 
-                return; 
-            }
-            const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: "UQDWI2auHgQ5a9KnWn9_by-RSswIaKfz38b_Yib_cIy-Jklp", amount: Math.floor(amountTon * 1000000000).toString() }] };
-            const result = await this.tonConnectUI.sendTransaction(transaction);
-            const res = await fetch(`${this.backendUrl}/wallet/recharge`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, amount_ton: amountTon, alpha_added: alphaAmount, boc: result?.boc || "DIRECT_TX" }) });
-            if (res.ok) { 
-                await this.refreshUserData(); 
-                this.triggerFireworks(); 
-                setTimeout(async () => {
-                    await this.syncKYCStatus();
-                    let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
-                    this.showLevelUpAnimation(finalLevel);
-                }, 1500);
-            }
-        } catch (err) {}
-    },
-
-    async subscribeCreatorTier(tierSlug) {
-        this.haptic('medium'); this.initUserId();
-        const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
-        const isAdminUser = this.isAdminUser();
-        if (kycStatus !== 'verified' && !isAdminUser) { this.showToast('⚠️ Debes verificar tu identidad (KYC +18) para activar tu suscripción de creador.'); this.openKYCModal(); return; }
-        const planName = tierSlug === 'soldier_creator' ? 'Soldier Creator ($4.99/mes)' : 'Icon Creator ($7.99/mes)';
-        if (!confirm(`¿Activar tu membresía B2B: ${planName}?\nDisfrutarás tu primer mes totalmente gratis.`)) return;
-        this.showToast('Activando suscripción de creador... ⚡');
-        try {
-            const res = await fetch(`${this.backendUrl}/creators/subscribe`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, tier: tierSlug }) });
-            if (res.ok) { 
-                this.haptic('heavy'); 
-                this.showToast('¡Membresía B2B activada con éxito! 1er mes gratis 🎁'); 
-                await this.syncKYCStatus();
-                this.updateProfileUI();
-                this.showLevelUpAnimation(this.userData.access_tier);
-            }
-        } catch (err) {}
-    },
 
     triggerGlobalMediaUpload(acceptType) {
         document.getElementById('global-media-menu')?.classList.add('hidden');
         const fileInput = document.getElementById('global-media-upload');
-        if (fileInput) {
-            fileInput.accept = acceptType;
-            fileInput.click();
-        }
+        if (fileInput) { fileInput.accept = acceptType; fileInput.click(); }
     },
 
     async startGlobalSelfieCam() {
@@ -1259,13 +1149,9 @@ const app = {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
             let mediaRecorder;
             let chunks = [];
-            try {
-                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
-            } catch (e) {
-                mediaRecorder = new MediaRecorder(stream);
-            }
+            try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
 
-            this.showToast('🔴 Grabando Video Selfie (5s)...');
+            this.showToast(this.getTrans('toast_recording_selfie'));
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'video/webm' });
@@ -1279,35 +1165,25 @@ const app = {
                     if (previewContainer) {
                         previewContainer.classList.remove('hidden');
                         if (previewImg) previewImg.classList.add('hidden');
-                        if (previewVideo) {
-                            previewVideo.src = e.target.result;
-                            previewVideo.classList.remove('hidden');
-                            previewVideo.play();
-                        }
-                        if (previewName) previewName.innerText = "Video Selfie 📸";
+                        if (previewVideo) { previewVideo.src = e.target.result; previewVideo.classList.remove('hidden'); previewVideo.play(); }
+                        if (previewName) previewName.innerText = `${this.getTrans('media_video_selfie')} 📸`;
                     }
-                    this.showToast('✅ Video Selfie listo para enviar.');
+                    this.showToast(this.getTrans('toast_selfie_ready'));
                 };
                 reader.readAsDataURL(blob);
                 stream.getTracks().forEach(track => track.stop());
             };
 
             mediaRecorder.start();
-            setTimeout(() => {
-                if (mediaRecorder.state === 'recording') {
-                    mediaRecorder.stop();
-                }
-            }, 5000);
-        } catch (err) {
-            this.showToast('⚠️ No se pudo acceder a la cámara frontal.');
-        }
+            setTimeout(() => { if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); } }, 5000);
+        } catch (err) { this.showToast(this.getTrans('toast_cam_error')); }
     },
 
     triggerAvatarInput() { this.haptic('light'); const input = document.getElementById('avatar-file-input'); if (input) input.click(); },
     
     async handleAvatarChange(event) {
         const file = event.target.files[0]; if (!file) return;
-        this.haptic('light'); this.showToast('Optimizando foto... 📸');
+        this.haptic('light'); this.showToast(this.getTrans('toast_optimizing_photo'));
         const avatarUrl = await this.compressImage(file, 400, 0.8);
         localStorage.setItem('alpha_user_avatar', avatarUrl);
         const avatarImg = document.getElementById('prof-avatar-img'), avatarFeed = document.getElementById('avatar-feed');
@@ -1315,8 +1191,7 @@ const app = {
         if (avatarFeed) avatarFeed.src = avatarUrl;
         
         try { await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: this.userData.name, avatar: avatarUrl }) }); } catch(e) {}
-        
-        this.showToast('¡Foto de perfil actualizada! 📸');
+        this.showToast(this.getTrans('toast_avatar_updated'));
     },
 
     async saveProfile() {
@@ -1327,13 +1202,10 @@ const app = {
         if (newBio) { localStorage.setItem('alpha_user_bio', newBio); }
         
         try {
-            await fetch(`${this.backendUrl}/users/sync`, { 
-                method: "POST", headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ user_id: this.userId || 0, name: newName, bio: newBio }) 
-            });
+            await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: newName, bio: newBio }) });
         } catch(e) {}
 
-        this.showToast('¡Perfil guardado correctamente! 🛡️'); 
+        this.showToast(this.getTrans('toast_profile_saved')); 
         this.updateProfileUI();
     },
 
@@ -1341,22 +1213,22 @@ const app = {
     async handleKYCDocPreview(event) {
         const file = event.target.files[0]; if (!file) return;
         this.tempKYCDoc = await this.compressImage(file, 1200, 0.75);
-        const label = document.getElementById('kyc-doc-label'); if (label) label.innerText = `✅ Documento listo`;
+        const label = document.getElementById('kyc-doc-label'); if (label) label.innerText = `✅ ${this.getTrans('txt_doc_ready')}`;
     },
     async handleKYCSelfiePreview(event) {
         const file = event.target.files[0]; if (!file) return;
         this.tempKYCSelfie = await this.compressImage(file, 1024, 0.75);
-        const label = document.getElementById('kyc-selfie-label'); if (label) label.innerText = `✅ Selfie lista`;
+        const label = document.getElementById('kyc-selfie-label'); if (label) label.innerText = `✅ ${this.getTrans('txt_selfie_ready')}`;
     },
 
     async submitKYC() {
         this.haptic('medium');
         const legalName = document.getElementById('kyc-legal-name')?.value.trim();
-        if (!legalName || !this.tempKYCDoc || !this.tempKYCSelfie) { this.showToast('⚠️ Completa tu nombre legal, documento y selfie.'); return; }
-        this.initUserId(); this.showToast('Enviando solicitud al Búnker Admin... 🛡️');
+        if (!legalName || !this.tempKYCDoc || !this.tempKYCSelfie) { this.showToast(this.getTrans('toast_kyc_empty')); return; }
+        this.initUserId(); this.showToast(this.getTrans('toast_kyc_sending'));
         try {
             const res = await fetch(`${this.backendUrl}/kyc/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, legal_name: legalName, document_base64: this.tempKYCDoc, selfie_base64: this.tempKYCSelfie }) });
-            if (res.ok) { localStorage.setItem('alpha_kyc_status', 'pending'); this.showToast('¡Solicitud enviada con éxito! 🚀'); this.closeModals(); this.updateProfileUI(); }
+            if (res.ok) { localStorage.setItem('alpha_kyc_status', 'pending'); this.showToast(this.getTrans('toast_kyc_sent')); this.closeModals(); this.updateProfileUI(); }
         } catch (err) {}
     },
 
@@ -1375,7 +1247,7 @@ const app = {
     registerWithData() {
         this.haptic('medium');
         const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
-        if (!phone && !email) { this.showToast('⚠️ Ingresa al menos un número o correo.'); return; }
+        if (!phone && !email) { this.showToast(this.getTrans('toast_reg_empty')); return; }
         
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
@@ -1397,7 +1269,7 @@ const app = {
 
     async loginWithPhone() {
         this.haptic('medium'); const phone = document.getElementById('phone-input')?.value.trim();
-        if (!phone) { this.showToast('⚠️ Ingresa tu número de teléfono.'); return; }
+        if (!phone) { this.showToast(this.getTrans('toast_login_empty')); return; }
         
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
@@ -1419,13 +1291,7 @@ const app = {
             const initData = window.Telegram?.WebApp?.initData || "";
             await fetch(`${this.backendUrl}/users/sync`, { 
                 method: "POST", headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ 
-                    user_id: this.userId, 
-                    name: localStorage.getItem('alpha_user_name') || "Agente Búnker", 
-                    bio: "Operativo autenticado vía Telegram WebApp",
-                    init_data: initData,
-                    is_telegram: !!initData
-                }) 
+                body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || this.getTrans('default_agent'), bio: this.getTrans('default_bio_tg'), init_data: initData, is_telegram: !!initData }) 
             }); 
         } catch (e) {}
         this.switchView('feed'); this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); this.refreshUserData(); this.renderFeed();
@@ -1453,13 +1319,7 @@ const app = {
                     const initData = window.Telegram?.WebApp?.initData || "";
                     await fetch(`${this.backendUrl}/users/sync`, { 
                         method: "POST", headers: { "Content-Type": "application/json" }, 
-                        body: JSON.stringify({ 
-                            user_id: this.userId, 
-                            name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || "Agente Búnker", 
-                            bio: "Sincronizado al iniciar app",
-                            init_data: initData,
-                            is_telegram: !!initData
-                        }) 
+                        body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: this.getTrans('default_bio_sync'), init_data: initData, is_telegram: !!initData }) 
                     }); 
                 } catch(e) {}
                 this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
@@ -1469,7 +1329,6 @@ const app = {
                 this.switchView('consent'); 
             }
         } catch (e) {
-            console.error("Error crítico en checkSession:", e);
             this.switchView('consent');
         }
     },
@@ -1502,7 +1361,7 @@ const app = {
         const now = Date.now();
         if (now < this._captchaBlockedUntil) {
             const secs = Math.ceil((this._captchaBlockedUntil - now) / 1000);
-            this.showToast(`⛔ Demasiados intentos. Espera ${secs}s.`);
+            this.showToast(this.getTrans('toast_captcha_wait').replace('{secs}', secs));
             return;
         }
         const input = document.getElementById('captcha-input');
@@ -1515,9 +1374,9 @@ const app = {
             if (this._captchaFailCount >= 5) {
                 this._captchaBlockedUntil = now + 30000;
                 this._captchaFailCount = 0;
-                this.showToast('⛔ Bloqueado 30 segundos por exceso de intentos.');
+                this.showToast(this.getTrans('toast_captcha_blocked'));
             } else {
-                this.showToast(`⚠️ Código incorrecto. Intento ${this._captchaFailCount}/5.`);
+                this.showToast(this.getTrans('toast_captcha_error').replace('{count}', this._captchaFailCount));
             }
             if (input) input.value = '';
             this.generateCaptcha();
@@ -1528,7 +1387,7 @@ const app = {
         this.haptic('light');
         if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
         if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'checkoutModal'].forEach(m => {
+        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
@@ -1578,7 +1437,7 @@ const app = {
         if (chipsContainerChat) {
             chipsContainerChat.innerHTML = `
                 <div class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate">
-                    <i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${this.escapeHtml(userName)} (Tú)
+                    <i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${this.escapeHtml(userName)} (${this.getTrans('txt_you')})
                 </div>
             `;
         }
@@ -1602,8 +1461,8 @@ const app = {
         const isAudio = file.type.startsWith('audio/');
         
         if (type === 'global' && !isAdminUser && !isCreator) {
-            if (userTier < 2) { this.showToast('⚠️ Requiere VETERAN para enviar fotos.'); return; }
-            if (isVideo && userTier < 3) { this.showToast('⚠️ Requiere LEGEND para videos cortos.'); return; }
+            if (userTier < 2) { this.showToast(this.getTrans('toast_tier_req_photo')); return; }
+            if (isVideo && userTier < 3) { this.showToast(this.getTrans('toast_tier_req_video')); return; }
         }
         
         this.haptic('light'); 
@@ -1614,7 +1473,7 @@ const app = {
         const previewName = document.getElementById(`${type}-chat-preview-name`);
         
         if (isVideo) {
-            if (file.size > 5 * 1024 * 1024) { this.showToast('⚠️ Máx 5MB por video.'); this.clearChatMedia(type); return; }
+            if (file.size > 5 * 1024 * 1024) { this.showToast(this.getTrans('toast_max_video_size')); this.clearChatMedia(type); return; }
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 this.tempChatMediaData = e.target.result; 
@@ -1625,14 +1484,14 @@ const app = {
                         previewVideo.src = e.target.result; 
                         previewVideo.classList.remove('hidden'); 
                     }
-                    if(previewName) previewName.innerText = `Video: ${file.name.substring(0,12)}...`; 
+                    if(previewName) previewName.innerText = `${this.getTrans('txt_video')}: ${file.name.substring(0,12)}...`; 
                 } 
                 if (inputEl) inputEl.focus(); 
-                this.showToast('✅ Video adjunto.'); 
+                this.showToast(this.getTrans('toast_video_attached')); 
             }; 
             reader.readAsDataURL(file);
         } else if (isAudio) {
-            if (file.size > 2 * 1024 * 1024) { this.showToast('⚠️ Máx 2MB por audio.'); this.clearChatMedia(type); return; }
+            if (file.size > 2 * 1024 * 1024) { this.showToast(this.getTrans('toast_max_audio_size')); this.clearChatMedia(type); return; }
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 this.tempChatMediaData = e.target.result; 
@@ -1643,10 +1502,10 @@ const app = {
                         previewVideo.src = ""; 
                         previewVideo.classList.add('hidden'); 
                     }
-                    if(previewName) previewName.innerHTML = `<i class="fa-solid fa-microphone text-[#ffb703] mr-1"></i> Audio: ${file.name.substring(0,12)}...`; 
+                    if(previewName) previewName.innerHTML = `<i class="fa-solid fa-microphone text-[#ffb703] mr-1"></i> ${this.getTrans('txt_audio')}: ${file.name.substring(0,12)}...`; 
                 } 
                 if (inputEl) inputEl.focus(); 
-                this.showToast('✅ Nota de voz adjunta.'); 
+                this.showToast(this.getTrans('toast_audio_attached')); 
             }; 
             reader.readAsDataURL(file);
         } else {
@@ -1661,10 +1520,10 @@ const app = {
                     previewImg.src = this.tempChatMediaData; 
                     previewImg.classList.remove('hidden'); 
                 }
-                if(previewName) previewName.innerText = `Foto: ${file.name.substring(0,12)}...`; 
+                if(previewName) previewName.innerText = `${this.getTrans('txt_photo')}: ${file.name.substring(0,12)}...`; 
             }
             if (inputEl) inputEl.focus(); 
-            this.showToast('✅ Foto adjunta.');
+            this.showToast(this.getTrans('toast_photo_attached'));
         }
     },
 
@@ -1676,7 +1535,7 @@ const app = {
 
     deleteChatMessage(msgId, btnElement) {
         this.haptic('medium');
-        if(confirm('¿Eliminar este contenido del chat?')) {
+        if(confirm(this.getTrans('confirm_delete_chat'))) {
             const bubble = btnElement.closest('.flex-col');
             if(bubble) {
                 bubble.style.transition = 'all 0.3s ease';
@@ -1684,7 +1543,7 @@ const app = {
                 bubble.style.height = '0px';
                 setTimeout(() => bubble.remove(), 300);
             }
-            this.showToast('🗑️ Contenido eliminado.');
+            this.showToast(this.getTrans('toast_chat_deleted'));
         }
     },
 
@@ -1692,7 +1551,7 @@ const app = {
         this.haptic('light');
         const menu = document.getElementById(`media-menu-${msgId}`);
         if(menu) menu.classList.add('hidden');
-        this.showToast('🚨 Contenido reportado al Búnker Admin.');
+        this.showToast(this.getTrans('toast_chat_reported'));
     },
 
     appendChatMessage(msg, containerId) {
@@ -1739,7 +1598,7 @@ const app = {
             html = `<div id="${msgId}" class="flex flex-col items-center my-2 transition-opacity duration-300"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] uppercase tracking-widest px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             setTimeout(() => { const el = document.getElementById(msgId); if(el) { el.style.transition = 'all 0.4s ease'; el.style.opacity = '0'; el.style.height = '0px'; el.style.margin = '0px'; setTimeout(() => el.remove(), 400); } }, 1500); 
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">TÚ • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">${this.getTrans('txt_you')} • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         } else {
             html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
@@ -1782,7 +1641,7 @@ const app = {
         const userRole = this.userData?.role || 'fan', kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified', isAdminUser = this.isAdminUser();
         const input = document.getElementById('global-chat-input'); const text = input ? input.value.trim() : '';
         if (!text && !this.tempChatMediaData) return;
-        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast('⚠️ Requiere KYC para interactuar.'); this.openKYCModal(); return; }
+        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast(this.getTrans('toast_kyc_interact')); this.openKYCModal(); return; }
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
         if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { BunkerChat.initGlobal(this.userId, this.backendUrl); setTimeout(() => { if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { BunkerChat.sendGlobal(payload); if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('global'); } }, 1500); return; }
         if (BunkerChat.sendGlobal(payload)) { if (input) { input.value = ''; input.placeholder = this.getTrans('chat_placeholder'); } this.clearChatMedia('global'); }
@@ -1794,7 +1653,7 @@ const app = {
     async joinVideoBunker() {
         this.haptic('medium'); this.initUserId();
         const isAdminUser = this.isAdminUser(), userTier = this.userData?.access_tier || 0;
-        if (userTier < 4 && !isAdminUser) { this.showToast('⚠️ Acceso denegado. Requiere rango ICON LEGEND.'); this.openCatalogPackages(); return; }
+        if (userTier < 4 && !isAdminUser) { this.showToast(this.getTrans('toast_tier_req_bunker')); this.openCatalogPackages(); return; }
         const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
         if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
         if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
@@ -1822,16 +1681,20 @@ const app = {
         if (selectCam) {
             selectCam.innerHTML = ''; let seen = new Set(), obsFound = false;
             videoDevices.forEach((device, index) => {
-                let original = device.label.toLowerCase(), cleanLabel = `Cámara #${index + 1}`;
-                if (original.includes('obs') || original.includes('virtual')) { cleanLabel = '🎥 OBS Virtual Camera'; obsFound = true; } else if (original.includes('front')) { cleanLabel = '📱 Cámara Frontal'; } else if (original.includes('back')) { cleanLabel = '📱 Cámara Trasera'; } else if (device.label) { cleanLabel = device.label; }
+                let original = device.label.toLowerCase(), cleanLabel = `${this.getTrans('cam_front')} #${index + 1}`;
+                if (original.includes('obs') || original.includes('virtual')) { cleanLabel = `🎥 ${this.getTrans('cam_obs')}`; obsFound = true; } 
+                else if (original.includes('front')) { cleanLabel = `📱 ${this.getTrans('cam_front')}`; } 
+                else if (original.includes('back')) { cleanLabel = `📱 ${this.getTrans('cam_back')}`; } 
+                else if (device.label) { cleanLabel = device.label; }
+                
                 if (!seen.has(cleanLabel)) { seen.add(cleanLabel); const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = cleanLabel; selectCam.appendChild(opt); }
             });
-            if(!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = "🎥 Forzar Capturadora OBS / USB"; selectCam.appendChild(optObs); }
+            if(!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = `🎥 ${this.getTrans('cam_force_obs')}`; selectCam.appendChild(optObs); }
             if (currentStream) { const currentTrack = currentStream.getVideoTracks()[0]; if (currentTrack) { const currentSettings = currentTrack.getSettings(); if (currentSettings.deviceId) selectCam.value = currentSettings.deviceId; } }
         }
         if (selectMic) {
-            selectMic.innerHTML = '<option value="none">🔇 Sin Micrófono</option>';
-            audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `Micrófono #${index + 1}`; selectMic.appendChild(opt); });
+            selectMic.innerHTML = `<option value="none">🔇 ${this.getTrans('mic_none')}</option>`;
+            audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `${this.getTrans('txt_mic')} #${index + 1}`; selectMic.appendChild(opt); });
             if (currentStream && currentStream.getAudioTracks().length > 0) { const currentTrack = currentStream.getAudioTracks()[0]; const currentSettings = currentTrack.getSettings(); if (currentSettings.deviceId) selectMic.value = currentSettings.deviceId; }
         }
     },
@@ -1899,12 +1762,12 @@ const app = {
         const walletConnected = this.tonConnectUI?.connected || localStorage.getItem('alpha_ton_connected') === 'true' || localStorage.getItem('alpha_cc_connected') === 'true';
 
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { 
-            this.showToast('⚠️ Debes verificar tu cuenta (+18) para publicar como creador.'); 
+            this.showToast(this.getTrans('toast_kyc_post_creator')); 
             this.openKYCModal(); 
             return; 
         }
         if (userRole === 'fan' && !walletConnected && !isAdminUser) {
-            this.showToast('⚠️ Vincula tu Billetera o Tarjeta para subir contenido.'); 
+            this.showToast(this.getTrans('toast_wallet_req_post')); 
             this.openPaymentMethods();
             return;
         }
@@ -1933,7 +1796,11 @@ const app = {
 
     toggleAdminSecret() { this.haptic('light'); this.initUserId(); const isAdminUser = this.isAdminUser(); if (isAdminUser) { this.isAdmin = !this.isAdmin; } },
     
-    async previewImage(event) { const file = event.target.files[0]; if (!file) return; this.tempPostMedia = await this.compressImage(file, 1200, 0.75); document.getElementById('txt-upload').innerText = `¡Imagen cargada! 📸 (${file.name})`; },
+    async previewImage(event) { 
+        const file = event.target.files[0]; if (!file) return; 
+        this.tempPostMedia = await this.compressImage(file, 1200, 0.75); 
+        document.getElementById('txt-upload').innerText = this.getTrans('toast_image_loaded').replace('{name}', file.name); 
+    },
 
     async publishPost() {
         this.haptic('medium');
@@ -1946,8 +1813,14 @@ const app = {
         } catch (err) { }
     },
 
-    async deletePost(postId) { if (!confirm('¿Eliminar publicación?')) return; try { await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); this.renderFeed(); } catch (e) {} },
-    async unlockPostContent(postId, priceAlpha) { try { const res = await fetch(`${this.backendUrl}/posts/unlock`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); if (res.ok) { await this.refreshUserData(); await this.renderFeed(); } } catch (e) {} },
+    async deletePost(postId) { if (!confirm(this.getTrans('confirm_delete_post'))) return; try { await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); this.renderFeed(); } catch (e) {} },
+    
+    async unlockPostContent(postId, priceAlpha) { 
+        try { 
+            const res = await fetch(`${this.backendUrl}/posts/unlock`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); 
+            if (res.ok) { await this.refreshUserData(); await this.renderFeed(); } 
+        } catch (e) {} 
+    },
     
     toggleLike(postId) {
         let liked = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
@@ -1962,7 +1835,10 @@ const app = {
             const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
             const data = res.ok ? await res.json() : {}; const posts = data.posts || [];
             const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
-            if (posts.length === 0) { feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">Aún no hay publicaciones en el Búnker.</div>`; return; }
+            if (posts.length === 0) { 
+                feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">${this.getTrans('msg_no_posts')}</div>`; 
+                return; 
+            }
 
             feedContainer.innerHTML = posts.map(post => {
                 const isLiked = likedPosts.includes(post.id), isAdminUser = this.isAdminUser(), isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
@@ -1989,26 +1865,26 @@ const app = {
                         ${post.is_locked ? `
                             <div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3">
                                 <i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i>
-                                <p class="text-sm font-bold text-amber-300">CONTENIDO EXCLUSIVO BLOQUEADO</p>
+                                <p class="text-sm font-bold text-amber-300">${this.getTrans('txt_protected_content')}</p>
                                 <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">
-                                    🔓 DESBLOQUEAR (${post.price_alpha || 20} $ALPHA)
+                                    🔓 ${this.getTrans('btn_unlock')} (${post.price_alpha || 20} $ALPHA)
                                 </button>
                             </div>
                         ` : (post.media_url ? `<img src="${this.sanitizeUrl(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
                         
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
                             <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
-                                <i class="fa-solid fa-heart"></i> Like
+                                <i class="fa-solid fa-heart"></i> ${this.getTrans('btn_like')}
                             </button>
                             <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
-                                🪙 Propina
+                                🪙 ${this.getTrans('btn_tip')}
                             </button>
                         </div>
                     </div>
                 `;
             }).join('');
         } catch (e) {
-            container.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">Error cargando perfil.</div>`;
+            feedContainer.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">${this.getTrans('msg_error_profile')}</div>`;
         }
     },
 
@@ -2037,7 +1913,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.addEventListener('contextmenu', event => event.preventDefault());
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('CONTENIDO PROTEGIDO BÚNKER'); app.showToast('⚠️ Capturas bloqueadas.'); }
+        if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText(app.getTrans('txt_protected_content')); app.showToast(app.getTrans('toast_screenshots_blocked')); }
         if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
     });
 });
