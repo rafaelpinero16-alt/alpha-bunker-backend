@@ -57,8 +57,17 @@ const BunkerChat = {
         this.globalSocket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
+                
+                // 📡 Interceptores Estratégicos de WebRTC y Radar en el Chat Global
                 if (data.is_error) {
                     if (typeof app !== 'undefined') app.showToast(data.message);
+                } else if (data.type && data.type.startsWith('webrtc_')) {
+                    if (typeof app !== 'undefined') app.handleWebRTCMessage(data);
+                } else if (data.type === 'radar_update') {
+                    if (typeof app !== 'undefined') app.handleRadarUpdate(data);
+                } else if (data.type === 'delete_msg') {
+                    const bubble = document.getElementById(`media-menu-${data.msg_id}`)?.closest('.flex-col');
+                    if(bubble) bubble.remove();
                 } else {
                     if (typeof app !== 'undefined') {
                         app.appendChatMessage(data, 'global-chat-messages');
