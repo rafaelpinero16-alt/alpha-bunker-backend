@@ -410,8 +410,7 @@ const app = {
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
         
         const walletConnected = (this.tonConnectUI && this.tonConnectUI.connected) || localStorage.getItem('alpha_ton_connected') === 'true';
-        const ccConnected = localStorage.getItem('alpha_cc_connected') === 'true';
-        const hasPaymentMethod = walletConnected || ccConnected;
+        const hasPaymentMethod = walletConnected;
 
         let warningText = "";
         if(this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label')}: ${this.userData.warnings}/5`;
@@ -612,7 +611,6 @@ const app = {
                         <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">${this.getTrans('pay_methods_title')}</h3>
                         <p class="text-xs text-neutral-300 text-center mb-6">${this.getTrans('pay_methods_desc')}</p>
                         <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> ${this.getTrans('btn_connect_ton')}</button>
-                        <button onclick="app.connectCreditCard()" class="bg-neutral-800 border border-neutral-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase hover:bg-neutral-700 active:scale-95 transition"><i class="fa-solid fa-credit-card text-xl"></i> ${this.getTrans('btn_credit_card')}</button>
                         <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">${this.getTrans('btn_cancel')}</button>
                     </div>
                 </div>
@@ -621,134 +619,6 @@ const app = {
             modal = document.getElementById('modal-payment-methods');
         }
         modal.classList.remove('hidden');
-    },
-
-    connectCreditCard() {
-        this.haptic('medium');
-        this.closeModals();
-        let modal = document.getElementById('modal-cc-form');
-        if (!modal) {
-            const modalHTML = `
-                <div id="modal-cc-form" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
-                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                            <h3 class="text-lg font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-lock mr-2"></i> ${this.getTrans('cc_modal_title')}</h3>
-                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
-                        </div>
-                        <div class="space-y-3 flex-1 overflow-y-auto pr-1 mt-2">
-                            <div>
-                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_number')}</label>
-                                <input type="text" id="cc-number" placeholder="4532 1234 5678 8921" maxlength="19" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/(.{4})/g, '$1 ').trim()" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_name')}</label>
-                                <input type="text" id="cc-name" placeholder="Felipe Sanchez" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium" />
-                            </div>
-                            <div class="grid grid-cols-2 gap-2">
-                                <div class="relative">
-                                    <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_expiry')}</label>
-                                    <input type="text" id="cc-expiry" placeholder="MM/AA" maxlength="5" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium text-center" />
-                                </div>
-                                <div class="relative">
-                                    <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_cvv')}</label>
-                                    <input type="password" id="cc-cvv" placeholder="•••" maxlength="4" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium text-center" />
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest block mb-1">${this.getTrans('cc_label_bank')}</label>
-                                <select id="cc-bank" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs w-full text-white focus:border-[#00f3ff] outline-none font-medium">
-                                    <option value="" disabled selected>${this.getTrans('cc_select_bank')}</option>
-                                    <option value="JPMorgan Chase">JPMorgan Chase</option>
-                                    <option value="Bank of America">Bank of America</option>
-                                    <option value="Citibank">Citibank</option>
-                                    <option value="HSBC">HSBC</option>
-                                    <option value="Santander">Santander</option>
-                                    <option value="BBVA">BBVA</option>
-                                    <option value="Bancolombia">Bancolombia</option>
-                                    <option value="Nubank">Nubank</option>
-                                    <option value="Revolut">Revolut</option>
-                                    <option value="Wise">Wise</option>
-                                    <option value="N26">N26</option>
-                                    <option value="Other International Bank">Otro Banco Internacional</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mt-5 pt-3 border-t border-[#00f3ff]/30 flex gap-2">
-                            <button onclick="app.openPaymentMethods()" class="w-1/2 bg-neutral-800 border border-neutral-600 text-white py-3 rounded-xl text-xs font-black uppercase transition">${this.getTrans('btn_back')}</button>
-                            <button onclick="app.saveCreditCardData()" class="w-1/2 bg-[#00f3ff] text-black py-3 rounded-xl text-xs font-black uppercase shadow-[0_0_10px_rgba(0,243,255,0.5)] transition">${this.getTrans('btn_save_bio')}</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            modal = document.getElementById('modal-cc-form');
-        }
-        modal.classList.remove('hidden');
-    },
-
-    saveCreditCardData() {
-        this.haptic('medium');
-        const numInput = document.getElementById('cc-number');
-        const nameInput = document.getElementById('cc-name');
-        const expiryInput = document.getElementById('cc-expiry');
-        const cvvInput = document.getElementById('cc-cvv');
-        const bankSelect = document.getElementById('cc-bank');
-
-        const num = numInput?.value.trim();
-        const name = nameInput?.value.trim();
-        const expiry = expiryInput?.value.trim();
-        const cvv = cvvInput?.value.trim();
-        const bank = bankSelect?.value;
-
-        if (!num || !name || !bank || !expiry || !cvv) {
-            this.showToast(this.getTrans('toast_cc_empty'));
-            return;
-        }
-
-        if(num.replace(/\D/g,'').length < 13) {
-            this.showToast(this.getTrans('toast_cc_invalid'));
-            return;
-        }
-
-        const maskedCard = {
-            last4: num.slice(-4),
-            bank: bank,
-            token: "tok_alpha_" + Math.random().toString(36).substr(2, 10),
-            connected_at: new Date().toISOString()
-        };
-
-        localStorage.setItem('alpha_cc_data', JSON.stringify(maskedCard));
-        localStorage.setItem('alpha_cc_connected', 'true');
-        
-        numInput.value = ''; nameInput.value = ''; expiryInput.value = ''; cvvInput.value = ''; bankSelect.selectedIndex = 0;
-        
-        this.showToast(this.getTrans('toast_cc_linked'));
-        this.closeModals();
-        this.updateProfileUI();
-    },
-
-    payWithCreditCard(alphaAmount, targetLevel = null) {
-        this.haptic('heavy');
-        
-        const ccData = JSON.parse(localStorage.getItem('alpha_cc_data') || '{}');
-        if(!ccData.token) {
-            this.showToast(this.getTrans('toast_cc_sec_error'));
-            this.openPaymentMethods();
-            return;
-        }
-
-        this.showToast(this.getTrans('toast_cc_processing').replace('{amount}', alphaAmount));
-        
-        setTimeout(() => {
-            this.showToast(this.getTrans('toast_payment_completed'));
-            this.triggerFireworks();
-            this.refreshUserData();
-            setTimeout(async () => {
-                await this.syncKYCStatus();
-                let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
-                this.showLevelUpAnimation(finalLevel);
-            }, 1500);
-        }, 2000);
     },
 
     openFavoritesModal() {
@@ -1142,7 +1012,6 @@ const app = {
             const lBinance = esc(this.getTrans('btn_pay_binance'));
             const lPayoneer = esc(this.getTrans('btn_pay_payoneer'));
             const lManual = esc(this.getTrans('btn_pay_manual'));
-            const lCC = esc(this.getTrans('btn_credit_card'));
             const lTon    = esc(this.getTrans('btn_connect_ton'));
 
             const modalHTML = `
@@ -1163,9 +1032,6 @@ const app = {
                                 <i class="fa-brands fa-paypal text-xl"></i> ${lPayoneer}
                             </button>
                             <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
-                                <button onclick="app.connectCreditCard()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 transition active:scale-95 mb-3 shadow-[0_0_10px_rgba(255,255,255,0.1)]">
-                                    <i class="fa-solid fa-credit-card text-xl"></i> ${lCC}
-                                </button>
                                 <button onclick="app.openManualPayment()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-[#00f3ff] border border-[#00f3ff]/50 font-black py-3.5 rounded-xl shadow-[0_0_10px_rgba(0,243,255,0.2)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
                                     <i class="fa-solid fa-building-columns text-xl"></i> ${lManual}
                                 </button>
@@ -1567,7 +1433,7 @@ const app = {
         this.haptic('light');
         if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
         if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment'].forEach(m => {
+        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
@@ -1939,7 +1805,7 @@ const app = {
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const userRole = this.userData?.role || 'fan';
         const isAdminUser = this.isAdminUser();
-        const walletConnected = this.tonConnectUI?.connected || localStorage.getItem('alpha_ton_connected') === 'true' || localStorage.getItem('alpha_cc_connected') === 'true';
+        const walletConnected = this.tonConnectUI?.connected || localStorage.getItem('alpha_ton_connected') === 'true';
 
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { 
             this.showToast(this.getTrans('toast_kyc_post_creator')); 
