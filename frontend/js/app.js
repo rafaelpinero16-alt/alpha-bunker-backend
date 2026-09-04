@@ -475,7 +475,6 @@ const app = {
                     btn.classList.replace('text-[#00f3ff]', 'text-[#ff00ff]');
                 });
 
-                // Nueva tarjeta de términos B2B con botón de retiro inyectada de forma limpia
                 let payoutInfoBox = document.getElementById('creator-payout-terms-card');
                 if (!payoutInfoBox && creatorSubBox) {
                     payoutInfoBox = document.createElement('div');
@@ -791,7 +790,6 @@ const app = {
         if(successCount > 0) this.closeModals();
     },
 
-    // 🛡️ Lógica Visual del Modal de Retiros B2B
     async openPayoutModal() {
         this.closeModals();
         this.initUserId();
@@ -1090,7 +1088,6 @@ const app = {
             return;
         }
 
-        // ⚠️ IMPORTANTE: Reemplaza esto con tu wallet real de TON
         const MASTER_TON_WALLET = "UQAAnX4bGBzI0ujk35-XChap_wZ7x67NeJ85C_M1YIvLbYUF"; 
 
         const nanoTonAmount = Math.round(priceTon * 1e9).toString();
@@ -1421,6 +1418,42 @@ const app = {
             setTimeout(() => { if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); } }, 5000);
         } catch (err) { this.showToast(this.getTrans('toast_cam_error')); }
     },
+    async startAudioRecorder(type) {
+        document.getElementById('global-media-menu')?.classList.add('hidden');
+        this.haptic('medium');
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            let mediaRecorder;
+            let chunks = [];
+            try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
+
+            this.showToast('🎙️ Grabando nota de voz...');
+            mediaRecorder.ondataavailable = e => chunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.tempChatMediaData = e.target.result;
+                    const previewContainer = document.getElementById(`${type}-chat-preview-container`);
+                    const previewVideo = document.getElementById(`${type}-chat-preview-video`);
+                    const previewImg = document.getElementById(`${type}-chat-preview-img`);
+                    const previewName = document.getElementById(`${type}-chat-preview-name`);
+                    if (previewContainer) {
+                        previewContainer.classList.remove('hidden');
+                        if (previewImg) previewImg.classList.add('hidden');
+                        if (previewVideo) { previewVideo.src = ""; previewVideo.classList.add('hidden'); }
+                        if (previewName) previewName.innerHTML = `<i class="fa-solid fa-microphone text-[#ffb703] mr-1"></i> Nota de voz lista 🎵`;
+                    }
+                    this.showToast('✅ Audio listo para enviar');
+                };
+                reader.readAsDataURL(blob);
+                stream.getTracks().forEach(track => track.stop());
+            };
+
+            mediaRecorder.start();
+            setTimeout(() => { if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); } }, 15000); 
+        } catch (err) { this.showToast('⚠️ Error al acceder al micrófono.'); }
+    },
 
     triggerAvatarInput() { this.haptic('light'); const input = document.getElementById('avatar-file-input'); if (input) input.click(); },
     
@@ -1690,14 +1723,14 @@ const app = {
         
         if (chipsContainerChat) {
             chipsContainerChat.innerHTML = `
-                <div class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate">
+                <div onclick="app.viewCreatorProfile(${this.userId || 99999}, '${this.escapeHtml(userName)}')" class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate cursor-pointer hover:bg-neutral-800 transition">
                     <i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${this.escapeHtml(userName)} (${this.getTrans('txt_you')})
                 </div>
             `;
         }
         if(chipsContainerVideo) {
             chipsContainerVideo.innerHTML = `
-                <div class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate">
+                <div onclick="app.viewCreatorProfile(${this.userId || 99999}, '${this.escapeHtml(userName)}')" class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate cursor-pointer hover:bg-neutral-800 transition">
                     <i class="fa-solid fa-circle text-[4px] text-amber-500"></i> @${this.escapeHtml(userName)}
                 </div>
             `;
@@ -1786,18 +1819,28 @@ const app = {
         const uploadInput = document.getElementById(`${type}-media-upload`), previewContainer = document.getElementById(`${type}-chat-preview-container`), previewImg = document.getElementById(`${type}-chat-preview-img`), previewVideo = document.getElementById(`${type}-chat-preview-video`);
         if (uploadInput) uploadInput.value = ''; if (previewContainer) previewContainer.classList.add('hidden'); if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); } if (previewVideo) { previewVideo.src = ''; previewVideo.classList.add('hidden'); }
     },
-
-    deleteChatMessage(msgId, btnElement) {
+    async deleteChatMessage(msgId, btnElement, realMsgId) {
         this.haptic('medium');
         if(confirm(this.getTrans('confirm_delete_chat'))) {
-            const bubble = btnElement.closest('.flex-col');
-            if(bubble) {
-                bubble.style.transition = 'all 0.3s ease';
-                bubble.style.opacity = '0';
-                bubble.style.height = '0px';
-                setTimeout(() => bubble.remove(), 300);
+            try {
+                if (realMsgId) {
+                    await fetch(`${this.backendUrl}/chat/delete_message`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: this.userId, msg_id: realMsgId })
+                    });
+                }
+                const bubble = btnElement.closest('.flex-col');
+                if(bubble) {
+                    bubble.style.transition = 'all 0.3s ease';
+                    bubble.style.opacity = '0';
+                    bubble.style.height = '0px';
+                    setTimeout(() => bubble.remove(), 300);
+                }
+                this.showToast(this.getTrans('toast_chat_deleted'));
+            } catch(e) {
+                console.error(e);
             }
-            this.showToast(this.getTrans('toast_chat_deleted'));
         }
     },
 
@@ -1829,7 +1872,7 @@ const app = {
                         <i class="fa-solid fa-ellipsis-vertical"></i>
                     </button>
                     <div id="media-menu-${uniqueId}" class="hidden absolute right-0 mt-2 w-36 bg-neutral-900 border border-neutral-700 rounded-xl shadow-[0_0_20px_rgba(0,0,0,0.9)] overflow-hidden flex flex-col z-20">
-                        ${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this)" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800 transition flex items-center"><i class="fa-solid fa-trash-can mr-2"></i> ${this.getTrans('btn_delete')}</button>` : ''}
+                        ${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this, ${msg.id})" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800 transition flex items-center"><i class="fa-solid fa-trash-can mr-2"></i> ${this.getTrans('btn_delete')}</button>` : ''}
                         <button onclick="app.reportChatMessage('${uniqueId}', this)" class="px-4 py-3 text-xs font-black text-amber-400 hover:bg-neutral-800 text-left w-full transition flex items-center"><i class="fa-solid fa-flag mr-2"></i> ${this.getTrans('btn_report')}</button>
                     </div>
                 </div>
@@ -1854,7 +1897,7 @@ const app = {
         } else if (isMe) {
             html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1 flex items-center gap-1">${this.getTrans('txt_you')} • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         } else {
-            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black">@${safeAuthorName}</span> • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1 flex items-center gap-1"><span class="text-[#00f3ff] font-black cursor-pointer hover:underline" onclick="app.viewCreatorProfile(${msg.user_id}, '${safeAuthorName}')">@${safeAuthorName}</span> • <div class="relative inline-block w-3 h-3"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[4px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
     },
