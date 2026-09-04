@@ -158,7 +158,10 @@ const app = {
         }
     },
 
-    closeSettingsModal() { this.haptic('light'); document.getElementById('modal-settings')?.classList.add('hidden'); },
+    closeSettingsModal() { 
+        this.haptic('light'); 
+        document.getElementById('modal-settings')?.classList.add('hidden'); 
+    },
 
     async updateUsernameSettings() {
         this.haptic('medium');
@@ -190,7 +193,9 @@ const app = {
             });
         } catch(e) {}
 
-        this.updateProfileUI(); this.showToast(this.getTrans('toast_alias_updated')); this.closeSettingsModal();
+        this.updateProfileUI(); 
+        this.showToast(this.getTrans('toast_alias_updated')); 
+        this.closeSettingsModal();
     },
 
     updatePasswordSettings() {
@@ -199,7 +204,9 @@ const app = {
         const newPassInput = document.getElementById('settings-new-pass');
         const confirmPassInput = document.getElementById('settings-confirm-pass');
         
-        const oldPass = oldPassInput?.value.trim(); const newPass = newPassInput?.value.trim(); const confirmPass = confirmPassInput?.value.trim();
+        const oldPass = oldPassInput?.value.trim(); 
+        const newPass = newPassInput?.value.trim(); 
+        const confirmPass = confirmPassInput?.value.trim();
         const currentSavedPass = localStorage.getItem('alpha_user_pass') || '';
 
         if (!oldPass || !newPass || !confirmPass) { this.showToast(this.getTrans('toast_pwd_empty')); return; }
@@ -209,15 +216,17 @@ const app = {
 
         localStorage.setItem('alpha_user_pass', newPass);
         this.showToast(`🔒 ${this.getTrans('pwd_changed_success')}`);
-        oldPassInput.value = ''; newPassInput.value = ''; if (confirmPassInput) confirmPassInput.value = '';
+        oldPassInput.value = ''; 
+        newPassInput.value = ''; 
+        if (confirmPassInput) confirmPassInput.value = '';
         this.closeSettingsModal();
     },
 
     async checkSession() {
         try {
             this.initUserId(); 
-            this.initTonConnect().catch(e => console.log(e)); 
             this.initTheme();
+            this.initTonConnect().catch(e => console.warn('[TON] Esperando interacción de wallet:', e));
             
             const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
             this.currentLang = savedLang;
@@ -225,28 +234,17 @@ const app = {
             if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
-            if (!document.getElementById('view-splash')) {
-                const splashHTML = `
-                    <div id="view-splash" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-1000">
-                        <img src="./assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-40 h-40 object-cover rounded-full shadow-[0_0_30px_#00f3ff] animate-pulse mb-6">
-                        <h1 class="text-3xl font-black text-[#00f3ff] tracking-widest uppercase" style="font-family: 'Orbitron', sans-serif; text-shadow: 0 0 15px #00f3ff;">Alpha App</h1>
-                        <div class="mt-8 flex items-center justify-center gap-2">
-                            <div class="w-3 h-3 bg-[#ff00ff] rounded-full animate-bounce"></div>
-                            <div class="w-3 h-3 bg-[#00f3ff] rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                            <div class="w-3 h-3 bg-[#ffb703] rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('afterbegin', splashHTML);
-            }
-            
-            document.querySelectorAll('[id^="view-"]').forEach(el => { if(el.id !== 'view-splash') el.classList.add('hidden'); });
+            const splash = document.getElementById('view-splash');
+            if (splash) splash.classList.remove('hidden');
+
+            document.querySelectorAll('[id^="view-"]').forEach(el => { 
+                if(el.id !== 'view-splash') el.classList.add('hidden'); 
+            });
 
             setTimeout(() => {
-                const splash = document.getElementById('view-splash');
                 if (splash) {
                     splash.classList.add('opacity-0');
-                    setTimeout(() => splash.classList.add('hidden'), 1000);
+                    setTimeout(() => splash.classList.add('hidden'), 500);
                 }
                 
                 const activeLogin = localStorage.getItem('alpha_logged_in');
@@ -300,9 +298,13 @@ const app = {
     },
 
     generateCaptcha() {
-        this.haptic('light'); const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
+        this.haptic('light'); 
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
+        let code = '';
         for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-        this.currentCaptcha = code; const display = document.getElementById('captcha-display'); if (display) display.innerText = code;
+        this.currentCaptcha = code; 
+        const display = document.getElementById('captcha-display'); 
+        if (display) display.innerText = code;
     },
 
     verifyCaptcha() {
@@ -339,10 +341,18 @@ const app = {
             this.generateCaptcha();
         }
     },
+
     switchView(viewName) {
-        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
+        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { 
+            const el = document.getElementById(`view-${v}`); 
+            if (el) el.classList.add('hidden'); 
+        });
         const targetView = document.getElementById(`view-${viewName}`);
-        if (targetView) { targetView.classList.remove('hidden'); window.scrollTo(0, 0); if (viewName !== 'lang') this.lastView = viewName; }
+        if (targetView) { 
+            targetView.classList.remove('hidden'); 
+            window.scrollTo(0, 0); 
+            if (viewName !== 'lang') this.lastView = viewName; 
+        }
     },
 
     showLevelUpAnimation(rankLevel) {
@@ -574,6 +584,7 @@ const app = {
         }
         this.updateOnlineStatusUI();
     },
+
     updateViewsCounter() {
         let views = parseInt(localStorage.getItem('alpha_real_views') || '0') + 1;
         localStorage.setItem('alpha_real_views', views.toString());
@@ -634,7 +645,8 @@ const app = {
 
     async connectWallet() {
         try {
-            this.haptic('medium'); this.initUserId(); 
+            this.haptic('medium'); 
+            this.initUserId(); 
             if (!this.tonConnectUI) await this.initTonConnect();
             if (!this.tonConnectUI) { this.showToast(this.getTrans('toast_ton_not_loaded')); return; }
             if (this.tonConnectUI.connected) {
@@ -646,6 +658,30 @@ const app = {
                 }
             } else { await this.tonConnectUI.openModal(); }
         } catch (err) {}
+    },
+
+    closeModals() {
+        this.haptic('light');
+        if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
+        if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
+        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment', 'modal-payout-request', 'modal-av-settings'].forEach(m => {
+            document.getElementById(m)?.classList.add('hidden');
+        });
+    },
+
+    openProfile() { 
+        this.closeModals(); 
+        document.getElementById('modal-profile')?.classList.remove('hidden'); 
+        this.syncKYCStatus(); 
+        this.updateProfileUI(); 
+        this.refreshUserData(); 
+    },
+
+    openMenuModal() { this.openCatalogPackages(); },
+
+    openCommunitiesModal() { 
+        this.closeModals(); 
+        this.showToast('Accediendo al canal de la comunidad...'); 
     },
 
     openPaymentMethods() {
@@ -668,7 +704,8 @@ const app = {
         modal.classList.remove('hidden');
     },
     openFavoritesModal() {
-        this.closeModals(); this.initUserId();
+        this.closeModals(); 
+        this.initUserId();
         let modal = document.getElementById('modal-favorites-edit');
         if (!modal) {
             const modalHTML = `
@@ -721,7 +758,8 @@ const app = {
     },
 
     async openTipMenuManagementModal() {
-        this.closeModals(); this.initUserId();
+        this.closeModals(); 
+        this.initUserId();
         let modal = document.getElementById('modal-tip-menu-edit');
         if (!modal) {
             const modalHTML = `
@@ -755,7 +793,9 @@ const app = {
     },
 
     async saveAllTipSlots() {
-        this.haptic('heavy'); this.initUserId(); this.showToast(this.getTrans('toast_tip_saving'));
+        this.haptic('heavy'); 
+        this.initUserId(); 
+        this.showToast(this.getTrans('toast_tip_saving'));
         let successCount = 0;
         for (let i = 1; i <= 10; i++) {
             const title = document.getElementById(`tip-title-${i}`)?.value.trim() || '';
@@ -772,7 +812,8 @@ const app = {
     },
 
     async openPayoutModal() {
-        this.closeModals(); this.initUserId();
+        this.closeModals(); 
+        this.initUserId();
         let modal = document.getElementById('modal-payout-request');
         if (!modal) {
             const modalHTML = `
@@ -828,7 +869,8 @@ const app = {
     },
 
     async submitPayoutRequest() {
-        this.haptic('heavy'); this.initUserId();
+        this.haptic('heavy'); 
+        this.initUserId();
         const amountInput = document.getElementById('payout-amount-input');
         const methodSelect = document.getElementById('payout-method-select');
         const detailsInput = document.getElementById('payout-account-details');
@@ -848,13 +890,15 @@ const app = {
             const data = await res.json();
             if (res.ok && data.status === 'success') {
                 this.showToast('✅ Solicitud enviada (Sujeta a 90 días de retención).');
-                this.closeModals(); this.refreshUserData();
+                this.closeModals(); 
+                this.refreshUserData();
             } else { this.showToast(`⚠️ Error: ${data.detail || 'No se pudo procesar'}`); }
         } catch (err) { this.showToast('⚠️ Error de conexión con el servidor.'); }
     },
 
     async viewCreatorProfile(creatorId, creatorName) {
-        this.haptic('medium'); this.closeModals();
+        this.haptic('medium'); 
+        this.closeModals();
         this.showToast(this.getTrans('toast_profile_connecting').replace('{name}', creatorName));
         let avatarHtml = `<i class="fa-solid fa-user-astronaut text-4xl text-[#ffb703]"></i>`;
         try {
@@ -936,7 +980,8 @@ const app = {
     },
 
     async openFanTipMenu(creatorId, postId, creatorName) {
-        this.closeModals(); this.initUserId();
+        this.closeModals(); 
+        this.initUserId();
         let modal = document.getElementById('modal-fan-tip-menu');
         if (!modal) {
             const modalHTML = `
@@ -971,7 +1016,8 @@ const app = {
     },
 
     async buyPackageStars(packageSlug, targetLevel = null) {
-        this.haptic('medium'); this.initUserId();
+        this.haptic('medium'); 
+        this.initUserId();
         this.showToast(this.getTrans('toast_invoice_gen'));
         try {
             const res = await fetch(`${this.backendUrl}/payments/create-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug }) });
@@ -1001,7 +1047,8 @@ const app = {
     },
 
     async rechargeAlphaCoins(priceTon, alphaTotal, targetLevel = null) {
-        this.haptic('medium'); this.initUserId();
+        this.haptic('medium'); 
+        this.initUserId();
         if (!this.tonConnectUI || !this.tonConnectUI.connected) { this.showToast(this.getTrans('toast_connect_ton_req') || '⚠️ Conecta tu billetera TON primero.'); this.openPaymentMethods(); return; }
         const MASTER_TON_WALLET = "UQAAnX4bGBzI0ujk35-XChap_wZ7x67NeJ85C_M1YIvLbYUF"; 
         const nanoTonAmount = Math.round(priceTon * 1e9).toString();
@@ -1017,9 +1064,11 @@ const app = {
                 });
                 const data = await res.json();
                 if (res.ok && data.status === 'success') {
-                    this.haptic('heavy'); this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
+                    this.haptic('heavy'); 
+                    this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
                     setTimeout(async () => {
-                        await this.syncKYCStatus(); await this.refreshUserData();
+                        await this.syncKYCStatus(); 
+                        await this.refreshUserData();
                         let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
                         if (finalLevel > this.userData.access_tier) this.showLevelUpAnimation(finalLevel);
                     }, 1500);
@@ -1090,13 +1139,12 @@ const app = {
         
         let modal = document.getElementById('modal-external-checkout');
         if (!modal) {
-            const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
             const modalHTML = `
                 <div id="modal-external-checkout" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
                     <div class="glass-panel border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative max-h-[90vh] overflow-y-auto">
                         <button onclick="app.closeCheckout()" class="absolute top-4 right-4 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
                         <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">Recarga Táctica</h2>
-                        <div class="space-y-3">
+                        <div class="space-y-3 mt-4">
                             <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] text-white font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Skrill</button>
                             <button onclick="app.processOneClickPay('binance')" class="w-full bg-[#f3ba2f] text-black font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Binance Pay</button>
                             <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-[#ff4800] text-white font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2">Payoneer</button>
@@ -1131,7 +1179,6 @@ const app = {
         this.closeModals();
         let modal = document.getElementById('modal-manual-payment');
         if (!modal) {
-            const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
             const modalHTML = `
                 <div id="modal-manual-payment" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
@@ -1158,6 +1205,7 @@ const app = {
         document.getElementById('modal-external-checkout')?.classList.add('hidden');
         document.getElementById('checkoutModal')?.classList.add('hidden');
     },
+
     triggerGlobalMediaUpload(acceptType) {
         document.getElementById('global-media-menu')?.classList.add('hidden');
         const fileInput = document.getElementById('global-media-upload');
@@ -1169,7 +1217,8 @@ const app = {
         this.haptic('medium');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-            let mediaRecorder; let chunks = [];
+            let mediaRecorder; 
+            let chunks = [];
             try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
             this.showToast('Grabando selfie...');
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
@@ -1196,7 +1245,8 @@ const app = {
         this.haptic('medium');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            let mediaRecorder; let chunks = [];
+            let mediaRecorder; 
+            let chunks = [];
             try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
             this.showToast('🎙️ Grabando...');
             mediaRecorder.ondataavailable = e => chunks.push(e.data);
@@ -1217,11 +1267,16 @@ const app = {
         } catch (err) { this.showToast('Error de micrófono'); }
     },
 
-    triggerAvatarInput() { this.haptic('light'); document.getElementById('avatar-file-input')?.click(); },
+    triggerAvatarInput() { 
+        this.haptic('light'); 
+        document.getElementById('avatar-file-input')?.click(); 
+    },
     
     async handleAvatarChange(event) {
-        const file = event.target.files[0]; if (!file) return;
-        this.haptic('light'); this.showToast('Optimizando foto...');
+        const file = event.target.files[0]; 
+        if (!file) return;
+        this.haptic('light'); 
+        this.showToast('Optimizando foto...');
         const avatarUrl = await this.compressImage(file, 400, 0.8);
         localStorage.setItem('alpha_user_avatar', avatarUrl);
         const avatarImg = document.getElementById('prof-avatar-img'), avatarFeed = document.getElementById('avatar-feed');
@@ -1240,16 +1295,24 @@ const app = {
         try {
             await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: newName, bio: newBio, avatar: localStorage.getItem('alpha_user_avatar') }) });
         } catch(e) {}
-        this.showToast('Perfil guardado'); this.updateProfileUI();
+        this.showToast('Perfil guardado'); 
+        this.updateProfileUI();
     },
 
-    openKYCModal() { this.closeModals(); document.getElementById('modal-kyc')?.classList.remove('hidden'); },
+    openKYCModal() { 
+        this.closeModals(); 
+        document.getElementById('modal-kyc')?.classList.remove('hidden'); 
+    },
+
     async handleKYCDocPreview(event) {
-        const file = event.target.files[0]; if (!file) return;
+        const file = event.target.files[0]; 
+        if (!file) return;
         this.tempKYCDoc = await this.compressImage(file, 1200, 0.75);
     },
+
     async handleKYCSelfiePreview(event) {
-        const file = event.target.files[0]; if (!file) return;
+        const file = event.target.files[0]; 
+        if (!file) return;
         this.tempKYCSelfie = await this.compressImage(file, 1024, 0.75);
     },
 
@@ -1257,7 +1320,8 @@ const app = {
         this.haptic('medium');
         const legalName = document.getElementById('kyc-legal-name')?.value.trim();
         if (!legalName || !this.tempKYCDoc || !this.tempKYCSelfie) { this.showToast('Completa los campos KYC'); return; }
-        this.initUserId(); this.showToast('Enviando KYC...');
+        this.initUserId(); 
+        this.showToast('Enviando KYC...');
         try {
             const res = await fetch(`${this.backendUrl}/kyc/submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, legal_name: legalName, document_base64: this.tempKYCDoc, selfie_base64: this.tempKYCSelfie }) });
             if (res.ok) { localStorage.setItem('alpha_kyc_status', 'pending'); this.showToast('KYC enviado'); this.closeModals(); this.updateProfileUI(); }
@@ -1265,7 +1329,8 @@ const app = {
     },
 
     setRegisterRole(role) {
-        this.haptic('light'); this.registerRoleSelected = role;
+        this.haptic('light'); 
+        this.registerRoleSelected = role;
         const btnFan = document.getElementById('reg-role-fan'), btnCreator = document.getElementById('reg-role-creator');
         if (role === 'fan') {
             btnFan?.classList.replace('border-neutral-700', 'border-[#ff00ff]'); btnFan?.classList.replace('bg-black', 'bg-[#ff00ff]/20'); btnFan?.classList.replace('text-neutral-400', 'text-white');
@@ -1292,11 +1357,17 @@ const app = {
         }
         localStorage.setItem('alpha_logged_in', 'true'); 
         localStorage.setItem('alpha_user_role', this.registerRoleSelected);
-        this.switchView('feed'); this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
+        this.switchView('feed'); 
+        this.syncKYCStatus(); 
+        this.updateProfileUI(); 
+        this.updateViewsCounter(); 
+        this.refreshUserData(); 
+        this.renderFeed();
     },
 
     async loginWithPhone() {
-        this.haptic('medium'); const phone = document.getElementById('phone-input')?.value.trim();
+        this.haptic('medium'); 
+        const phone = document.getElementById('phone-input')?.value.trim();
         if (!phone) { this.showToast('Ingresa tu teléfono'); return; }
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
@@ -1304,11 +1375,18 @@ const app = {
         this.initUserId();
         localStorage.setItem('alpha_logged_in', 'true'); 
         if(!existingName || existingName === 'USER') localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
-        this.switchView('feed'); await this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
+        this.switchView('feed'); 
+        await this.syncKYCStatus(); 
+        this.updateProfileUI(); 
+        this.updateViewsCounter(); 
+        this.refreshUserData(); 
+        this.renderFeed();
     },
 
     async loginWithTelegram() { 
-        this.haptic('medium'); this.initUserId(); localStorage.setItem('alpha_logged_in', 'true'); 
+        this.haptic('medium'); 
+        this.initUserId(); 
+        localStorage.setItem('alpha_logged_in', 'true'); 
         try { 
             const initData = window.Telegram?.WebApp?.initData || "";
             const res = await fetch(`${this.backendUrl}/users/sync`, { 
@@ -1322,7 +1400,12 @@ const app = {
                 if(data.user.name) localStorage.setItem('alpha_user_name', data.user.name);
             }
         } catch (e) {}
-        this.switchView('feed'); this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); this.refreshUserData(); this.renderFeed();
+        this.switchView('feed'); 
+        this.updateProfileUI(); 
+        this.updateViewsCounter(); 
+        await this.syncKYCStatus(); 
+        this.refreshUserData(); 
+        this.renderFeed();
     },
 
     exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
@@ -1330,7 +1413,9 @@ const app = {
     logout() { 
         this.haptic('medium'); 
         ['alpha_logged_in', 'alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
-        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.userId = null; this.switchView('consent'); 
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
+        this.userId = null; 
+        this.switchView('consent'); 
     },
 
     setupSystemMessageObserver(containerId) {
@@ -1351,8 +1436,28 @@ const app = {
         observer.observe(container, { childList: true });
     },
     
-    async openSupport() { this.closeModals(); document.getElementById('modal-chat')?.classList.remove('hidden'); this.setupSystemMessageObserver('chat-messages'); await this.loadChatHistory(); BunkerChat.initCRM(this.userId, this.backendUrl); },
-    async loadChatHistory() { const container = document.getElementById('chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); this.scrollToBottom('chat-messages'); } } } catch (err) {} },
+    async openSupport() { 
+        this.closeModals(); 
+        document.getElementById('modal-chat')?.classList.remove('hidden'); 
+        this.setupSystemMessageObserver('chat-messages'); 
+        await this.loadChatHistory(); 
+        BunkerChat.initCRM(this.userId, this.backendUrl); 
+    },
+
+    async loadChatHistory() { 
+        const container = document.getElementById('chat-messages'); 
+        if (container) container.innerHTML = ''; 
+        try { 
+            const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); 
+            if (res.ok) { 
+                const data = await res.json(); 
+                if (data.messages && data.messages.length > 0) { 
+                    data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); 
+                    this.scrollToBottom('chat-messages'); 
+                } 
+            } 
+        } catch (err) {} 
+    },
     
     async openGlobalChat() { 
         this.closeModals(); 
@@ -1397,7 +1502,20 @@ const app = {
         this.handleRadarUpdate({ user_id: this.userId, name: userName, status: 'online' });
     },
 
-    async loadGlobalChatHistory() { const container = document.getElementById('global-chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); this.scrollToBottom('global-chat-messages'); } } } catch (e) {} },
+    async loadGlobalChatHistory() { 
+        const container = document.getElementById('global-chat-messages'); 
+        if (container) container.innerHTML = ''; 
+        try { 
+            const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); 
+            if (res.ok) { 
+                const data = await res.json(); 
+                if (data.messages && data.messages.length > 0) { 
+                    data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); 
+                    this.scrollToBottom('global-chat-messages'); 
+                } 
+            } 
+        } catch (e) {} 
+    },
 
     async sendWebRTCOffer(targetId) {
         try {
@@ -1444,7 +1562,8 @@ const app = {
                 const videoContainer = document.getElementById('bunker-video-grid') || this.createVideoGrid();
                 const vidEl = document.createElement('video');
                 vidEl.id = `remote-video-${targetId}`;
-                vidEl.autoplay = true; vidEl.playsInline = true;
+                vidEl.autoplay = true; 
+                vidEl.playsInline = true;
                 vidEl.className = 'w-full h-full object-cover border-2 border-[#ff00ff] rounded-xl shadow-lg';
                 vidEl.srcObject = this.remoteStreams[targetId];
                 const wrapper = document.createElement('div');
@@ -1486,7 +1605,8 @@ const app = {
 
     async handleChatMediaPreview(event, type) {
         document.getElementById('global-media-menu')?.classList.add('hidden');
-        const file = event.target.files[0]; if (!file) return;
+        const file = event.target.files[0]; 
+        if (!file) return;
         this.initUserId();
         const isAdminUser = this.isAdminUser(), isCreator = this.userData?.role === 'creator', userTier = this.userData?.access_tier || 0;
         const isVideo = file.type.startsWith('video/');
@@ -1541,16 +1661,20 @@ const app = {
                 if(previewVideo) { previewVideo.classList.add('hidden'); previewVideo.src = ""; }
                 if(previewImg) { previewImg.src = this.tempChatMediaData; previewImg.classList.remove('hidden'); }
                 if(previewName) previewName.innerText = `Foto adjunta`; 
-            }
+            } 
             if (inputEl) inputEl.focus(); 
             this.showToast('Foto adjunta');
         }
     },
 
     clearChatMedia(type) {
-        this.haptic('light'); this.tempChatMediaData = null;
+        this.haptic('light'); 
+        this.tempChatMediaData = null;
         const uploadInput = document.getElementById(`${type}-media-upload`), previewContainer = document.getElementById(`${type}-chat-preview-container`), previewImg = document.getElementById(`${type}-chat-preview-img`), previewVideo = document.getElementById(`${type}-chat-preview-video`);
-        if (uploadInput) uploadInput.value = ''; if (previewContainer) previewContainer.classList.add('hidden'); if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); } if (previewVideo) { previewVideo.src = ''; previewVideo.classList.add('hidden'); }
+        if (uploadInput) uploadInput.value = ''; 
+        if (previewContainer) previewContainer.classList.add('hidden'); 
+        if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); } 
+        if (previewVideo) { previewVideo.src = ''; previewVideo.classList.add('hidden'); }
     },
 
     async deleteChatMessage(msgId, btnElement, realMsgId) {
@@ -1565,7 +1689,9 @@ const app = {
                 }
                 const bubble = btnElement.closest('.flex-col');
                 if(bubble) {
-                    bubble.style.transition = 'all 0.3s ease'; bubble.style.opacity = '0'; bubble.style.height = '0px';
+                    bubble.style.transition = 'all 0.3s ease'; 
+                    bubble.style.opacity = '0'; 
+                    bubble.style.height = '0px';
                     setTimeout(() => bubble.remove(), 300);
                 }
                 this.showToast('Mensaje eliminado');
@@ -1580,7 +1706,8 @@ const app = {
     },
 
     appendChatMessage(msg, containerId) {
-        const container = document.getElementById(containerId); if (!container) return;
+        const container = document.getElementById(containerId); 
+        if (!container) return;
         const isMe = msg.user_id == this.userId;
         const isAdminUser = this.isAdminUser();
         const rankInfo = this.getRankBadge(msg.access_level);
@@ -1597,7 +1724,7 @@ const app = {
                 if (contentObj.media_url.startsWith('data:video') || contentObj.media_url.includes('.mp4')) { 
                     safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none" autoplay muted loop playsinline></video>${menuHtml}</div>`; 
                 } else if (contentObj.media_url.startsWith('data:audio')) {
-                    safeMedia = `<div class="relative mt-2 mb-1"><audio src="${encodedUrl}" controls class="w-full h-10 rounded-full" controlsList="nodownload"></audio>${menuHtml}</div>`;
+                    safeMedia = `<div class="relative mt-2 mb-1"><audio src="${encodedUrl}" controls class="w-full h-10 rounded-full" controlsList="nodownload"></audio>${menuHtml}</div>`; 
                 } else { 
                     safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none" />${menuHtml}</div>`; 
                 }
@@ -1633,6 +1760,7 @@ const app = {
             if(videoEl) { videoEl.src = mediaUrl; videoEl.classList.remove('hidden'); videoEl.play(); }
         }
     },
+
     closeLightbox() { 
         this.haptic('light'); 
         const modal = document.getElementById('media-lightbox-modal');
@@ -1640,31 +1768,63 @@ const app = {
         if (videoEl) videoEl.pause(); 
         if (modal) modal.classList.add('hidden'); 
     },
-    scrollToBottom(containerId) { const container = document.getElementById(containerId); if (container) container.scrollTop = container.scrollHeight; },
+
+    scrollToBottom(containerId) { 
+        const container = document.getElementById(containerId); 
+        if (container) container.scrollTop = container.scrollHeight; 
+    },
 
     sendChatMessage() { 
-        this.haptic('light'); const input = document.getElementById('chat-input'); const text = input ? input.value.trim() : '';
+        this.haptic('light'); 
+        const input = document.getElementById('chat-input'); 
+        const text = input ? input.value.trim() : '';
         if (!text && !this.tempChatMediaData) return;
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
-        if (BunkerChat.sendCRM(payload)) { if (input) { input.value = ''; } this.clearChatMedia('crm'); } else { BunkerChat.initCRM(this.userId, this.backendUrl); setTimeout(() => { BunkerChat.sendCRM(payload); if (input) { input.value = ''; } this.clearChatMedia('crm'); }, 500); }
+        if (BunkerChat.sendCRM(payload)) { 
+            if (input) { input.value = ''; } 
+            this.clearChatMedia('crm'); 
+        } else { 
+            BunkerChat.initCRM(this.userId, this.backendUrl); 
+            setTimeout(() => { 
+                BunkerChat.sendCRM(payload); 
+                if (input) { input.value = ''; } 
+                this.clearChatMedia('crm'); 
+            }, 500); 
+        }
     },
 
     sendGlobalChatMessage() {
-        this.haptic('light'); this.initUserId();
+        this.haptic('light'); 
+        this.initUserId();
         const userRole = this.userData?.role || 'fan', kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified', isAdminUser = this.isAdminUser();
-        const input = document.getElementById('global-chat-input'); const text = input ? input.value.trim() : '';
+        const input = document.getElementById('global-chat-input'); 
+        const text = input ? input.value.trim() : '';
         if (!text && !this.tempChatMediaData) return;
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast('KYC requerido'); this.openKYCModal(); return; }
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
-        if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { BunkerChat.initGlobal(this.userId, this.backendUrl); setTimeout(() => { if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { BunkerChat.sendGlobal(payload); if (input) input.value = ''; this.clearChatMedia('global'); } }, 1500); return; }
-        if (BunkerChat.sendGlobal(payload)) { if (input) input.value = ''; this.clearChatMedia('global'); }
+        if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { 
+            BunkerChat.initGlobal(this.userId, this.backendUrl); 
+            setTimeout(() => { 
+                if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { 
+                    BunkerChat.sendGlobal(payload); 
+                    if (input) input.value = ''; 
+                    this.clearChatMedia('global'); 
+                } 
+            }, 1500); 
+            return; 
+        }
+        if (BunkerChat.sendGlobal(payload)) { 
+            if (input) input.value = ''; 
+            this.clearChatMedia('global'); 
+        }
     },
 
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
     handleGlobalChatKeyPress(e) { if (e.key === 'Enter') this.sendGlobalChatMessage(); },
 
     async joinVideoBunker() {
-        this.haptic('medium'); this.initUserId();
+        this.haptic('medium'); 
+        this.initUserId();
         const isAdminUser = this.isAdminUser(), userTier = this.userData?.access_tier || 0;
         if (userTier < 4 && !isAdminUser) { this.showToast('Requiere Icon Legend'); this.openCatalogPackages(); return; }
         const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
@@ -1678,8 +1838,12 @@ const app = {
 
     async requestAndLoadMedia() {
         try {
-            let stream; try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); } catch (e) { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
-            this.activeWebcamStream = stream; this.isMicMuted = false; this.isCamOff = false; this.updateMediaTogglesUI();
+            let stream; 
+            try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); } catch (e) { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+            this.activeWebcamStream = stream; 
+            this.isMicMuted = false; 
+            this.isCamOff = false; 
+            this.updateMediaTogglesUI();
             const videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
             if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); videoElem.classList.remove('hidden'); }
             if (placeholder) { placeholder.classList.add('hidden'); }
@@ -1693,7 +1857,8 @@ const app = {
         const devices = await navigator.mediaDevices.enumerateDevices(), videoDevices = devices.filter(d => d.kind === 'videoinput'), audioDevices = devices.filter(d => d.kind === 'audioinput');
         const selectCam = document.getElementById('setting-cam-source'), selectMic = document.getElementById('setting-mic-source');
         if (selectCam) {
-            selectCam.innerHTML = ''; let seen = new Set(), obsFound = false;
+            selectCam.innerHTML = ''; 
+            let seen = new Set(), obsFound = false;
             videoDevices.forEach((device, index) => {
                 let original = device.label.toLowerCase(), cleanLabel = `Cámara #${index + 1}`;
                 if (original.includes('obs') || original.includes('virtual')) { cleanLabel = `🎥 OBS Virtual`; obsFound = true; } 
@@ -1710,8 +1875,23 @@ const app = {
         }
     },
 
-    toggleMic() { this.haptic('light'); if (this.activeWebcamStream && this.activeWebcamStream.getAudioTracks().length > 0) { this.isMicMuted = !this.isMicMuted; this.activeWebcamStream.getAudioTracks()[0].enabled = !this.isMicMuted; this.updateMediaTogglesUI(); } },
-    toggleCam() { this.haptic('light'); if (this.activeWebcamStream && this.activeWebcamStream.getVideoTracks().length > 0) { this.isCamOff = !this.isCamOff; this.activeWebcamStream.getVideoTracks()[0].enabled = !this.isCamOff; this.updateMediaTogglesUI(); } },
+    toggleMic() { 
+        this.haptic('light'); 
+        if (this.activeWebcamStream && this.activeWebcamStream.getAudioTracks().length > 0) { 
+            this.isMicMuted = !this.isMicMuted; 
+            this.activeWebcamStream.getAudioTracks()[0].enabled = !this.isMicMuted; 
+            this.updateMediaTogglesUI(); 
+        } 
+    },
+
+    toggleCam() { 
+        this.haptic('light'); 
+        if (this.activeWebcamStream && this.activeWebcamStream.getVideoTracks().length > 0) { 
+            this.isCamOff = !this.isCamOff; 
+            this.activeWebcamStream.getVideoTracks()[0].enabled = !this.isCamOff; 
+            this.updateMediaTogglesUI(); 
+        } 
+    },
 
     updateMediaTogglesUI() {
         const btnMic = document.getElementById('btn-toggle-mic'), btnCam = document.getElementById('btn-toggle-cam');
@@ -1719,8 +1899,15 @@ const app = {
         if(btnCam) { btnCam.innerHTML = this.isCamOff ? '<i class="fa-solid fa-video-slash"></i>' : '<i class="fa-solid fa-video"></i>'; btnCam.className = this.isCamOff ? 'w-11 h-11 rounded-full bg-red-600 text-white flex items-center justify-center text-lg' : 'w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg'; }
     },
 
-    openAVSettings() { this.haptic('light'); document.getElementById('modal-av-settings')?.classList.remove('hidden'); },
-    closeAVSettings() { this.haptic('light'); document.getElementById('modal-av-settings')?.classList.add('hidden'); },
+    openAVSettings() { 
+        this.haptic('light'); 
+        document.getElementById('modal-av-settings')?.classList.remove('hidden'); 
+    },
+
+    closeAVSettings() { 
+        this.haptic('light'); 
+        document.getElementById('modal-av-settings')?.classList.add('hidden'); 
+    },
 
     async applyAVSettings() {
         this.haptic('heavy');
@@ -1729,21 +1916,40 @@ const app = {
         let constraints = { video: true, audio: false };
         if (camId === 'obs-fallback') constraints.video = true; else if (camId) constraints.video = { deviceId: { exact: camId } };
         if (micId && micId !== 'none') constraints.audio = { deviceId: { exact: micId } }; else if (micId === 'none') constraints.audio = false;
-        try { this.activeWebcamStream = await navigator.mediaDevices.getUserMedia(constraints); const videoElem = document.getElementById('bunker-webcam-feed'); if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); } this.isMicMuted = false; this.isCamOff = false; this.updateMediaTogglesUI(); this.closeAVSettings(); } catch(e) {}
+        try { 
+            this.activeWebcamStream = await navigator.mediaDevices.getUserMedia(constraints); 
+            const videoElem = document.getElementById('bunker-webcam-feed'); 
+            if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); } 
+            this.isMicMuted = false; 
+            this.isCamOff = false; 
+            this.updateMediaTogglesUI(); 
+            this.closeAVSettings(); 
+        } catch(e) {}
     },
 
     toggleMinimizeVideo() {
         this.haptic('light');
         const bunker = document.getElementById('floating-video-bunker'), controls = document.getElementById('video-controls-bar'), icon = document.getElementById('icon-minimize');
         this.isVideoMinimized = !this.isVideoMinimized;
-        if (this.isVideoMinimized) { bunker.classList.add('pip-mode'); bunker.classList.remove('inset-0'); controls.classList.add('hidden'); icon.className = 'fa-solid fa-expand'; } else { bunker.classList.remove('pip-mode'); bunker.classList.add('inset-0'); controls.classList.remove('hidden'); icon.className = 'fa-solid fa-compress'; }
+        if (this.isVideoMinimized) { 
+            bunker.classList.add('pip-mode'); 
+            bunker.classList.remove('inset-0'); 
+            controls.classList.add('hidden'); 
+            icon.className = 'fa-solid fa-expand'; 
+        } else { 
+            bunker.classList.remove('pip-mode'); 
+            bunker.classList.add('inset-0'); 
+            controls.classList.remove('hidden'); 
+            icon.className = 'fa-solid fa-compress'; 
+        }
     },
 
     startLiveTransmission() {
         this.haptic('heavy');
         const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
         if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-red-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded animate-pulse shadow-md uppercase'; badge.innerText = 'EN VIVO'; }
-        if(btnGoLive) btnGoLive.classList.add('hidden'); if(btnCancel) btnCancel.classList.remove('hidden');
+        if(btnGoLive) btnGoLive.classList.add('hidden'); 
+        if(btnCancel) btnCancel.classList.remove('hidden');
         if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: '📡 ¡Transmisión en vivo iniciada en el Búnker!', media_url: null })); }
     },
 
@@ -1751,21 +1957,29 @@ const app = {
         this.haptic('medium');
         const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
         if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
-        if(btnCancel) btnCancel.classList.add('hidden'); if(btnGoLive) btnGoLive.classList.remove('hidden');
+        if(btnCancel) btnCancel.classList.add('hidden'); 
+        if(btnGoLive) btnGoLive.classList.remove('hidden');
     },
 
     leaveVideoBunker() {
         this.haptic('light');
-        if (this.activeWebcamStream) { this.activeWebcamStream.getTracks().forEach(track => track.stop()); this.activeWebcamStream = null; }
+        if (this.activeWebcamStream) { 
+            this.activeWebcamStream.getTracks().forEach(track => track.stop()); 
+            this.activeWebcamStream = null; 
+        }
         Object.keys(this.peerConnections).forEach(id => this.closePeerConnection(id));
         const bunker = document.getElementById('floating-video-bunker'), videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
         if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
-        if (placeholder) placeholder.classList.remove('hidden'); if (bunker) bunker.classList.add('hidden');
+        if (placeholder) placeholder.classList.remove('hidden'); 
+        if (bunker) bunker.classList.add('hidden');
         this.isVideoMinimized = false;
         if (typeof BunkerChat !== 'undefined') BunkerChat.sendGlobal(JSON.stringify({ type: 'leave_video' }));
     },
 
-    startVideoCall() { this.haptic('light'); this.openGlobalChat(); },
+    startVideoCall() { 
+        this.haptic('light'); 
+        this.openGlobalChat(); 
+    },
 
     openUploadPanel() {
         this.initUserId();
@@ -1776,10 +1990,14 @@ const app = {
 
         if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.openKYCModal(); return; }
         if (userRole === 'fan' && !walletConnected && !isAdminUser) { this.openPaymentMethods(); return; }
-        this.closeModals(); this.switchView('upload'); 
+        this.closeModals(); 
+        this.switchView('upload'); 
     },
 
-    openRoleModal() { this.closeModals(); document.getElementById('modal-role')?.classList.remove('hidden'); },
+    openRoleModal() { 
+        this.closeModals(); 
+        document.getElementById('modal-role')?.classList.remove('hidden'); 
+    },
     
     toggleLanguage() { 
         this.haptic('medium');
@@ -1788,17 +2006,25 @@ const app = {
     },
 
     setLanguage(lang) { 
-        this.haptic('light'); localStorage.setItem('alpha_lang', lang); this.currentLang = lang;
-        const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = lang.toUpperCase();
+        this.haptic('light'); 
+        localStorage.setItem('alpha_lang', lang); 
+        this.currentLang = lang;
+        const langText = document.getElementById('fab-lang-text'); 
+        if (langText) langText.innerText = lang.toUpperCase();
         if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
         this.updateProfileUI();
         if(!document.getElementById('modal-catalog')?.classList.contains('hidden')) this.openCatalogPackages();
     },
 
-    toggleAdminSecret() { this.haptic('light'); this.initUserId(); if (this.isAdminUser()) this.isAdmin = !this.isAdmin; },
+    toggleAdminSecret() { 
+        this.haptic('light'); 
+        this.initUserId(); 
+        if (this.isAdminUser()) this.isAdmin = !this.isAdmin; 
+    },
     
     async previewImage(event) { 
-        const file = event.target.files[0]; if (!file) return; 
+        const file = event.target.files[0]; 
+        if (!file) return; 
         this.tempPostMedia = await this.compressImage(file, 1200, 0.75); 
         document.getElementById('txt-upload').innerText = `Imagen cargada: ${file.name}`; 
     },
@@ -1810,11 +2036,18 @@ const app = {
         this.initUserId();
         try {
             const res = await fetch(`${this.backendUrl}/posts/create`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, author: this.userData?.name || "mastertom", text_es: content, image_url: this.tempPostMedia, levelRequired: tierRequired, is_ppv: false, price_alpha: 0 }) });
-            const data = await res.json(); if (res.ok && data.status === "success") { this.switchView('feed'); await this.renderFeed(); }
+            const data = await res.json(); 
+            if (res.ok && data.status === "success") { this.switchView('feed'); await this.renderFeed(); }
         } catch (err) {}
     },
 
-    async deletePost(postId) { if (!confirm('¿Eliminar publicación?')) return; try { await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); this.renderFeed(); } catch (e) {} },
+    async deletePost(postId) { 
+        if (!confirm('¿Eliminar publicación?')) return; 
+        try { 
+            await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); 
+            this.renderFeed(); 
+        } catch (e) {} 
+    },
     
     async unlockPostContent(postId, priceAlpha) { 
         try { 
@@ -1846,11 +2079,13 @@ const app = {
     },
 
     async renderFeed() {
-        const feedContainer = document.getElementById('feed-container'); if (!feedContainer) return;
+        const feedContainer = document.getElementById('feed-container'); 
+        if (!feedContainer) return;
         this.initUserId();
         try {
             const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
-            const data = res.ok ? await res.json() : {}; const posts = data.posts || [];
+            const data = res.ok ? await res.json() : {}; 
+            const posts = data.posts || [];
             const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
             if (posts.length === 0) { 
                 feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">No hay publicaciones disponibles</div>`; 
