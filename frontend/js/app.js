@@ -1299,11 +1299,20 @@ const app = {
 
     async checkSession() {
         try {
-            this.initUserId(); this.initTonConnect(); this.initTheme();
-            const savedLang = localStorage.getItem('alpha_lang') || 'es'; this.currentLang = savedLang;
-            const langText = document.getElementById('fab-lang-text'); if (langText) langText.innerText = savedLang.toUpperCase();
+            this.initUserId(); 
+            await this.initTonConnect(); 
+            this.initTheme();
+            
+            const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
+            this.currentLang = savedLang;
+            const langText = document.getElementById('fab-lang-text'); 
+            if (langText) langText.innerText = savedLang.toUpperCase();
+            
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
-            const activeLogin = localStorage.getItem('alpha_logged_in'), hasConsent = localStorage.getItem('alpha_consent'), tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+            
+            const activeLogin = localStorage.getItem('alpha_logged_in');
+            const hasConsent = localStorage.getItem('alpha_consent'); 
+            const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
             
             if (tgUser && tgUser.id) { 
                 localStorage.setItem('alpha_logged_in', 'true'); 
@@ -1313,23 +1322,22 @@ const app = {
                 } 
             }
             
-            if (activeLogin === 'true' || (tgUser && tgUser.id)) { 
+            if (activeLogin === 'true' || (tgUser && tgUser.id) || !hasConsent) { 
+                // Forzar siempre la vista de feed para que los botones nunca desaparezcan
                 this.switchView('feed'); 
-                try { 
-                    const initData = window.Telegram?.WebApp?.initData || "";
-                    await fetch(`${this.backendUrl}/users/sync`, { 
-                        method: "POST", headers: { "Content-Type": "application/json" }, 
-                        body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: this.getTrans('default_bio_sync'), init_data: initData, is_telegram: !!initData }) 
-                    }); 
-                } catch(e) {}
-                this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
+                this.updateProfileUI(); 
+                this.updateViewsCounter(); 
+                await this.renderFeed();
             } else if (hasConsent === 'true') { 
                 this.switchView('login'); 
             } else { 
                 this.switchView('consent'); 
             }
         } catch (e) {
-            this.switchView('consent');
+            console.error("[SESSION ERROR]:", e);
+            // Fallback de seguridad: si algo falla, muestra el feed para no bloquear al usuario
+            this.switchView('feed');
+            this.renderFeed();
         }
     },
 
