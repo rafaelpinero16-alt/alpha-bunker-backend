@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 from database.db import get_db
 from database.models import User, ChatMessage, Wallet, Transaction
 
@@ -32,13 +33,45 @@ class ConnectionManager:
 manager = ConnectionManager()
 global_manager = ConnectionManager()
 
+# 🛡️ El Centinela: Ajustado para limpiar el muro cada 72 horas
 def clean_old_messages(db: Session):
     try:
-        time_threshold = datetime.utcnow() - timedelta(hours=24)
+        time_threshold = datetime.utcnow() - timedelta(hours=72)
         db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
         db.commit()
     except Exception:
         db.rollback()
+
+class DeleteMsgRequest(BaseModel):
+    user_id: int
+    msg_id: int
+
+# 🛡️ Nuevo Endpoint para eliminar mensajes al instante
+@router.post("/delete_message")
+async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_db)):
+    msg = db.query(ChatMessage).filter(ChatMessage.id == req.msg_id).first()
+    if not msg:
+        return {"status": "error", "detail": "Mensaje no encontrado"}
+    
+    user = db.query(User).filter(User.user_id == req.user_id).first()
+    if not user:
+        return {"status": "error", "detail": "Usuario no encontrado"}
+    
+    is_admin = (user.role == "admin" or user.user_id == 8269470905)
+    
+    # Solo el dueño del mensaje o el admin pueden borrarlo
+    if msg.user_id != req.user_id and not is_admin:
+        return {"status": "error", "detail": "No tienes permisos para eliminar este mensaje"}
+    
+    db.delete(msg)
+    db.commit()
+    
+    # Emitir señal de borrado a todos los WebSockets conectados
+    delete_payload = {"type": "delete_msg", "msg_id": req.msg_id}
+    await global_manager.broadcast(delete_payload)
+    await manager.broadcast(delete_payload)
+    
+    return {"status": "success"}
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
@@ -55,7 +88,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
         while True:
             data = await websocket.receive_text()
             
-            # Descomprimir JSON del frontend para multimedia
             text_val = data
             media_val = None
             try:
@@ -80,6 +112,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             db.refresh(new_msg)
 
             msg_payload = {
+                "type": "new_msg",
                 "id": new_msg.id,
                 "user_id": new_msg.user_id,
                 "author_name": new_msg.author_name,
@@ -220,6 +253,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         db.refresh(sys_msg)
                         
                         sys_payload = {
+                            "type": "new_msg",
                             "id": sys_msg.id, "user_id": sys_msg.user_id, "author_name": sys_msg.author_name,
                             "author_role": sys_msg.author_role, "access_level": sys_msg.access_level,
                             "content": sys_msg.content, "is_system": sys_msg.is_system,
@@ -244,12 +278,16 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             await websocket.send_json({"is_error": True, "message": "Requieres Soldier Creator para etiquetar."})
                             continue
 
+                    # 🛡️ Validación de Multimedia y Notas de Voz
                     if media_val:
                         if media_val.startswith("data:video") and user.access_level < 3:
                             await websocket.send_json({"is_error": True, "message": "Requiere LEGEND para enviar videos."})
                             continue
                         if media_val.startswith("data:image") and user.access_level < 2:
                             await websocket.send_json({"is_error": True, "message": "Requiere VETERAN para enviar fotos."})
+                            continue
+                        if media_val.startswith("data:audio") and user.access_level < 1:
+                            await websocket.send_json({"is_error": True, "message": "Requiere SOLDIER para enviar notas de voz."})
                             continue
 
                     if user.role == "fan" and user.access_level == 0:
@@ -281,6 +319,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
             db.refresh(new_msg)
 
             msg_payload = {
+                "type": "new_msg",
                 "id": new_msg.id,
                 "user_id": new_msg.user_id,
                 "author_name": new_msg.author_name,
