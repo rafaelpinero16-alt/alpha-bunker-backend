@@ -58,29 +58,39 @@ async def telegram_webhook(
         # =====================================================================
         if "successful_payment" in message:
             payment_info = message["successful_payment"]
-            payload = payment_info.get("invoice_payload", "")  # Ej: "legend", "soldier"
+            payload = payment_info.get("invoice_payload", "")  # Ej: "tier_legend_8269470905"
             total_amount = payment_info.get("total_amount", 0)
             currency = payment_info.get("currency", "XTR")
             
-            print(f"💰 [STARS] PAGO RECIBIDO -> ID: {sender_id} | Paquete: {payload} | Monto: {total_amount} {currency}")
+            print(f"💰 [STARS] PAGO RECIBIDO -> Payload original: {payload} | Monto: {total_amount} {currency}")
+            
+            # 🛡️ ADAPTACIÓN CLAVE: Desglosar el payload blindado mediante guiones bajos
+            payload_parts = payload.split('_')
+            if len(payload_parts) >= 3:
+                tier_slug = payload_parts[1]
+                target_user_id = payload_parts[2]
+            else:
+                # Fallback por si llega un formato antiguo
+                tier_slug = payload
+                target_user_id = sender_id
             
             try:
                 # Buscar el paquete en la base de datos para saber cuántos $ALPHA entregar
-                package = db.query(Package).filter(Package.slug == payload).first()
+                package = db.query(Package).filter(Package.slug == tier_slug).first()
                 alpha_added = package.alpha_total if package else 0
                 
                 if alpha_added > 0:
                     # Auto-crear usuario si por alguna razón no existe en DB
-                    user = db.query(User).filter(User.user_id == sender_id).first()
+                    user = db.query(User).filter(User.user_id == target_user_id).first()
                     if not user:
-                        user = User(user_id=sender_id, name=username)
+                        user = User(user_id=target_user_id, name=username)
                         db.add(user)
                         db.commit()
 
                     # Buscar o crear la Billetera
-                    wallet = db.query(Wallet).filter(Wallet.user_id == sender_id).first()
+                    wallet = db.query(Wallet).filter(Wallet.user_id == target_user_id).first()
                     if not wallet:
-                        wallet = Wallet(user_id=sender_id, alpha_balance=0)
+                        wallet = Wallet(user_id=target_user_id, alpha_balance=0)
                         db.add(wallet)
                     
                     # Inyectar el saldo
@@ -89,15 +99,15 @@ async def telegram_webhook(
                     # Guardar el recibo inmutable en Transactions
                     new_tx = Transaction(
                         sender_id=None,  # None = Sistema/Búnker
-                        receiver_id=sender_id,
+                        receiver_id=target_user_id,
                         amount=alpha_added,
                         tx_type="package_recharge"
                     )
                     db.add(new_tx)
                     db.commit()
-                    print(f"💎 [DATABASE] +{alpha_added} $ALPHA inyectados a la wallet de {sender_id}.")
+                    print(f"💎 [DATABASE] +{alpha_added} $ALPHA inyectados a la wallet de {target_user_id}.")
                 else:
-                    print(f"⚠️ [DATABASE] Paquete '{payload}' no encontrado. No se inyectó saldo.")
+                    print(f"⚠️ [DATABASE] Paquete '{tier_slug}' no encontrado. No se inyectó saldo.")
 
             except Exception as e:
                 db.rollback()
@@ -105,14 +115,14 @@ async def telegram_webhook(
 
             # 🔒 Acreditación de Rango y Generación de Enlace VIP
             try:
-                await update_user_tier(user_id=sender_id, tier=payload, amount=total_amount)
+                await update_user_tier(user_id=target_user_id, tier=tier_slug, amount=total_amount)
             except Exception as e:
                 print(f"❌ [TIER UPDATE ERROR]: {e}")
             
             # 3. CONFIRMACIÓN AL FAN EN TELEGRAM
             try:
                 await bot.send_message(
-                    chat_id=sender_id,
+                    chat_id=target_user_id,
                     text=f"💎 <b>¡Recarga Táctica Confirmada!</b>\n\nTu pago ha sido procesado exitosamente. Se han acreditado <b>+{alpha_added} $ALPHA</b> en tu Billetera del Búnker. 🚀",
                     parse_mode="HTML"
                 )
@@ -135,10 +145,13 @@ async def telegram_webhook(
                     ]
                 ]
             )
-            await bot.send_message(
-                chat_id=sender_id,
-                text=f"¡Bienvenido al Búnker! 🐺 Haz clic en el botón de abajo para entrar a la plataforma:",
-                reply_markup=keyboard
-            )
+            try:
+                await bot.send_message(
+                    chat_id=sender_id,
+                    text=f"¡Bienvenido al Búnker! 🐺 Haz clic en el botón de abajo para entrar a la plataforma:",
+                    reply_markup=keyboard
+                )
+            except Exception as e:
+                print(f"❌ [TELEGRAM] Error enviando mensaje start: {e}")
 
     return {"status": "success", "message_received": True}
