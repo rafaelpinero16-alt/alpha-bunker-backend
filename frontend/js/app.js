@@ -476,18 +476,23 @@ const app = {
                     btn.classList.replace('text-[#00f3ff]', 'text-[#ff00ff]');
                 });
 
-                // Nueva tarjeta de términos B2B inyectada de forma limpia
+                // Nueva tarjeta de términos B2B con botón de retiro inyectada de forma limpia
                 let payoutInfoBox = document.getElementById('creator-payout-terms-card');
                 if (!payoutInfoBox && creatorSubBox) {
                     payoutInfoBox = document.createElement('div');
                     payoutInfoBox.id = 'creator-payout-terms-card';
-                    payoutInfoBox.className = 'bg-neutral-900 border border-[#ff00ff]/40 p-4 rounded-2xl mt-4 shadow-[0_0_15px_rgba(255,0,255,0.15)] text-left';
+                    payoutInfoBox.className = 'bg-neutral-900 border border-[#ff00ff]/40 p-4 rounded-2xl mt-4 shadow-[0_0_15px_rgba(255,0,255,0.15)] text-left flex flex-col gap-3';
                     payoutInfoBox.innerHTML = `
-                        <div class="flex items-center gap-2 mb-2">
-                            <i class="fa-solid fa-shield-halved text-[#ff00ff]"></i>
-                            <h5 class="text-xs font-black text-[#ff00ff] uppercase tracking-wider">Términos B2B</h5>
+                        <div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-solid fa-shield-halved text-[#ff00ff]"></i>
+                                <h5 class="text-xs font-black text-[#ff00ff] uppercase tracking-wider">Términos B2B</h5>
+                            </div>
+                            <p class="text-[11px] text-neutral-300 leading-relaxed font-bold" id="dynamic-payout-terms-text">${this.getTrans('payout_terms_desc') || 'Regla 85/15 activa.'}</p>
                         </div>
-                        <p class="text-[11px] text-neutral-300 leading-relaxed font-bold" id="dynamic-payout-terms-text">${this.getTrans('payout_terms_desc') || 'Regla 85/15 activa.'}</p>
+                        <button onclick="app.openPayoutModal()" class="w-full bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-black font-black py-3 rounded-xl text-xs shadow-[0_0_15px_rgba(16,185,129,0.4)] transition active:scale-95 uppercase flex justify-center items-center gap-2 mt-1">
+                            <i class="fa-solid fa-money-bill-transfer text-lg"></i> SOLICITAR RETIRO
+                        </button>
                     `;
                     creatorSubBox.appendChild(payoutInfoBox);
                 } else if (payoutInfoBox) {
@@ -507,7 +512,6 @@ const app = {
         }
         this.updateOnlineStatusUI();
     },
-
     updateViewsCounter() {
         let views = parseInt(localStorage.getItem('alpha_real_views') || '0') + 1;
         localStorage.setItem('alpha_real_views', views.toString());
@@ -701,6 +705,7 @@ const app = {
         this.showToast(this.getTrans('toast_favs_saved'));
         this.closeModals();
     },
+
     async loadTipMenu(creatorId) {
         this.initUserId();
         try {
@@ -785,6 +790,125 @@ const app = {
         }
         this.showToast(this.getTrans('toast_tip_saved').replace('{count}', successCount));
         if(successCount > 0) this.closeModals();
+    },
+
+    // 🛡️ Lógica Visual del Modal de Retiros B2B
+    async openPayoutModal() {
+        this.closeModals();
+        this.initUserId();
+        
+        let modal = document.getElementById('modal-payout-request');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-payout-request" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-emerald-500 rounded-3xl p-6 w-11/12 max-w-md flex flex-col shadow-[0_0_20px_rgba(16,185,129,0.3)] relative">
+                        <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        <h3 class="text-xl font-black text-emerald-400 mb-2 uppercase tracking-wider text-center"><i class="fa-solid fa-money-bill-transfer mr-2"></i> RETIRO B2B</h3>
+                        <p class="text-xs text-neutral-300 text-center mb-4">Ingresa los datos para solicitar la liquidación de tus ganancias netas.</p>
+                        
+                        <div class="bg-black border border-neutral-700 rounded-xl p-4 mb-4 text-center">
+                            <span class="text-xs text-neutral-500 uppercase font-bold">Saldo Disponible</span>
+                            <div class="text-2xl font-black text-emerald-400 mt-1" id="payout-balance-display">0 $ALPHA</div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-1 block">Monto a retirar ($ALPHA)</label>
+                                <input type="number" id="payout-amount-input" placeholder="Ej: 1000" class="bg-black border border-neutral-700 rounded-xl px-4 py-3 text-sm w-full text-white focus:border-emerald-500 outline-none font-bold" />
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-1 block">Método de Pago</label>
+                                <select id="payout-method-select" class="bg-black border border-neutral-700 rounded-xl px-4 py-3 text-sm w-full text-white focus:border-emerald-500 outline-none font-bold appearance-none">
+                                    <option value="binance">Binance Pay (ID / Email)</option>
+                                    <option value="ton">TON Wallet (Dirección)</option>
+                                    <option value="nequi">Nequi (Solo Colombia)</option>
+                                    <option value="global66">Global66 (Email)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-1 block">Detalles de la Cuenta / Wallet</label>
+                                <input type="text" id="payout-account-details" placeholder="Ingresa tu dirección, email o número" class="bg-black border border-neutral-700 rounded-xl px-4 py-3 text-sm w-full text-white focus:border-emerald-500 outline-none font-bold" />
+                            </div>
+                        </div>
+
+                        <div class="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl mt-4 flex items-start gap-2">
+                            <i class="fa-solid fa-clock text-emerald-400 mt-0.5"></i>
+                            <p class="text-[10px] text-emerald-300 font-medium leading-tight">Tu solicitud entrará en el período de seguridad y retención de 90 días antes de ser liquidada, según los términos B2B.</p>
+                        </div>
+                        
+                        <div class="mt-5">
+                            <button onclick="app.submitPayoutRequest()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-3.5 rounded-xl uppercase transition shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95">ENVIAR SOLICITUD</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-payout-request');
+        }
+
+        try {
+            const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}`);
+            if (res.ok) {
+                const data = await res.json();
+                const balance = data.alpha_balance ?? 0;
+                document.getElementById('payout-balance-display').innerText = `${balance} $ALPHA`;
+                const amountInput = document.getElementById('payout-amount-input');
+                amountInput.value = balance > 0 ? balance : '';
+                amountInput.max = balance;
+            }
+        } catch (err) {}
+
+        modal.classList.remove('hidden');
+    },
+
+    async submitPayoutRequest() {
+        this.haptic('heavy');
+        this.initUserId();
+        
+        const amountInput = document.getElementById('payout-amount-input');
+        const methodSelect = document.getElementById('payout-method-select');
+        const detailsInput = document.getElementById('payout-account-details');
+        
+        const amount = parseInt(amountInput.value || '0');
+        const method = methodSelect.value;
+        const details = detailsInput.value.trim();
+
+        if (isNaN(amount) || amount <= 0) {
+            this.showToast('⚠️ Ingresa un monto válido mayor a 0.');
+            return;
+        }
+
+        if (!details) {
+            this.showToast('⚠️ Ingresa los detalles de tu cuenta de destino.');
+            return;
+        }
+
+        this.showToast('Procesando solicitud... ⏳');
+
+        try {
+            const res = await fetch(`${this.backendUrl}/wallet/request-payout`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: this.userId,
+                    amount_alpha: amount,
+                    payout_method: method,
+                    account_details: details
+                })
+            });
+            
+            const data = await res.json();
+            
+            if (res.ok && data.status === 'success') {
+                this.showToast('✅ Solicitud enviada (Sujeta a 90 días de retención).');
+                this.closeModals();
+                this.refreshUserData();
+            } else {
+                this.showToast(`⚠️ Error: ${data.detail || 'No se pudo procesar'}`);
+            }
+        } catch (err) {
+            this.showToast('⚠️ Error de conexión con el servidor.');
+        }
     },
 
     async viewCreatorProfile(creatorId, creatorName) {
@@ -1453,7 +1577,7 @@ const app = {
         this.haptic('light');
         if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
         if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment'].forEach(m => {
+        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment', 'modal-payout-request'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
