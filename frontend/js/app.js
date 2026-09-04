@@ -216,7 +216,7 @@ const app = {
     async checkSession() {
         try {
             this.initUserId(); 
-            await this.initTonConnect(); 
+            this.initTonConnect().catch(e => console.log(e)); 
             this.initTheme();
             
             const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
@@ -249,8 +249,14 @@ const app = {
                     setTimeout(() => splash.classList.add('hidden'), 1000);
                 }
                 
+                const activeLogin = localStorage.getItem('alpha_logged_in');
                 const hasConsent = localStorage.getItem('alpha_consent'); 
-                if (hasConsent !== 'true') { 
+                const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+                
+                if (activeLogin === 'true' || (tgUser && tgUser.id)) {
+                    this.switchView('feed');
+                    this.executeAutoLogin();
+                } else if (hasConsent !== 'true') { 
                     this.switchView('consent'); 
                 } else { 
                     this.switchView('captcha'); 
@@ -333,7 +339,6 @@ const app = {
             this.generateCaptcha();
         }
     },
-
     switchView(viewName) {
         ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
         const targetView = document.getElementById(`view-${viewName}`);
@@ -569,6 +574,12 @@ const app = {
         }
         this.updateOnlineStatusUI();
     },
+    updateViewsCounter() {
+        let views = parseInt(localStorage.getItem('alpha_real_views') || '0') + 1;
+        localStorage.setItem('alpha_real_views', views.toString());
+        const viewsEl = document.getElementById('views-counter');
+        if (viewsEl) viewsEl.innerText = views.toLocaleString();
+    },
 
     initUserId() {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
@@ -655,7 +666,7 @@ const app = {
             modal = document.getElementById('modal-payment-methods');
         }
         modal.classList.remove('hidden');
-    }
+    },
     openFavoritesModal() {
         this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-favorites-edit');
@@ -1120,6 +1131,7 @@ const app = {
         this.closeModals();
         let modal = document.getElementById('modal-manual-payment');
         if (!modal) {
+            const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
             const modalHTML = `
                 <div id="modal-manual-payment" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
@@ -1146,7 +1158,6 @@ const app = {
         document.getElementById('modal-external-checkout')?.classList.add('hidden');
         document.getElementById('checkoutModal')?.classList.add('hidden');
     },
-
     triggerGlobalMediaUpload(acceptType) {
         document.getElementById('global-media-menu')?.classList.add('hidden');
         const fileInput = document.getElementById('global-media-upload');
@@ -1292,7 +1303,7 @@ const app = {
         this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
         this.initUserId();
         localStorage.setItem('alpha_logged_in', 'true'); 
-        if(!existingName || existingName === 'USER') localStorage.setItem('alpha_user_name`, `Tel: ${phone}`);
+        if(!existingName || existingName === 'USER') localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
         this.switchView('feed'); await this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
     },
 
