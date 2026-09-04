@@ -1123,7 +1123,7 @@ const app = {
     },
 
     // ============================================================================
-    // 🛡️ MÓDULO DE FONDEO EXTERNO A 1-CLIC (SKRILL, PANDA, TON)
+    // 🛡️ MÓDULO DE FONDEO EXTERNO A 1-CLIC (SKRILL, BINANCE, PAYONEER, MANUAL)
     // ============================================================================
 
     openExternalCheckout(packageSlug) {
@@ -1139,25 +1139,39 @@ const app = {
             const t1     = esc(this.getTrans('checkout_title_1click'));
             const t2     = esc(this.getTrans('checkout_desc_1click'));
             const lSkrill = esc(this.getTrans('btn_pay_skrill'));
-            const lPanda  = esc(this.getTrans('btn_pay_panda'));
+            const lBinance = esc(this.getTrans('btn_pay_binance'));
+            const lPayoneer = esc(this.getTrans('btn_pay_payoneer'));
+            const lManual = esc(this.getTrans('btn_pay_manual'));
+            const lCC = esc(this.getTrans('btn_credit_card'));
             const lTon    = esc(this.getTrans('btn_connect_ton'));
 
             const modalHTML = `
                 <div id="modal-external-checkout" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
-                    <div class="glass-panel border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
+                    <div class="glass-panel border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative max-h-[90vh] overflow-y-auto">
                         <button onclick="app.closeCheckout()" class="absolute top-4 right-4 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
                         <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">${t1}</h2>
                         <p class="text-center text-gray-300 mb-6 text-[10px] uppercase font-bold tracking-widest">${t2}</p>
 
                         <div class="space-y-3">
-                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] hover:bg-[#601a3e] text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(128,42,85,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
+                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] hover:bg-[#601a3e] text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(128,42,85,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
                                 <i class="fa-solid fa-wallet text-xl"></i> ${lSkrill}
                             </button>
-                            <button onclick="app.processOneClickPay('panda')" class="w-full bg-[#11bc76] hover:bg-[#0e945c] text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(17,188,118,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
-                                <i class="fa-solid fa-leaf text-xl"></i> ${lPanda}
+                            <button onclick="app.processOneClickPay('binance')" class="w-full bg-[#f3ba2f] hover:bg-[#d9a322] text-black font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(243,186,47,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
+                                <i class="fa-brands fa-bitcoin text-xl"></i> ${lBinance}
+                            </button>
+                            <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-[#ff4800] hover:bg-[#cc3900] text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(255,72,0,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
+                                <i class="fa-brands fa-paypal text-xl"></i> ${lPayoneer}
                             </button>
                             <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
-                                <button onclick="app.connectWallet()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
+                                <button onclick="app.connectCreditCard()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 transition active:scale-95 mb-3 shadow-[0_0_10px_rgba(255,255,255,0.1)]">
+                                    <i class="fa-solid fa-credit-card text-xl"></i> ${lCC}
+                                </button>
+                                <button onclick="app.openManualPayment()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-[#00f3ff] border border-[#00f3ff]/50 font-black py-3.5 rounded-xl shadow-[0_0_10px_rgba(0,243,255,0.2)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
+                                    <i class="fa-solid fa-building-columns text-xl"></i> ${lManual}
+                                </button>
+                            </div>
+                            <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
+                                <button onclick="app.connectWallet()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
                                     <i class="fa-brands fa-telegram text-xl"></i> ${lTon}
                                 </button>
                             </div>
@@ -1171,18 +1185,37 @@ const app = {
         modal.classList.remove('hidden');
     },
 
-    _gatewayUrls: {
-        skrill: 'https://skrill.com',   
-        panda:  'https://pandapay.com'  
-    },
-
     processOneClickPay(gateway) {
         if (!this.currentCheckoutPackage) {
             this.showToast('⚠️ Selecciona un plan primero.');
             return;
         }
-        if (!Object.keys(this._gatewayUrls).includes(gateway)) {
-            console.warn('[CHECKOUT] Gateway no reconocida:', gateway);
+
+        const paymentLinks = {
+            skrill: {
+                'spy': 'https://skrill.me/rq/Felipe%20Rafael/2/USD?key=IorUWBDdPFS9AfS3GMIdlPa9KD4',
+                'soldier': 'https://skrill.me/rq/Felipe%20Rafael/4.99/USD?key=7AR7OlqodIdbV_WU4hSXJ435Na1',
+                'veteran': 'https://skrill.me/rq/Felipe%20Rafael/10.99/USD?key=Z06Cz-iVWCYDSILhZWO6R_qkLk_',
+                'legend': 'https://skrill.me/rq/Felipe%20Rafael/25/USD?key=6bBEAZr3PQhwTGbf_jW6yhRLknf',
+                'icon-legend': 'https://skrill.me/rq/Felipe%20Rafael/53/USD?key=hzBmtkvlrYlvYcH3MTpcQXQ_HG-'
+            },
+            binance: {
+                'spy': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452404659499556864&billType=request_a_payment',
+                'soldier': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405181270605824&billType=request_a_payment',
+                'veteran': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405438875680768&billType=request_a_payment',
+                'legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405771899920384&billType=request_a_payment',
+                'icon-legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452406167061315584&billType=request_a_payment'
+            },
+            payoneer: {
+                'legend': 'https://link.payoneer.com/Token?t=569B904EC3D94618B6563B0574CF479F&src=mobile',
+                'icon-legend': 'https://link.payoneer.com/Token?t=FA9D867359624921B264A059D1ADA74F&src=mobile'
+            }
+        };
+
+        const targetUrl = paymentLinks[gateway] ? paymentLinks[gateway][this.currentCheckoutPackage] : null;
+
+        if (!targetUrl) {
+            this.showToast(this.getTrans('toast_gateway_unsupported'));
             return;
         }
 
@@ -1190,10 +1223,78 @@ const app = {
         this.showToast(this.getTrans('toast_redirecting').replace('{gateway}', gateway.toUpperCase()));
         
         setTimeout(() => {
-            const paymentUrl = `${this._gatewayUrls[gateway]}?pkg=${this.currentCheckoutPackage}`;
-            window.open(paymentUrl, '_blank', 'noopener,noreferrer');
+            window.open(targetUrl, '_blank', 'noopener,noreferrer');
             this.closeCheckout();
         }, 1500);
+    },
+
+    openManualPayment() {
+        this.closeModals();
+        let modal = document.getElementById('modal-manual-payment');
+        if (!modal) {
+            const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const title = esc(this.getTrans('manual_payment_title'));
+            const desc = esc(this.getTrans('manual_payment_desc'));
+            const btnBack = esc(this.getTrans('btn_back'));
+            
+            const modalHTML = `
+                <div id="modal-manual-payment" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
+                        <button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        <h2 class="text-xl font-black text-[#00f3ff] mb-2 uppercase tracking-wider text-center"><i class="fa-solid fa-building-columns mr-2"></i> ${title}</h2>
+                        <p class="text-xs text-neutral-300 mb-6 text-center">${desc}</p>
+                        
+                        <div class="bg-black border border-neutral-700 rounded-xl p-4 space-y-3 text-xs font-mono">
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
+                                <span class="text-neutral-500">Moneda:</span>
+                                <strong class="text-[#00f3ff]">USD</strong>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
+                                <span class="text-neutral-500">Tipo:</span>
+                                <strong class="text-[#00f3ff]">CORRIENTE</strong>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
+                                <span class="text-neutral-500">Beneficiario:</span>
+                                <strong class="text-white text-right max-w-[150px] truncate" title="FELIPE RAFAEL SANCHEZ PIÑEROS">FELIPE RAFAEL SANCHEZ PIÑEROS</strong>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
+                                <span class="text-neutral-500">Banco:</span>
+                                <strong class="text-white">Lead Bank</strong>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
+                                <span class="text-neutral-500">Cuenta:</span>
+                                <div class="flex items-center gap-2">
+                                    <strong class="text-[#ffb703]">215069784455</strong>
+                                    <button onclick="app.copyText('215069784455')" class="text-neutral-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
+                                <span class="text-neutral-500">Routing:</span>
+                                <div class="flex items-center gap-2">
+                                    <strong class="text-[#ffb703]">101019644</strong>
+                                    <button onclick="app.copyText('101019644')" class="text-neutral-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-neutral-500">Dirección Banco:</span>
+                                <strong class="text-white text-[10px]">1801 Main St., Kansas City, MO 64108</strong>
+                            </div>
+                            <div class="flex flex-col gap-1 mt-2">
+                                <span class="text-neutral-500">Dirección Beneficiario:</span>
+                                <strong class="text-white text-[10px]">13-55 Calle 43, Apto 1606, Bucaramanga, Santander 680006, CO</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-black py-3 rounded-xl uppercase transition">${btnBack}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-manual-payment');
+        }
+        modal.classList.remove('hidden');
     },
 
     closeCheckout() {
@@ -1466,7 +1567,7 @@ const app = {
         this.haptic('light');
         if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
         if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout'].forEach(m => {
+        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
