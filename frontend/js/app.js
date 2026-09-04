@@ -20,25 +20,19 @@ const app = {
     isVideoMinimized: false,
     currentCheckoutPackage: null,
 
-    // 📡 Variables de Videollamada Real P2P WebRTC MESH
     peerConnections: {},
     remoteStreams: {},
     rtcConfig: {
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     },
 
-    isAdminUser() {
-        return this.userData?.role === 'admin';
-    },
+    isAdminUser() { return this.userData?.role === 'admin'; },
 
     sanitizeUrl(url) {
         if (!url) return '';
         const s = String(url).trim();
         if (s.startsWith('data:image/') || s.startsWith('data:video/') || s.startsWith('data:audio/')) return s;
-        try {
-            const u = new URL(s);
-            if (u.protocol === 'https:') return s;
-        } catch(e) {}
+        try { const u = new URL(s); if (u.protocol === 'https:') return s; } catch(e) {}
         return '';
     },
 
@@ -56,9 +50,7 @@ const app = {
         return key;
     },
 
-    haptic(style) {
-        try { if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred(style); } catch (e) {}
-    },
+    haptic(style) { try { if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred(style); } catch (e) {} },
 
     showToast(msg) {
         let oldToast = document.getElementById('alpha-dynamic-toast');
@@ -86,9 +78,6 @@ const app = {
         const isLight = body.classList.contains('light-theme');
         localStorage.setItem('alpha_theme', isLight ? 'light' : 'dark');
         
-        const icon = document.getElementById('theme-icon');
-        if (icon) icon.className = isLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-        
         const themeSwitch = document.getElementById('theme-switch');
         if(themeSwitch) themeSwitch.checked = isLight;
         
@@ -98,11 +87,7 @@ const app = {
     initTheme() {
         const savedTheme = localStorage.getItem('alpha_theme') || 'dark';
         const isLight = savedTheme === 'light';
-        if (isLight) {
-            document.body.classList.add('light-theme');
-            const icon = document.getElementById('theme-icon');
-            if (icon) icon.className = 'fa-solid fa-sun';
-        }
+        if (isLight) document.body.classList.add('light-theme');
         const themeSwitch = document.getElementById('theme-switch');
         if(themeSwitch) themeSwitch.checked = isLight;
     },
@@ -156,8 +141,7 @@ const app = {
                 ? 'bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5' 
                 : 'bg-red-600/20 border border-red-500 text-red-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5';
         }
-    },
-
+    }
     openSettingsModal() {
         this.haptic('light');
         const modal = document.getElementById('modal-settings');
@@ -167,26 +151,19 @@ const app = {
             const savedName = localStorage.getItem('alpha_user_name') || 'mastertom';
             if (nameInput) nameInput.value = savedName;
             this.updateOnlineStatusUI();
-            
             const isLight = document.body.classList.contains('light-theme');
             const themeSwitch = document.getElementById('theme-switch');
             if(themeSwitch) themeSwitch.checked = isLight;
         }
     },
 
-    closeSettingsModal() {
-        this.haptic('light');
-        document.getElementById('modal-settings')?.classList.add('hidden');
-    },
+    closeSettingsModal() { this.haptic('light'); document.getElementById('modal-settings')?.classList.add('hidden'); },
 
     async updateUsernameSettings() {
         this.haptic('medium');
         const input = document.getElementById('settings-username-input');
         const newName = input ? input.value.trim() : '';
-        if (!newName) {
-            this.showToast(this.getTrans('toast_invalid_alias'));
-            return;
-        }
+        if (!newName) { this.showToast(this.getTrans('toast_invalid_alias')); return; }
 
         const lastChange = localStorage.getItem('alpha_last_name_change');
         const now = Date.now();
@@ -212,9 +189,7 @@ const app = {
             });
         } catch(e) {}
 
-        this.updateProfileUI();
-        this.showToast(this.getTrans('toast_alias_updated'));
-        this.closeSettingsModal();
+        this.updateProfileUI(); this.showToast(this.getTrans('toast_alias_updated')); this.closeSettingsModal();
     },
 
     updatePasswordSettings() {
@@ -223,46 +198,153 @@ const app = {
         const newPassInput = document.getElementById('settings-new-pass');
         const confirmPassInput = document.getElementById('settings-confirm-pass');
         
-        const oldPass = oldPassInput?.value.trim();
-        const newPass = newPassInput?.value.trim();
-        const confirmPass = confirmPassInput?.value.trim();
-        
+        const oldPass = oldPassInput?.value.trim(); const newPass = newPassInput?.value.trim(); const confirmPass = confirmPassInput?.value.trim();
         const currentSavedPass = localStorage.getItem('alpha_user_pass') || '';
 
-        if (!oldPass || !newPass || !confirmPass) {
-            this.showToast(this.getTrans('toast_pwd_empty'));
-            return;
-        }
-        
-        if (currentSavedPass && oldPass !== currentSavedPass) {
-            this.showToast(this.getTrans('toast_pwd_mismatch'));
-            return;
-        }
-        
-        if (newPass.length < 6) {
-            this.showToast(this.getTrans('toast_pwd_short'));
-            return;
-        }
-
-        if (newPass !== confirmPass) {
-            this.showToast(this.getTrans('toast_pwd_not_match'));
-            return;
-        }
+        if (!oldPass || !newPass || !confirmPass) { this.showToast(this.getTrans('toast_pwd_empty')); return; }
+        if (currentSavedPass && oldPass !== currentSavedPass) { this.showToast(this.getTrans('toast_pwd_mismatch')); return; }
+        if (newPass.length < 6) { this.showToast(this.getTrans('toast_pwd_short')); return; }
+        if (newPass !== confirmPass) { this.showToast(this.getTrans('toast_pwd_not_match')); return; }
 
         localStorage.setItem('alpha_user_pass', newPass);
-        
         this.showToast(`🔒 ${this.getTrans('pwd_changed_success')}`);
-        
-        oldPassInput.value = '';
-        newPassInput.value = '';
-        if (confirmPassInput) confirmPassInput.value = '';
+        oldPassInput.value = ''; newPassInput.value = ''; if (confirmPassInput) confirmPassInput.value = '';
         this.closeSettingsModal();
+    },
+
+    // 🛡️ LÓGICA DE INICIO CORREGIDA (Alpha App -> +18 -> Captcha -> Feed/Login)
+    async checkSession() {
+        try {
+            this.initUserId(); 
+            await this.initTonConnect(); 
+            this.initTheme();
+            
+            const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
+            this.currentLang = savedLang;
+            const langText = document.getElementById('fab-lang-text'); 
+            if (langText) langText.innerText = savedLang.toUpperCase();
+            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
+
+            // Inyectar la pantalla Alpha App si no existe
+            if (!document.getElementById('view-splash')) {
+                const splashHTML = `
+                    <div id="view-splash" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-1000">
+                        <img src="./assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-40 h-40 object-cover rounded-full shadow-[0_0_30px_#00f3ff] animate-pulse mb-6">
+                        <h1 class="text-3xl font-black text-[#00f3ff] tracking-widest uppercase" style="font-family: 'Orbitron', sans-serif; text-shadow: 0 0 15px #00f3ff;">Alpha App</h1>
+                        <div class="mt-8 flex items-center justify-center gap-2">
+                            <div class="w-3 h-3 bg-[#ff00ff] rounded-full animate-bounce"></div>
+                            <div class="w-3 h-3 bg-[#00f3ff] rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                            <div class="w-3 h-3 bg-[#ffb703] rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('afterbegin', splashHTML);
+            }
+            
+            document.querySelectorAll('[id^="view-"]').forEach(el => { if(el.id !== 'view-splash') el.classList.add('hidden'); });
+
+            setTimeout(() => {
+                const splash = document.getElementById('view-splash');
+                if (splash) {
+                    splash.classList.add('opacity-0');
+                    setTimeout(() => splash.classList.add('hidden'), 1000);
+                }
+                
+                const hasConsent = localStorage.getItem('alpha_consent'); 
+                if (hasConsent !== 'true') { 
+                    this.switchView('consent'); 
+                } else { 
+                    this.switchView('captcha'); 
+                    this.generateCaptcha();
+                }
+            }, 2500); // 2.5 Segundos de Branding
+            
+        } catch (e) {
+            console.error("[SESSION ERROR]:", e);
+            this.switchView('consent');
+        }
+    },
+
+    // 🛡️ Ejecutor Automático Post-Captcha
+    async executeAutoLogin() {
+        const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        try { 
+            const initData = window.Telegram?.WebApp?.initData || "";
+            const res = await fetch(`${this.backendUrl}/users/sync`, { 
+                method: "POST", headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: localStorage.getItem('alpha_user_bio') || this.getTrans('default_bio_sync'), avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
+            }); 
+            const data = await res.json();
+            if(res.ok && data.user) {
+                if(data.user.avatar_url) localStorage.setItem('alpha_user_avatar', data.user.avatar_url);
+                if(data.user.bio) localStorage.setItem('alpha_user_bio', data.user.bio);
+                if(data.user.name) localStorage.setItem('alpha_user_name', data.user.name);
+            }
+        } catch(e) {}
+        this.updateProfileUI(); 
+        this.updateViewsCounter(); 
+        await this.syncKYCStatus(); 
+        await this.refreshUserData(); 
+        this.renderFeed();
+    },
+
+    acceptConsent() { 
+        this.haptic('medium'); 
+        localStorage.setItem('alpha_consent', 'true'); 
+        this.switchView('captcha'); 
+        this.generateCaptcha(); 
+    },
+
+    generateCaptcha() {
+        this.haptic('light'); const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
+        for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        this.currentCaptcha = code; const display = document.getElementById('captcha-display'); if (display) display.innerText = code;
+    },
+
+    // 🛡️ CAPTCHA OBLIGATORIO: Filtro antes de entrar
+    verifyCaptcha() {
+        this.haptic('medium');
+        const now = Date.now();
+        if (now < this._captchaBlockedUntil) {
+            const secs = Math.ceil((this._captchaBlockedUntil - now) / 1000);
+            this.showToast(this.getTrans('toast_captcha_wait').replace('{secs}', secs));
+            return;
+        }
+        const input = document.getElementById('captcha-input');
+        const userValue = input ? input.value.trim().toUpperCase() : '';
+        if (userValue === this.currentCaptcha && userValue !== '') {
+            this._captchaFailCount = 0;
+            const activeLogin = localStorage.getItem('alpha_logged_in');
+            const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+            
+            if (activeLogin === 'true' || (tgUser && tgUser.id)) {
+                this.switchView('feed');
+                this.executeAutoLogin();
+            } else {
+                this.switchView('login');
+            }
+        } else {
+            this._captchaFailCount++;
+            if (this._captchaFailCount >= 5) {
+                this._captchaBlockedUntil = now + 30000;
+                this._captchaFailCount = 0;
+                this.showToast(this.getTrans('toast_captcha_blocked'));
+            } else {
+                this.showToast(this.getTrans('toast_captcha_error').replace('{count}', this._captchaFailCount));
+            }
+            if (input) input.value = '';
+            this.generateCaptcha();
+        }
+    }
+    switchView(viewName) {
+        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
+        const targetView = document.getElementById(`view-${viewName}`);
+        if (targetView) { targetView.classList.remove('hidden'); window.scrollTo(0, 0); if (viewName !== 'lang') this.lastView = viewName; }
     },
 
     showLevelUpAnimation(rankLevel) {
         this.haptic('heavy');
         this.triggerFireworks();
-        
         const rankInfo = this.getRankBadge(rankLevel);
         const overlay = document.createElement('div');
         overlay.className = 'fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500 opacity-0';
@@ -278,12 +360,8 @@ const app = {
             </div>
         `;
         document.body.appendChild(overlay);
-        
         requestAnimationFrame(() => overlay.classList.remove('opacity-0'));
-        setTimeout(() => {
-            overlay.classList.add('opacity-0');
-            setTimeout(() => overlay.remove(), 500);
-        }, 4500);
+        setTimeout(() => { overlay.classList.add('opacity-0'); setTimeout(() => overlay.remove(), 500); }, 4500);
     },
 
     copyText(text) { navigator.clipboard.writeText(text).then(() => this.showToast(this.getTrans('toast_copied'))); },
@@ -334,17 +412,12 @@ const app = {
     },
 
     getRankBadge(level) {
-        const badges = {
-            0: './assets/badge_0.png',
-            1: './assets/badge_1.png',
-            2: './assets/badge_2.png',
-            3: './assets/badge_3.png',
-            4: './assets/badge_04.jpg'
-        };
+        const badges = { 0: './assets/badge_0.png', 1: './assets/badge_1.png', 2: './assets/badge_2.png', 3: './assets/badge_3.png', 4: './assets/badge_04.jpg' };
         const keys = ['pkg_spy_name', 'pkg_soldier_name', 'pkg_veteran_name', 'pkg_legend_name', 'pkg_icon_legend_name'];
         const name = this.getTrans(keys[level]) || ['SPY', 'SOLDIER', 'VETERAN', 'LEGEND', 'ICON LEGEND'][level];
         return { img: badges[level] || badges[0], name: name };
     },
+
     async refreshUserData() {
         if (!this.userId) this.initUserId();
         if (!this.userId) return;
@@ -354,82 +427,6 @@ const app = {
             if (res.ok) { const data = await res.json(); balance = data.balance_alfa_coins ?? data.alpha_balance ?? 0; }
             document.querySelectorAll('#prof-alpha-balance, #wallet-balance, .wallet-balance-val').forEach(el => { el.innerText = `${balance} $ALPHA`; });
         } catch (err) {}
-    },
-
-    // 🛡️ SPLASH SCREEN INICIAL Y VALIDACIÓN DE CAPTCHA
-    async checkSession() {
-        try {
-            this.initUserId(); 
-            await this.initTonConnect(); 
-            this.initTheme();
-            
-            const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
-            this.currentLang = savedLang;
-            const langText = document.getElementById('fab-lang-text'); 
-            if (langText) langText.innerText = savedLang.toUpperCase();
-            
-            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
-            
-            const activeLogin = localStorage.getItem('alpha_logged_in');
-            const hasConsent = localStorage.getItem('alpha_consent'); 
-            const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-            
-            if (tgUser && tgUser.id) { 
-                localStorage.setItem('alpha_logged_in', 'true'); 
-                localStorage.setItem('alpha_consent', 'true'); 
-                if (!localStorage.getItem('alpha_user_name') || localStorage.getItem('alpha_user_name').startsWith('Tel:')) { 
-                    localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User'); 
-                } 
-            }
-
-            if (!document.getElementById('view-splash')) {
-                const splashHTML = `
-                    <div id="view-splash" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-1000">
-                        <img src="./assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-40 h-40 object-cover rounded-full shadow-[0_0_30px_#00f3ff] animate-pulse mb-6">
-                        <h1 class="text-3xl font-black text-[#00f3ff] tracking-widest uppercase" style="font-family: 'Orbitron', sans-serif; text-shadow: 0 0 15px #00f3ff;">Alpha Vault</h1>
-                        <div class="mt-8 flex items-center justify-center gap-2">
-                            <div class="w-3 h-3 bg-[#ff00ff] rounded-full animate-bounce"></div>
-                            <div class="w-3 h-3 bg-[#00f3ff] rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                            <div class="w-3 h-3 bg-[#ffb703] rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
-                        </div>
-                    </div>
-                `;
-                document.body.insertAdjacentHTML('afterbegin', splashHTML);
-            }
-            
-            document.querySelectorAll('[id^="view-"]').forEach(el => { if(el.id !== 'view-splash') el.classList.add('hidden'); });
-
-            setTimeout(async () => {
-                document.getElementById('view-splash').classList.add('opacity-0');
-                setTimeout(() => document.getElementById('view-splash').classList.add('hidden'), 1000);
-                
-                if (activeLogin === 'true' || (tgUser && tgUser.id)) {
-                    this.switchView('captcha'); 
-                    try { 
-                        const initData = window.Telegram?.WebApp?.initData || "";
-                        const res = await fetch(`${this.backendUrl}/users/sync`, { 
-                            method: "POST", headers: { "Content-Type": "application/json" }, 
-                            body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: this.getTrans('default_bio_sync'), avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
-                        }); 
-                        const data = await res.json();
-                        if(res.ok && data.user) {
-                            if(data.user.avatar_url) localStorage.setItem('alpha_user_avatar', data.user.avatar_url);
-                            if(data.user.bio) localStorage.setItem('alpha_user_bio', data.user.bio);
-                            if(data.user.name) localStorage.setItem('alpha_user_name', data.user.name);
-                        }
-                    } catch(e) {}
-                    this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
-                } else if (hasConsent === 'true') { 
-                    this.switchView('captcha'); 
-                } else { 
-                    this.switchView('consent'); 
-                }
-            }, 2500);
-            
-        } catch (e) {
-            console.error("[SESSION ERROR]:", e);
-            this.switchView('consent');
-        }
     },
 
     async syncKYCStatus() {
@@ -442,10 +439,7 @@ const app = {
                 if (data.kyc_status) {
                     localStorage.setItem('alpha_kyc_status', data.kyc_status);
                     if (data.role) { this.userData.role = data.role; localStorage.setItem('alpha_user_role', data.role); }
-                    if (data.name && data.name !== 'USER' && !data.name.startsWith('Tel:')) { 
-                        this.userData.name = data.name; 
-                        localStorage.setItem('alpha_user_name', data.name); 
-                    }
+                    if (data.name && data.name !== 'USER' && !data.name.startsWith('Tel:')) { this.userData.name = data.name; localStorage.setItem('alpha_user_name', data.name); }
                     if (data.avatar_url) localStorage.setItem('alpha_user_avatar', data.avatar_url);
                     if (data.bio) localStorage.setItem('alpha_user_bio', data.bio);
                     if (data.access_level !== undefined) this.userData.access_tier = data.access_level;
@@ -564,11 +558,7 @@ const app = {
                         </button>
                     `;
                     creatorSubBox.appendChild(payoutInfoBox);
-                } else if (payoutInfoBox) {
-                    const textEl = document.getElementById('dynamic-payout-terms-text');
-                    if(textEl) textEl.innerText = this.getTrans('payout_terms_desc');
                 }
-
             } else {
                 if (creatorSubBox) creatorSubBox.classList.add('hidden'); 
                 dynamicButtons.forEach(btn => {
@@ -674,6 +664,7 @@ const app = {
         }
         modal.classList.remove('hidden');
     },
+    
     openFavoritesModal() {
         this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-favorites-edit');
@@ -1418,53 +1409,6 @@ const app = {
         this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; this.userId = null; this.switchView('consent'); 
     },
 
-    switchView(viewName) {
-        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
-        const targetView = document.getElementById(`view-${viewName}`);
-        if (targetView) { targetView.classList.remove('hidden'); window.scrollTo(0, 0); if (viewName !== 'lang') this.lastView = viewName; }
-    },
-
-    goHome() { this.haptic('light'); this.closeModals(); this.switchView('feed'); this.renderFeed(); },
-    acceptConsent() { this.haptic('medium'); localStorage.setItem('alpha_consent', 'true'); this.switchView('captcha'); this.generateCaptcha(); },
-
-    generateCaptcha() {
-        this.haptic('light'); const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let code = '';
-        for (let i = 0; i < 5; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-        this.currentCaptcha = code; const display = document.getElementById('captcha-display'); if (display) display.innerText = code;
-    },
-
-    verifyCaptcha() {
-        this.haptic('medium');
-        const now = Date.now();
-        if (now < this._captchaBlockedUntil) {
-            const secs = Math.ceil((this._captchaBlockedUntil - now) / 1000);
-            this.showToast(this.getTrans('toast_captcha_wait').replace('{secs}', secs));
-            return;
-        }
-        const input = document.getElementById('captcha-input');
-        const userValue = input ? input.value.trim().toUpperCase() : '';
-        if (userValue === this.currentCaptcha && userValue !== '') {
-            this._captchaFailCount = 0;
-            const activeLogin = localStorage.getItem('alpha_logged_in');
-            if (activeLogin === 'true') {
-                this.switchView('feed');
-            } else {
-                this.switchView('login');
-            }
-        } else {
-            this._captchaFailCount++;
-            if (this._captchaFailCount >= 5) {
-                this._captchaBlockedUntil = now + 30000;
-                this._captchaFailCount = 0;
-                this.showToast(this.getTrans('toast_captcha_blocked'));
-            } else {
-                this.showToast(this.getTrans('toast_captcha_error').replace('{count}', this._captchaFailCount));
-            }
-            if (input) input.value = '';
-            this.generateCaptcha();
-        }
-    },
-
     setupSystemMessageObserver(containerId) {
         const container = document.getElementById(containerId);
         if (!container || container.dataset.observed === 'true') return;
@@ -2071,7 +2015,6 @@ window.app = app;
 document.addEventListener("DOMContentLoaded", () => {
     if (typeof app === 'undefined') return;
     app.checkSession(); 
-    app.generateCaptcha();
     
     const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
     const applyPrivacyBlackout = () => { if (isTelegram) document.body.classList.add('privacy-blur'); };
