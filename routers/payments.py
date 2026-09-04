@@ -5,14 +5,17 @@ from aiogram import types, F
 from aiogram.types import LabeledPrice
 from core.config import bot, dp
 from database.db import get_db
-# 🛡️ Importación de la lógica de actualización
 from routers.logic import update_user_tier
-from database.models import Package
+from database.models import Package, Wallet, Transaction
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
 class InvoiceRequest(BaseModel):
-    user_id: str  # Declarado como string para soportar IDs de Telegram o Teléfonos
+    user_id: str  
+    package_slug: str
+
+class VerifyStarsRequest(BaseModel):
+    user_id: int
     package_slug: str
 
 @router.get("/packages")
@@ -21,73 +24,61 @@ async def get_packages(db: Session = Depends(get_db)):
         {
             "slug": "soldier",
             "name": "Soldier 🎖️",
-            "badge": "🎖️ NIVEL 2",
-            "price_usd": 15,
-            "price_stars": 750,
+            "badge": "🎖️ CREADOR PRO",
+            "price_usd": 2.99,
+            "price_stars": 150,
             "price_ton": 0.05,
             "alpha_total": 150,
             "bonus_percentage": 0,
-            "description": "Contenido básico y acceso a la comunidad general."
+            "description": "Herramientas de Creador (1 Mes Prueba Gratis)."
         },
         {
             "slug": "veteran",
             "name": "Veteran ⚔️",
-            "badge": "⚔️ NIVEL 3",
-            "price_usd": 30,
-            "price_stars": 1500,
+            "badge": "⚔️ CREADOR ÉLITE",
+            "price_usd": 5.99,
+            "price_stars": 300,
             "price_ton": 0.10,
             "alpha_total": 330,
             "bonus_percentage": 10,
-            "description": "Contenido avanzado y accesos exclusivos."
+            "description": "Contenido avanzado y pagos Wompi/Skrill."
         },
         {
             "slug": "legend",
             "name": "Legend 👑",
             "badge": "👑 NIVEL 4",
-            "price_usd": 55,
-            "price_stars": 2750,
+            "price_usd": 25.00,
+            "price_stars": 1250,
             "price_ton": 0.18,
             "alpha_total": 650,
             "bonus_percentage": 15,
-            "description": "Acceso total VIP y funciones de creador."
+            "description": "Acceso total VIP y funciones máximas."
         },
         {
             "slug": "icon-legend",
             "name": "Icon Legend 💎",
             "badge": "💎 NIVEL MÁXIMO",
-            "price_usd": 120,
-            "price_stars": 6000,
+            "price_usd": 53.00,
+            "price_stars": 2650,
             "price_ton": 0.40,
             "alpha_total": 1500,
             "bonus_percentage": 25,
-            "description": "Acceso total + Cámaras en videollamadas grupales."
+            "description": "Acceso total + Cámaras en videollamadas."
         }
     ]
-    
-    try:
-        packages = db.query(Package).all()
-        if not packages:
-            return {"packages": official_packages}
-        return {"packages": packages}
-    except Exception:
-        return {"packages": official_packages}
+    return {"packages": official_packages}
 
 @router.post("/create-invoice")
 async def create_invoice(data: InvoiceRequest, db: Session = Depends(get_db)):
     try:
         official_packages = {
-            "soldier": {"name": "Soldier 🎖️", "price_stars": 750, "description": "Contenido básico y acceso a la comunidad general."},
-            "veteran": {"name": "Veteran ⚔️", "price_stars": 1500, "description": "Contenido avanzado y accesos exclusivos."},
-            "legend": {"name": "Legend 👑", "price_stars": 2750, "description": "Acceso total VIP y funciones de creador."},
-            "icon-legend": {"name": "Icon Legend 💎", "price_stars": 6000, "description": "Acceso total + Cámaras en videollamadas grupales."}
+            "soldier": {"name": "Soldier 🎖️", "price_stars": 150, "description": "Herramientas Creador (Mes Prueba)"},
+            "veteran": {"name": "Veteran ⚔️", "price_stars": 300, "description": "Creador Élite avanzado"},
+            "legend": {"name": "Legend 👑", "price_stars": 1250, "description": "Acceso VIP total."},
+            "icon-legend": {"name": "Icon Legend 💎", "price_stars": 2650, "description": "Nivel Máximo."}
         }
         
-        pkg = db.query(Package).filter(Package.slug == data.package_slug).first()
-        if pkg:
-            pkg_name = pkg.name
-            pkg_stars = pkg.price_stars
-            pkg_desc = pkg.description or "Acceso exclusivo en Alpha Vault."
-        elif data.package_slug in official_packages:
+        if data.package_slug in official_packages:
             p_info = official_packages[data.package_slug]
             pkg_name = p_info["name"]
             pkg_stars = p_info["price_stars"]
@@ -97,7 +88,6 @@ async def create_invoice(data: InvoiceRequest, db: Session = Depends(get_db)):
             
         prices = [LabeledPrice(label=f"Suscripción {pkg_name}", amount=pkg_stars)]
         
-        # 🛡️ El payload viaja cifrado en la factura para asegurar la integridad al retornar
         invoice_link = await bot.create_invoice_link(
             title=f"Búnker VIP - {pkg_name}",
             description=pkg_desc,
@@ -110,9 +100,40 @@ async def create_invoice(data: InvoiceRequest, db: Session = Depends(get_db)):
         print(f"[❌ INVOICE ERROR] Fallo al generar factura: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+# 🛡️ Endpoint Puente: Inyecta los $ALPHA al instante confirmados por el frontend
+@router.post("/verify-stars")
+async def verify_stars_payment(data: VerifyStarsRequest, db: Session = Depends(get_db)):
+    try:
+        packages_alpha = {
+            "spy": 50, "soldier": 150, "veteran": 330, "legend": 650, "icon-legend": 1500
+        }
+        alpha_to_add = packages_alpha.get(data.package_slug, 0)
+        
+        if alpha_to_add > 0:
+            wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
+            if not wallet:
+                wallet = Wallet(user_id=data.user_id, alpha_balance=0, total_earned=0, total_spent=0)
+                db.add(wallet)
+                
+            wallet.alpha_balance += alpha_to_add
+            
+            tx = Transaction(
+                sender_id=0,
+                receiver_id=data.user_id,
+                amount=alpha_to_add,
+                tx_type="stars_recharge",
+                reference_id=int(datetime.utcnow().timestamp())
+            )
+            db.add(tx)
+            db.commit()
+            return {"status": "success", "alpha_added": alpha_to_add}
+        return {"status": "error", "detail": "Paquete inválido"}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
 @dp.pre_checkout_query()
 async def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
-    # Telegram exige responder al pre_checkout en menos de 10 segundos
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 @dp.message(F.successful_payment)
@@ -122,14 +143,12 @@ async def success_payment(message: types.Message):
     
     if len(payload_parts) >= 3:
         tier_slug = payload_parts[1]
-        user_id = payload_parts[2] # 🛡️ Extraemos el ID exacto del payload, no del remitente de Telegram
+        user_id = payload_parts[2]
         
         try:
-            # Sincronización instantánea con la BD
             await update_user_tier(user_id=user_id, tier=tier_slug, amount=payment.total_amount)
-            print(f"[✅ STARS PAYMENT] Rango {tier_slug.upper()} asignado al instante al usuario {user_id}.")
+            print(f"[✅ STARS PAYMENT] Rango {tier_slug.upper()} asignado.")
         except Exception as e:
-            print(f"[❌ DATABASE ERROR] El pago entró, pero falló la actualización del rango: {e}")
+            print(f"[❌ DATABASE ERROR] {e}")
     
-    # 🛡️ Siempre cerrar el ciclo respondiéndole a Telegram para que no congele la transacción
-    await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tu rango en el Búnker ha sido actualizado al instante. Cierra este chat y vuelve a la Mini App.")
+    await message.answer("¡Pago con Telegram Stars exitoso! 💎 Tus $ALPHA han sido recargados y tu rango actualizado. Vuelve a la Mini App.")

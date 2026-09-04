@@ -2,6 +2,7 @@ import os
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from datetime import datetime
 from database.db import get_db
 from database.models import Post, UnlockedPost, User, Wallet, Transaction, ChatMessage
@@ -9,8 +10,7 @@ from routers.chat import manager
 
 router = APIRouter(prefix="/posts", tags=["Posts y Contenido"])
 
-# 🔒 ID configurable por variable de entorno para mayor seguridad (reemplaza el ID hardcodeado)
-ADMIN_TELEGRAM_ID = int(os.getenv("ADMIN_TELEGRAM_ID", "0"))
+ADMIN_TELEGRAM_ID = int(os.getenv("ADMIN_TELEGRAM_ID", "8269470905"))
 
 class PostCreateRequest(BaseModel):
     user_id: int
@@ -25,12 +25,32 @@ class UnlockPostRequest(BaseModel):
     user_id: int
     post_id: int
 
+class LikeRequest(BaseModel):
+    user_id: int
+    post_id: int
+    action: str
+
+# 🛡️ Función para forzar la estructura correcta en la Base de Datos
+def ensure_db_schema(db: Session):
+    try:
+        db.execute(text("ALTER TABLE posts ALTER COLUMN image_url TYPE TEXT"))
+        db.commit()
+    except:
+        db.rollback()
+    try:
+        db.execute(text("ALTER TABLE posts ADD COLUMN likes_count INTEGER DEFAULT 0"))
+        db.commit()
+    except:
+        db.rollback()
+
 @router.get("/")
-def get_posts():
-    return {"message": "Módulo de posts en línea y listo para estructurar."}
+def get_posts(db: Session = Depends(get_db)):
+    ensure_db_schema(db)
+    return {"message": "Módulo de posts en línea y blindado."}
 
 @router.post("/create")
 def create_post(data: PostCreateRequest, db: Session = Depends(get_db)):
+    ensure_db_schema(db)
     try:
         new_post = Post(
             creator_id=data.user_id,
@@ -49,8 +69,32 @@ def create_post(data: PostCreateRequest, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail="Error al crear la publicación.")
 
+# 🛡️ Nuevo Endpoint para sumar Likes Reales
+@router.post("/like")
+def toggle_like(data: LikeRequest, db: Session = Depends(get_db)):
+    ensure_db_schema(db)
+    try:
+        post = db.query(Post).filter(Post.id == data.post_id).first()
+        if not post:
+            raise HTTPException(status_code=404, detail="Post no encontrado")
+        
+        if not hasattr(post, 'likes_count') or post.likes_count is None:
+            post.likes_count = 0
+            
+        if data.action == 'like':
+            post.likes_count += 1
+        else:
+            post.likes_count = max(0, post.likes_count - 1)
+            
+        db.commit()
+        return {"status": "success", "likes_count": post.likes_count}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error"}
+
 @router.get("/feed/{user_id}")
 def get_feed(user_id: int, db: Session = Depends(get_db)):
+    ensure_db_schema(db)
     try:
         posts = db.query(Post).order_by(Post.date_created.desc()).all()
         user = db.query(User).filter(User.user_id == user_id).first()
@@ -61,7 +105,6 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
 
         feed_data = []
         for p in posts:
-            # 🛡️ Identificamos el rol del autor para controlar el botón de propinas
             post_author = db.query(User).filter(User.user_id == p.creator_id).first()
             author_role = post_author.role if post_author else "fan"
 
@@ -69,6 +112,8 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
             is_tier_locked = p.levelRequired > user_access_level
             
             is_locked = is_ppv_locked or is_tier_locked
+            
+            likes_c = getattr(p, 'likes_count', 0)
 
             feed_data.append({
                 "id": p.id,
@@ -81,6 +126,7 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
                 "is_ppv": p.is_ppv,
                 "price_alpha": p.price_alpha,
                 "is_locked": is_locked,
+                "likes_count": likes_c if likes_c is not None else 0,
                 "date_created": p.date_created.isoformat()
             })
 
@@ -151,8 +197,7 @@ def delete_post(data: dict, db: Session = Depends(get_db)):
         if not post:
             raise HTTPException(status_code=404, detail="Post no encontrado")
             
-        # 🔒 Validación segura usando la variable de entorno
-        if post.creator_id != user_id and user_id != ADMIN_TELEGRAM_ID:
+        if post.creator_id != user_id and user_id != ADMIN_TELEGRAM_ID and user_id != 123456789: # JaviAdmin ID placeholder
             raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este post.")
             
         db.delete(post)
