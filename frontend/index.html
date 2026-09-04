@@ -591,6 +591,54 @@
         </div>
     </div>
 
+    <!-- 🛡️ MODAL DE CHECKOUT EXTERNO (ACH / CRIPTO) -->
+    <div id="checkoutModal" class="hidden fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4">
+        <div class="glass-panel border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
+            <button onclick="app.closeCheckout()" class="absolute top-4 right-4 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
+            <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">Recarga Táctica</h2>
+            <p class="text-center text-gray-300 mb-6 text-[10px] uppercase font-bold tracking-widest">Selecciona método de fondeo</p>
+
+            <!-- Pestañas de Métodos -->
+            <div class="flex space-x-2 mb-6">
+                <button onclick="app.showPaymentMethod('dolarapp')" class="flex-1 py-2 bg-blue-600/20 border border-blue-500 rounded-xl font-bold text-[10px] uppercase text-blue-400 hover:bg-blue-600/40 transition">DolarApp</button>
+                <button onclick="app.showPaymentMethod('global66')" class="flex-1 py-2 bg-purple-600/20 border border-purple-500 rounded-xl font-bold text-[10px] uppercase text-purple-400 hover:bg-purple-600/40 transition">Global66</button>
+                <button onclick="app.showPaymentMethod('crypto')" class="flex-1 py-2 bg-[#ffb703]/20 border border-[#ffb703] text-[#ffb703] rounded-xl font-bold text-[10px] uppercase hover:bg-[#ffb703]/40 transition">Cripto / TON</button>
+            </div>
+
+            <!-- Contenedores de Datos -->
+            <div id="dolarapp-info" class="payment-info hidden bg-black/60 border border-blue-500/30 p-4 rounded-xl text-xs space-y-2">
+                <p class="text-blue-400 font-black mb-2 uppercase tracking-wider"><i class="fa-solid fa-building-columns mr-1"></i> ACH / CashApp (US)</p>
+                <p><b>Banco:</b> Lead Bank</p>
+                <p><b>Titular:</b> Felipe Rafael Sanchez</p>
+                <p><b>Ruta (Routing):</b> <span class="font-mono text-white tracking-widest">101019644</span></p>
+                <p><b>Cuenta (Checking):</b> <span class="font-mono text-white tracking-widest">213994294422</span></p>
+                <p class="text-[9px] text-gray-400 mt-2 uppercase">Dir: Calle 43, 13-55, Bucaramanga, Santander 680006, Colombia</p>
+            </div>
+
+            <div id="global66-info" class="payment-info hidden bg-black/60 border border-purple-500/30 p-4 rounded-xl text-xs space-y-2">
+                <p class="text-purple-400 font-black mb-2 uppercase tracking-wider"><i class="fa-solid fa-globe mr-1"></i> Transferencia ACH (US)</p>
+                <p><b>Banco:</b> Community Federal Savings Bank</p>
+                <p><b>Titular:</b> Felipe Rafael Sanchez Piñeros</p>
+                <p><b>Ruta (Routing):</b> <span class="font-mono text-white tracking-widest">026073150</span></p>
+                <p><b>Cuenta (Checking):</b> <span class="font-mono text-white tracking-widest">8338457346</span></p>
+                <p class="text-[9px] text-gray-400 mt-2 uppercase">Dir: 5 Penn Plaza, 14th Floor, New York, NY 10001, US</p>
+            </div>
+
+            <div id="crypto-info" class="payment-info hidden bg-black/60 border border-[#ffb703]/30 p-4 rounded-xl text-center space-y-4">
+                <p class="text-[#ffb703] font-black uppercase tracking-wider"><i class="fa-brands fa-bitcoin mr-1"></i> Binance Pay / TON</p>
+                <div id="ton-connect-checkout" class="flex justify-center my-4">
+                    <!-- Botón nativo de TonConnect se inyecta aquí -->
+                </div>
+                <p class="text-[9px] text-gray-400 uppercase">Conecta tu wallet para pago instantáneo.</p>
+            </div>
+
+            <!-- Botón de Envío de Comprobante -->
+            <button id="send-proof-btn" onclick="app.openSupportChatForProof()" class="mt-6 w-full py-3 bg-emerald-600/20 border border-emerald-500 text-emerald-400 rounded-xl font-black uppercase hover:bg-emerald-600/40 transition hidden flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                <i class="fa-solid fa-paper-plane"></i> Ya pagué: Enviar Comprobante
+            </button>
+        </div>
+    </div>
+
     <!-- CANVAS PARA FUEGOS ARTIFICIALES -->
     <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
     <div id="toast" class="toast cursor-pointer hover:opacity-80 transition-opacity">¡Copiado! 📋</div>

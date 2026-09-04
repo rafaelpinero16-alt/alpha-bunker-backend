@@ -19,6 +19,9 @@ const app = {
     isCamOff: false,
     isVideoMinimized: false,
 
+    // 🛡️ Variable de estado para el Checkout Externo
+    currentCheckoutPackage: null,
+
     isAdminUser() {
         return this.userData?.role === 'admin';
     },
@@ -532,14 +535,12 @@ const app = {
     },
 
     async initTonConnect() {
-        // 🛡️ ACTUALIZACIÓN CRÍTICA: Compatibilidad estricta con TonConnect V2 y Telegram Wallet nativo
         const TonConnectClass = (window.TON_CONNECT_UI && window.TON_CONNECT_UI.TonConnectUI) 
             ? window.TON_CONNECT_UI.TonConnectUI 
             : window.TonConnectUI;
             
         if (!this.tonConnectUI && TonConnectClass) {
             try {
-                // FORZAR MANIFIESTO ABSOLUTO PARA EVITAR ERRORES DE ORIGEN CRUZADO
                 const safeOrigin = "https://alpha-bunker-backend-production.up.railway.app";
                 
                 this.tonConnectUI = new TonConnectClass({ 
@@ -547,7 +548,6 @@ const app = {
                     uiPreferences: { theme: 'DARK' }
                 });
                 
-                // Forzar restauración de conexión y preparación del puente en segundo plano
                 if (typeof this.tonConnectUI.connectionRestored === 'object') {
                     await this.tonConnectUI.connectionRestored;
                 }
@@ -582,7 +582,6 @@ const app = {
                 await this.initTonConnect();
             }
 
-            // Validación robusta
             if (!this.tonConnectUI) {
                 this.showToast('⚠️ TON Connect no está cargado correctamente. Recarga la app.');
                 return;
@@ -1115,7 +1114,10 @@ const app = {
                             <div class="grid grid-cols-2 gap-2">
                                 <button onclick="app.buyPackageStars('${pkg.slug}', ${level})" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars}</button>
                                 <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total}, ${level})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">💎 ${pkg.price_ton} TON</button>
-                                <button onclick="app.payWithCreditCard(${pkg.alpha_total}, ${level})" class="w-full col-span-2 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition mt-1"><i class="fa-solid fa-credit-card"></i> ${this.getTrans('btn_credit_card') || 'Pagar con Tarjeta'}</button>
+                                <!-- 🛡️ BOTÓN INYECTADO: Abre el modal externo para DolarApp/Global66 -->
+                                <button onclick="app.openExternalCheckout('${pkg.slug}')" class="w-full col-span-2 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition mt-1">
+                                    <i class="fa-solid fa-money-bill-transfer"></i> FONDEO ACH / CRIPTO EXTERNO
+                                </button>
                             </div>
                         </div>
                     `;
@@ -1123,6 +1125,80 @@ const app = {
             }
         } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error') || 'Error cargando catálogo.'}</div>`; }
     },
+
+    // ============================================================================
+    // 🛡️ MÓDULO DE FONDEO EXTERNO ACH / CRIPTO (INYECCIÓN DE PASARELAS)
+    // ============================================================================
+
+    openExternalCheckout(packageSlug) {
+        this.closeModals();
+        this.currentCheckoutPackage = packageSlug;
+        const modal = document.getElementById('checkoutModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            this.showPaymentMethod('dolarapp'); // Pasarela por defecto
+
+            // Inyectar botón global de TonConnect en la pestaña cripto si no existe
+            const cryptoTab = document.getElementById('ton-connect-checkout');
+            if (cryptoTab && !cryptoTab.innerHTML.includes('button')) {
+                cryptoTab.innerHTML = `<button onclick="app.connectWallet()" class="bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-6 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] uppercase w-full flex justify-center items-center gap-2 transition"><i class="fa-solid fa-wallet text-xl"></i> Conectar Wallet / Pagar</button>`;
+            }
+        }
+    },
+
+    closeCheckout() {
+        this.haptic('light');
+        const modal = document.getElementById('checkoutModal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    showPaymentMethod(method) {
+        this.haptic('light');
+        
+        // Ocultar todos los contenedores de info
+        document.querySelectorAll('.payment-info').forEach(el => {
+            el.classList.add('hidden');
+        });
+        
+        // Mostrar el seleccionado
+        const activeInfo = document.getElementById(`${method}-info`);
+        if (activeInfo) activeInfo.classList.remove('hidden');
+
+        // Mostrar u ocultar el botón de envío de comprobante (ACH requiere comprobante manual, Cripto es automático)
+        const proofBtn = document.getElementById('send-proof-btn');
+        if (proofBtn) {
+            if (method === 'dolarapp' || method === 'global66') {
+                proofBtn.classList.remove('hidden');
+            } else {
+                proofBtn.classList.add('hidden');
+            }
+        }
+    },
+
+    openSupportChatForProof() {
+        this.haptic('heavy');
+        
+        // Intentar usar la API Nativa de Telegram WebApp para enviar datos ocultos y cerrar la app
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.sendData) {
+            window.Telegram.WebApp.sendData(JSON.stringify({ 
+                action: "verify_payment", 
+                package: this.currentCheckoutPackage 
+            }));
+            window.Telegram.WebApp.close();
+        } else {
+            // Fallback (Si abrieron la Mini App por Inline Button, sendData no existe. Abrimos el CRM interno)
+            this.closeCheckout();
+            this.openSupport();
+            this.showToast('📸 Adjunta la captura de tu transferencia ACH aquí para validarla.');
+            
+            const chatInput = document.getElementById('chat-input');
+            if (chatInput) {
+                chatInput.value = `Pago ACH enviado por el paquete: ${this.currentCheckoutPackage}. Adjunto mi comprobante:`;
+                chatInput.focus();
+            }
+        }
+    },
+    // ============================================================================
 
     async rechargeAlphaCoins(amountTon, alphaAmount, targetLevel = null) {
         try {
@@ -1452,7 +1528,7 @@ const app = {
         this.haptic('light');
         if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
         if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal'].forEach(m => {
+        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-cc-form', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'checkoutModal'].forEach(m => {
             document.getElementById(m)?.classList.add('hidden');
         });
     },
