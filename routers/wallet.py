@@ -91,8 +91,8 @@ async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
         if not sender_wallet or sender_wallet.alpha_balance < data.amount:
             raise HTTPException(status_code=400, detail="Saldo insuficiente para enviar la propina.")
 
-        # 🛡️ Lógica de Split 90/10
-        platform_fee = int(data.amount * 0.10)
+        # 🛡️ Lógica de Split 85/15 (Actualizada)
+        platform_fee = int(data.amount * 0.15)
         creator_earnings = data.amount - platform_fee
 
         sender_wallet.alpha_balance -= data.amount
@@ -105,7 +105,7 @@ async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
         receiver_wallet.alpha_balance += creator_earnings
         receiver_wallet.total_earned += creator_earnings
 
-        # Registro del pago al creador (90%)
+        # Registro del pago al creador (85%)
         tx_creator = Transaction(
             sender_id=data.sender_id,
             receiver_id=data.receiver_id,
@@ -114,7 +114,7 @@ async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
             reference_id=data.post_id
         )
         
-        # Registro de la comisión de la plataforma (10%)
+        # Registro de la comisión de la plataforma (15%)
         tx_platform = Transaction(
             sender_id=data.sender_id,
             receiver_id=None, 
@@ -169,7 +169,7 @@ async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
 
 @router.post("/request-payout")
 def request_payout(data: PayoutRequest, db: Session = Depends(get_db)):
-    """Congela los fondos del creador y emite una orden de retiro hacia su método externo."""
+    """Congela los fondos del creador y emite una orden de retiro hacia su método externo (Regla 90 Días)."""
     try:
         wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
         
@@ -179,7 +179,7 @@ def request_payout(data: PayoutRequest, db: Session = Depends(get_db)):
         # Descontamos los $ALPHA de su saldo disponible
         wallet.alpha_balance -= data.amount_alpha
 
-        # Registramos la orden en la blockchain de la base de datos
+        # Registramos la orden en la base de datos
         tx = Transaction(
             sender_id=data.user_id,
             receiver_id=None, 
@@ -192,7 +192,7 @@ def request_payout(data: PayoutRequest, db: Session = Depends(get_db)):
 
         return {
             "status": "success", 
-            "message": f"Solicitud de retiro de {data.amount_alpha} $ALPHA registrada exitosamente vía {data.payout_method.upper()}."
+            "message": f"Solicitud de retiro de {data.amount_alpha} $ALPHA registrada exitosamente vía {data.payout_method.upper()}. Recuerda que los fondos están sujetos al período de liquidación de 90 días por seguridad."
         }
         
     except HTTPException as http_exc:
