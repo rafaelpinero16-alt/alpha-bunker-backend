@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse  # 🛡️ Añadido para servir el manifiesto TON
 
 # Importamos todos los módulos independientes
 from routers import payments, users, posts, wallet, telegram, videocalls, kyc, chat
@@ -63,3 +64,8 @@ app.include_router(chat.router)      # Módulo de WebSockets para CRM y Chat Glo
 @app.get("/")
 def read_root():
     return {"status": "Búnker Backend Modular Online 🚀", "author": "Master Tom"}
+
+# 🛡️ Endpoint vital para que la TON Wallet lea el manifiesto y apruebe la conexión
+@app.get("/tonconnect-manifest.json")
+def get_ton_manifest():
+    return FileResponse("tonconnect-manifest.json")
