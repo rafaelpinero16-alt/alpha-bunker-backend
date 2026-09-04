@@ -475,6 +475,26 @@ const app = {
                     btn.classList.replace('bg-[#00f3ff]', 'bg-[#ff00ff]');
                     btn.classList.replace('text-[#00f3ff]', 'text-[#ff00ff]');
                 });
+
+                // Nueva tarjeta de términos B2B inyectada de forma limpia
+                let payoutInfoBox = document.getElementById('creator-payout-terms-card');
+                if (!payoutInfoBox && creatorSubBox) {
+                    payoutInfoBox = document.createElement('div');
+                    payoutInfoBox.id = 'creator-payout-terms-card';
+                    payoutInfoBox.className = 'bg-neutral-900 border border-[#ff00ff]/40 p-4 rounded-2xl mt-4 shadow-[0_0_15px_rgba(255,0,255,0.15)] text-left';
+                    payoutInfoBox.innerHTML = `
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="fa-solid fa-shield-halved text-[#ff00ff]"></i>
+                            <h5 class="text-xs font-black text-[#ff00ff] uppercase tracking-wider">Términos B2B</h5>
+                        </div>
+                        <p class="text-[11px] text-neutral-300 leading-relaxed font-bold" id="dynamic-payout-terms-text">${this.getTrans('payout_terms_desc') || 'Regla 85/15 activa.'}</p>
+                    `;
+                    creatorSubBox.appendChild(payoutInfoBox);
+                } else if (payoutInfoBox) {
+                    const textEl = document.getElementById('dynamic-payout-terms-text');
+                    if(textEl) textEl.innerText = this.getTrans('payout_terms_desc');
+                }
+
             } else {
                 if (creatorSubBox) creatorSubBox.classList.add('hidden'); 
                 dynamicButtons.forEach(btn => {
