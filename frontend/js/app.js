@@ -379,7 +379,6 @@ const app = {
             }
         } catch (err) {}
     },
-
     updateProfileUI() {
         this.initUserId();
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
@@ -1055,7 +1054,6 @@ const app = {
             </button>
         `).join('');
     },
-
     async buyPackageStars(packageSlug, targetLevel = null) {
         this.haptic('medium');
         this.initUserId();
@@ -1080,6 +1078,76 @@ const app = {
                 } else { window.open(data.invoice_link, '_blank'); }
             } else { throw new Error(data.detail || 'Error al generar la factura'); }
         } catch (err) {}
+    },
+
+    async rechargeAlphaCoins(priceTon, alphaTotal, targetLevel = null) {
+        this.haptic('medium');
+        this.initUserId();
+
+        if (!this.tonConnectUI || !this.tonConnectUI.connected) {
+            this.showToast(this.getTrans('toast_connect_ton_req') || '⚠️ Conecta tu billetera TON primero.');
+            this.openPaymentMethods();
+            return;
+        }
+
+        // ⚠️ IMPORTANTE: Reemplaza esto con tu wallet real de TON
+        const MASTER_TON_WALLET = "UQAAnX4bGBzI0ujk35-XChap_wZ7x67NeJ85C_M1YIvLbYUF"; 
+
+        const nanoTonAmount = Math.round(priceTon * 1e9).toString();
+
+        const transaction = {
+            validUntil: Math.floor(Date.now() / 1000) + 360,
+            messages: [
+                {
+                    address: MASTER_TON_WALLET,
+                    amount: nanoTonAmount
+                }
+            ]
+        };
+
+        try {
+            this.showToast('Abriendo pasarela TON... 💎');
+            const result = await this.tonConnectUI.sendTransaction(transaction);
+            
+            if (result && result.boc) {
+                this.showToast('Procesando recarga en el servidor... ⏳');
+                
+                const res = await fetch(`${this.backendUrl}/wallet/recharge`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: this.userId,
+                        amount_ton: priceTon,
+                        alpha_added: alphaTotal,
+                        boc: result.boc
+                    })
+                });
+
+                const data = await res.json();
+                
+                if (res.ok && data.status === 'success') {
+                    this.haptic('heavy');
+                    this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
+                    
+                    setTimeout(async () => {
+                        await this.syncKYCStatus();
+                        await this.refreshUserData();
+                        let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
+                        
+                        if (finalLevel > this.userData.access_tier) {
+                            this.showLevelUpAnimation(finalLevel);
+                        }
+                    }, 1500);
+                    
+                    this.closeModals();
+                } else {
+                    throw new Error(data.detail || 'Error validando la recarga en el servidor');
+                }
+            }
+        } catch (error) {
+            console.error("[TON PAYMENT ERROR]", error);
+            this.showToast('⚠️ Transacción cancelada o fallida.');
+        }
     },
 
     async openCatalogPackages() {
@@ -1135,10 +1203,6 @@ const app = {
             }
         } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`; }
     },
-
-    // ============================================================================
-    // 🛡️ MÓDULO DE FONDEO EXTERNO A 1-CLIC (SKRILL, BINANCE, PAYONEER, MANUAL)
-    // ============================================================================
 
     openExternalCheckout(packageSlug) {
         this.closeModals();
