@@ -364,13 +364,13 @@ const app = {
                     localStorage.setItem('alpha_kyc_status', data.kyc_status);
                     if (data.role) { this.userData.role = data.role; localStorage.setItem('alpha_user_role', data.role); }
                     
-                    const localName = localStorage.getItem('alpha_user_name');
                     if (data.name && data.name !== 'USER' && !data.name.startsWith('Tel:')) { 
                         this.userData.name = data.name; 
                         localStorage.setItem('alpha_user_name', data.name); 
-                    } else if (localName) {
-                        this.userData.name = localName;
                     }
+                    // 🛡️ Sincronizar Avatar permanentemente
+                    if (data.avatar_url) localStorage.setItem('alpha_user_avatar', data.avatar_url);
+                    if (data.bio) localStorage.setItem('alpha_user_bio', data.bio);
 
                     if (data.access_level !== undefined) this.userData.access_tier = data.access_level;
                     if (data.warnings_count !== undefined) this.userData.warnings = data.warnings_count;
@@ -383,7 +383,11 @@ const app = {
         this.initUserId();
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
         const aliasInput = document.getElementById('prof-alias');
+        const bioInput = document.getElementById('prof-bio');
+        const savedBio = localStorage.getItem('alpha_user_bio');
+        
         if (aliasInput && savedName) { aliasInput.value = savedName; this.userData.name = savedName; }
+        if (bioInput && savedBio) { bioInput.value = savedBio; }
 
         const nameFeed = document.getElementById('name-feed');
         if (nameFeed && savedName) nameFeed.innerText = savedName;
@@ -539,8 +543,9 @@ const app = {
         
         const myAdminTelegramID = "8269470905"; 
         const myAdminPhone = "+573150213065"; 
+        const javiAdminID = "123456789"; // 🛡️ Reemplaza por el ID exacto de Javi de Telegram
         
-        const isTelegramAdmin = (this.userId === myAdminTelegramID);
+        const isTelegramAdmin = (this.userId === myAdminTelegramID || this.userId === javiAdminID);
         const isPhoneAdmin = (localStorage.getItem('alpha_user_name') === `Tel: ${myAdminPhone}`);
 
         if (isTelegramAdmin || isPhoneAdmin) {
@@ -689,7 +694,6 @@ const app = {
         }
         container.innerHTML = htmlContent;
     },
-
     saveAllFavorites() {
         this.haptic('heavy');
         let favs = [];
@@ -908,11 +912,21 @@ const app = {
         }
     },
 
+    // 🛡️ Avatar Real del Creador en el Modal
     async viewCreatorProfile(creatorId, creatorName) {
         this.haptic('medium');
         this.closeModals();
         this.showToast(this.getTrans('toast_profile_connecting').replace('{name}', creatorName));
         
+        let avatarHtml = `<i class="fa-solid fa-user-astronaut text-4xl text-[#ffb703]"></i>`;
+        try {
+            const uRes = await fetch(`${this.backendUrl}/users/profile/${creatorId}`);
+            if(uRes.ok) {
+                const uData = await uRes.json();
+                if(uData.avatar_url) avatarHtml = `<img src="${this.sanitizeUrl(uData.avatar_url)}" class="w-full h-full object-cover">`;
+            }
+        } catch(e) {}
+
         let modal = document.getElementById('modal-creator-profile');
         if (!modal) {
             const modalHTML = `
@@ -925,8 +939,8 @@ const app = {
                         
                         <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-10">
                             <div class="flex flex-col items-center mb-6 mt-2">
-                                <div class="w-24 h-24 rounded-full border-2 border-[#ffb703] overflow-hidden bg-black flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(255,183,3,0.4)]">
-                                    <i class="fa-solid fa-user-astronaut text-4xl text-[#ffb703]"></i>
+                                <div id="creator-profile-avatar" class="w-24 h-24 rounded-full border-2 border-[#ffb703] overflow-hidden bg-black flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(255,183,3,0.4)]">
+                                    <!-- Dynamic Avatar -->
                                 </div>
                                 <button id="btn-dynamic-tip-menu" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-black py-3 px-8 rounded-xl text-sm shadow-[0_0_15px_rgba(255,183,3,0.5)] transition active:scale-95 uppercase">
                                     <i class="fa-solid fa-coins mr-1"></i> Tip Menu (Propinas)
@@ -948,6 +962,7 @@ const app = {
         }
 
         document.getElementById('creator-profile-name').innerText = `@${creatorName}`;
+        document.getElementById('creator-profile-avatar').innerHTML = avatarHtml;
         const tipBtn = document.getElementById('btn-dynamic-tip-menu');
         if(tipBtn) tipBtn.setAttribute('onclick', `app.openFanTipMenu(${creatorId}, null, '${creatorName}')`);
 
@@ -998,7 +1013,7 @@ const app = {
                         
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
                             <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
-                                <i class="fa-solid fa-heart"></i> ${this.getTrans('btn_like')}
+                                <i class="fa-solid fa-heart"></i> <span id="like-count-prof-${post.id}">${post.likes_count || 0}</span>
                             </button>
                             <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
                                 🪙 ${this.getTrans('btn_tip')}
@@ -1011,7 +1026,6 @@ const app = {
             container.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">${this.getTrans('msg_error_profile')}</div>`;
         }
     },
-
     async openFanTipMenu(creatorId, postId, creatorName) {
         this.closeModals();
         this.initUserId();
@@ -1065,6 +1079,15 @@ const app = {
                         if (status === 'paid') { 
                             this.haptic('heavy'); 
                             this.showToast(this.getTrans('toast_stars_paid')); 
+                            
+                            // 🛡️ Fallback temporal para notificar pago de estrellas al servidor si el webhook falla
+                            try {
+                                await fetch(`${this.backendUrl}/payments/verify-stars`, {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug })
+                                });
+                            } catch(e) {}
+
                             setTimeout(async () => {
                                 await this.syncKYCStatus();
                                 await this.refreshUserData();
@@ -1418,7 +1441,14 @@ const app = {
             setTimeout(() => { if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); } }, 5000);
         } catch (err) { this.showToast(this.getTrans('toast_cam_error')); }
     },
+    
+    // 🛡️ Bloqueo de Notas de Voz en Chat Global
     async startAudioRecorder(type) {
+        if (type === 'global') {
+            this.showToast('🚫 Notas de voz desactivadas en el Chat Global para evitar spam visual y auditivo.');
+            return;
+        }
+
         document.getElementById('global-media-menu')?.classList.add('hidden');
         this.haptic('medium');
         try {
@@ -1478,7 +1508,7 @@ const app = {
         if (newBio) { localStorage.setItem('alpha_user_bio', newBio); }
         
         try {
-            await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: newName, bio: newBio }) });
+            await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: newName, bio: newBio, avatar: localStorage.getItem('alpha_user_avatar') }) });
         } catch(e) {}
 
         this.showToast(this.getTrans('toast_profile_saved')); 
@@ -1565,10 +1595,16 @@ const app = {
         this.haptic('medium'); this.initUserId(); localStorage.setItem('alpha_logged_in', 'true'); 
         try { 
             const initData = window.Telegram?.WebApp?.initData || "";
-            await fetch(`${this.backendUrl}/users/sync`, { 
+            const res = await fetch(`${this.backendUrl}/users/sync`, { 
                 method: "POST", headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || this.getTrans('default_agent'), bio: this.getTrans('default_bio_tg'), init_data: initData, is_telegram: !!initData }) 
+                body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || this.getTrans('default_agent'), bio: this.getTrans('default_bio_tg'), avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
             }); 
+            const data = await res.json();
+            if(res.ok && data.user) {
+                if(data.user.avatar_url) localStorage.setItem('alpha_user_avatar', data.user.avatar_url);
+                if(data.user.bio) localStorage.setItem('alpha_user_bio', data.user.bio);
+                if(data.user.name) localStorage.setItem('alpha_user_name', data.user.name);
+            }
         } catch (e) {}
         this.switchView('feed'); this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); this.refreshUserData(); this.renderFeed();
     },
@@ -1602,10 +1638,16 @@ const app = {
                 this.switchView('feed'); 
                 try { 
                     const initData = window.Telegram?.WebApp?.initData || "";
-                    await fetch(`${this.backendUrl}/users/sync`, { 
+                    const res = await fetch(`${this.backendUrl}/users/sync`, { 
                         method: "POST", headers: { "Content-Type": "application/json" }, 
-                        body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: this.getTrans('default_bio_sync'), init_data: initData, is_telegram: !!initData }) 
+                        body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: this.getTrans('default_bio_sync'), avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
                     }); 
+                    const data = await res.json();
+                    if(res.ok && data.user) {
+                        if(data.user.avatar_url) localStorage.setItem('alpha_user_avatar', data.user.avatar_url);
+                        if(data.user.bio) localStorage.setItem('alpha_user_bio', data.user.bio);
+                        if(data.user.name) localStorage.setItem('alpha_user_name', data.user.name);
+                    }
                 } catch(e) {}
                 this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
             } else if (hasConsent === 'true') { 
@@ -2119,10 +2161,30 @@ const app = {
         } catch (e) {} 
     },
     
-    toggleLike(postId) {
+    // 🛡️ Lógica de Likes Sumables en Tiempo Real
+    async toggleLike(postId) {
+        this.haptic('light');
         let liked = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
-        if (liked.includes(postId)) liked = liked.filter(id => id !== postId); else liked.push(postId);
-        localStorage.setItem('alpha_user_liked_posts', JSON.stringify(liked)); this.renderFeed();
+        const isLiking = !liked.includes(postId);
+        
+        if (isLiking) liked.push(postId); else liked = liked.filter(id => id !== postId);
+        localStorage.setItem('alpha_user_liked_posts', JSON.stringify(liked)); 
+        
+        const countEls = [document.getElementById(`like-count-${postId}`), document.getElementById(`like-count-prof-${postId}`)];
+        countEls.forEach(el => {
+            if(el) {
+                let currentCount = parseInt(el.innerText) || 0;
+                el.innerText = isLiking ? currentCount + 1 : Math.max(0, currentCount - 1);
+            }
+        });
+        this.renderFeed(); 
+        
+        try {
+            await fetch(`${this.backendUrl}/posts/like`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: this.userId, post_id: postId, action: isLiking ? 'like' : 'unlike' })
+            });
+        } catch(e) {}
     },
 
     async renderFeed() {
@@ -2171,7 +2233,7 @@ const app = {
                         
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
                             <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
-                                <i class="fa-solid fa-heart"></i> ${this.getTrans('btn_like')}
+                                <i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
                             </button>
                             <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">
                                 🪙 ${this.getTrans('btn_tip')}
