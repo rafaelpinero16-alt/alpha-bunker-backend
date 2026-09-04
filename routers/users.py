@@ -11,10 +11,12 @@ from core.config import bot
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+# 🛡️ Esquema ampliado para capturar el avatar y la bio permanentemente
 class UserSyncSchema(BaseModel):
     user_id: int
-    name: Optional[str] = "Agente Búnker"
-    bio: Optional[str] = "Operativo activo en Alpha Vault"
+    name: Optional[str] = None
+    bio: Optional[str] = None
+    avatar: Optional[str] = None
     init_data: Optional[str] = None
     is_telegram: Optional[bool] = False
 
@@ -49,19 +51,23 @@ async def sync_user(data: UserSyncSchema, db: Session = Depends(get_db)):
             
     user = db.query(User).filter(User.user_id == data.user_id).first()
     if not user:
-        # 🔒 FIX CRÍTICO: Los usuarios nuevos entran en nivel 0 (ESPÍA).
-        # Evita regalar el tier SOLDIER (de pago) a cualquiera que abra la Mini App.
         user = User(
             user_id=data.user_id, 
-            name=data.name, 
-            bio=data.bio, 
+            name=data.name or "VIP Fan", 
+            bio=data.bio or "Operativo activo en Alpha Vault", 
             access_level=0, 
-            role="fan"
+            role="fan",
+            avatar_url=data.avatar
         )
         db.add(user)
     else:
-        if data.name and user.name in ["USER", "Cyber Operative", "Agente Búnker"]:
+        # 🛡️ Persistencia garantizada: Todo lo que se edite se guarda incondicionalmente
+        if data.name and data.name not in ["USER", "Agente Búnker", "VIP Fan"]:
             user.name = data.name
+        if data.bio:
+            user.bio = data.bio
+        if data.avatar:
+            user.avatar_url = data.avatar
             
     db.commit()
     db.refresh(user)
