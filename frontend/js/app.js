@@ -18,8 +18,14 @@ const app = {
     isMicMuted: false,
     isCamOff: false,
     isVideoMinimized: false,
-
     currentCheckoutPackage: null,
+
+    // 📡 Variables de Videollamada Real P2P WebRTC MESH
+    peerConnections: {},
+    remoteStreams: {},
+    rtcConfig: {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    },
 
     isAdminUser() {
         return this.userData?.role === 'admin';
@@ -103,14 +109,12 @@ const app = {
 
     toggleOnlineStatus() {
         this.haptic('medium');
-        
         if (this.userData.access_tier === 0 && !this.isAdminUser()) {
             this.userData.isOnline = true;
             this.showToast(this.getTrans('toast_offline_tier_req'));
             this.updateOnlineStatusUI();
             return;
         }
-
         this.userData.isOnline = !this.userData.isOnline;
         localStorage.setItem('alpha_user_online', this.userData.isOnline);
         this.updateOnlineStatusUI();
@@ -341,7 +345,6 @@ const app = {
         const name = this.getTrans(keys[level]) || ['SPY', 'SOLDIER', 'VETERAN', 'LEGEND', 'ICON LEGEND'][level];
         return { img: badges[level] || badges[0], name: name };
     },
-
     async refreshUserData() {
         if (!this.userId) this.initUserId();
         if (!this.userId) return;
@@ -351,6 +354,82 @@ const app = {
             if (res.ok) { const data = await res.json(); balance = data.balance_alfa_coins ?? data.alpha_balance ?? 0; }
             document.querySelectorAll('#prof-alpha-balance, #wallet-balance, .wallet-balance-val').forEach(el => { el.innerText = `${balance} $ALPHA`; });
         } catch (err) {}
+    },
+
+    // 🛡️ SPLASH SCREEN INICIAL Y VALIDACIÓN DE CAPTCHA
+    async checkSession() {
+        try {
+            this.initUserId(); 
+            await this.initTonConnect(); 
+            this.initTheme();
+            
+            const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
+            this.currentLang = savedLang;
+            const langText = document.getElementById('fab-lang-text'); 
+            if (langText) langText.innerText = savedLang.toUpperCase();
+            
+            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
+            
+            const activeLogin = localStorage.getItem('alpha_logged_in');
+            const hasConsent = localStorage.getItem('alpha_consent'); 
+            const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+            
+            if (tgUser && tgUser.id) { 
+                localStorage.setItem('alpha_logged_in', 'true'); 
+                localStorage.setItem('alpha_consent', 'true'); 
+                if (!localStorage.getItem('alpha_user_name') || localStorage.getItem('alpha_user_name').startsWith('Tel:')) { 
+                    localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User'); 
+                } 
+            }
+
+            if (!document.getElementById('view-splash')) {
+                const splashHTML = `
+                    <div id="view-splash" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-1000">
+                        <img src="./assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-40 h-40 object-cover rounded-full shadow-[0_0_30px_#00f3ff] animate-pulse mb-6">
+                        <h1 class="text-3xl font-black text-[#00f3ff] tracking-widest uppercase" style="font-family: 'Orbitron', sans-serif; text-shadow: 0 0 15px #00f3ff;">Alpha Vault</h1>
+                        <div class="mt-8 flex items-center justify-center gap-2">
+                            <div class="w-3 h-3 bg-[#ff00ff] rounded-full animate-bounce"></div>
+                            <div class="w-3 h-3 bg-[#00f3ff] rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                            <div class="w-3 h-3 bg-[#ffb703] rounded-full animate-bounce" style="animation-delay: 0.4s"></div>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('afterbegin', splashHTML);
+            }
+            
+            document.querySelectorAll('[id^="view-"]').forEach(el => { if(el.id !== 'view-splash') el.classList.add('hidden'); });
+
+            setTimeout(async () => {
+                document.getElementById('view-splash').classList.add('opacity-0');
+                setTimeout(() => document.getElementById('view-splash').classList.add('hidden'), 1000);
+                
+                if (activeLogin === 'true' || (tgUser && tgUser.id)) {
+                    this.switchView('captcha'); 
+                    try { 
+                        const initData = window.Telegram?.WebApp?.initData || "";
+                        const res = await fetch(`${this.backendUrl}/users/sync`, { 
+                            method: "POST", headers: { "Content-Type": "application/json" }, 
+                            body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: this.getTrans('default_bio_sync'), avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
+                        }); 
+                        const data = await res.json();
+                        if(res.ok && data.user) {
+                            if(data.user.avatar_url) localStorage.setItem('alpha_user_avatar', data.user.avatar_url);
+                            if(data.user.bio) localStorage.setItem('alpha_user_bio', data.user.bio);
+                            if(data.user.name) localStorage.setItem('alpha_user_name', data.user.name);
+                        }
+                    } catch(e) {}
+                    this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
+                } else if (hasConsent === 'true') { 
+                    this.switchView('captcha'); 
+                } else { 
+                    this.switchView('consent'); 
+                }
+            }, 2500);
+            
+        } catch (e) {
+            console.error("[SESSION ERROR]:", e);
+            this.switchView('consent');
+        }
     },
 
     async syncKYCStatus() {
@@ -363,15 +442,12 @@ const app = {
                 if (data.kyc_status) {
                     localStorage.setItem('alpha_kyc_status', data.kyc_status);
                     if (data.role) { this.userData.role = data.role; localStorage.setItem('alpha_user_role', data.role); }
-                    
                     if (data.name && data.name !== 'USER' && !data.name.startsWith('Tel:')) { 
                         this.userData.name = data.name; 
                         localStorage.setItem('alpha_user_name', data.name); 
                     }
-                    // 🛡️ Sincronizar Avatar permanentemente
                     if (data.avatar_url) localStorage.setItem('alpha_user_avatar', data.avatar_url);
                     if (data.bio) localStorage.setItem('alpha_user_bio', data.bio);
-
                     if (data.access_level !== undefined) this.userData.access_tier = data.access_level;
                     if (data.warnings_count !== undefined) this.userData.warnings = data.warnings_count;
                     this.updateProfileUI();
@@ -379,6 +455,7 @@ const app = {
             }
         } catch (err) {}
     },
+
     updateProfileUI() {
         this.initUserId();
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
@@ -402,7 +479,6 @@ const app = {
 
         const rankDisplay = document.getElementById('prof-rank'), rankFeed = document.getElementById('rank-feed');
         const rankInfo = this.getRankBadge(this.userData?.access_tier || 0);
-        
         const rankHTML = `<div class="relative inline-block w-6 h-6 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[8px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle font-black">${rankInfo.name}</span>`;
         if (rankDisplay) rankDisplay.innerHTML = rankHTML;
         if (rankFeed) rankFeed.innerHTML = `<div class="relative inline-block w-4 h-4 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[6px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle text-xs font-black">${rankInfo.name}</span>`;
@@ -411,29 +487,22 @@ const app = {
         const kycStatusEl = document.getElementById('prof-kyc-status'), kycDescEl = document.getElementById('prof-kyc-desc'), kycBtn = document.getElementById('btn-verify-kyc');
         const isAdminUser = this.isAdminUser();
         const userRole = localStorage.getItem('alpha_user_role') || this.userData?.role;
-        
         const walletConnected = (this.tonConnectUI && this.tonConnectUI.connected) || localStorage.getItem('alpha_ton_connected') === 'true';
-        const hasPaymentMethod = walletConnected;
 
         let warningText = "";
         if(this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label')}: ${this.userData.warnings}/5`;
 
         if (kycStatusEl) {
-            if (userRole === 'fan' && hasPaymentMethod) {
+            if (userRole === 'fan' && walletConnected) {
                 kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('status_wallet_linked')} ✅ ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
                 if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc');
-                
-                const sessionValid = localStorage.getItem('alpha_logged_in') === 'true' && this.userId;
-                if (kycBtn && sessionValid) {
+                if (kycBtn && localStorage.getItem('alpha_logged_in') === 'true' && this.userId) {
                     kycBtn.classList.remove('hidden');
                     kycBtn.innerHTML = `<i class="fa-solid fa-money-check-dollar mr-1"></i> CAMBIAR MÉTODO DE PAGO`;
                     kycBtn.className = 'w-full bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 px-4 rounded-xl text-xs shadow-md transition uppercase mt-3';
                     kycBtn.setAttribute('onclick', 'app.openPaymentMethods()');
-                } else if (kycBtn) {
-                    kycBtn.classList.add('hidden');
                 }
-
             } else if (kycStatus === 'verified' || isAdminUser) {
                 kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('prof_kyc_verified')} ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
@@ -465,11 +534,9 @@ const app = {
         }
 
         const creatorTools = document.getElementById('prof-creator-tools'), creatorSubBox = document.getElementById('prof-creator-subscription-box');
-        
         if (creatorTools) {
             creatorTools.classList.remove('hidden'); 
             const dynamicButtons = document.querySelectorAll('button[onclick="app.openTipMenuManagementModal()"], button[onclick="app.openFavoritesModal()"]');
-            
             if (userRole === 'creator' || isAdminUser) {
                 if (creatorSubBox) creatorSubBox.classList.remove('hidden');
                 dynamicButtons.forEach(btn => {
@@ -524,64 +591,41 @@ const app = {
     initUserId() {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
         const currentSavedId = localStorage.getItem("alpha_user_id");
-        
         let newId = currentSavedId;
-
         if (tgUser && tgUser.id) {
             newId = tgUser.id.toString();
-            if (currentSavedId && currentSavedId !== newId) {
-                localStorage.clear(); 
-            }
-        } else {
-            if (!newId) {
-                newId = "99" + Math.floor(100000 + Math.random() * 900000);
-            }
+            if (currentSavedId && currentSavedId !== newId) localStorage.clear(); 
+        } else if (!newId) {
+            newId = "99" + Math.floor(100000 + Math.random() * 900000);
         }
-
         this.userId = newId; 
         localStorage.setItem("alpha_user_id", this.userId);
         
         const myAdminTelegramID = "8269470905"; 
         const myAdminPhone = "+573150213065"; 
-        const javiAdminID = "123456789"; // 🛡️ Reemplaza por el ID exacto de Javi de Telegram
+        const javiAdminID = "123456789"; 
         
-        const isTelegramAdmin = (this.userId === myAdminTelegramID || this.userId === javiAdminID);
-        const isPhoneAdmin = (localStorage.getItem('alpha_user_name') === `Tel: ${myAdminPhone}`);
-
-        if (isTelegramAdmin || isPhoneAdmin) {
+        if (this.userId === myAdminTelegramID || this.userId === javiAdminID || localStorage.getItem('alpha_user_name') === `Tel: ${myAdminPhone}`) {
             this.userData.role = 'admin';
             this.userData.access_tier = 4;
             localStorage.setItem('alpha_user_role', 'admin');
         }
-
-        const savedOnline = localStorage.getItem('alpha_user_online');
-        if (savedOnline !== null) this.userData.isOnline = savedOnline === 'true';
     },
 
     async initTonConnect() {
-        const TonConnectClass = (window.TON_CONNECT_UI && window.TON_CONNECT_UI.TonConnectUI) 
-            ? window.TON_CONNECT_UI.TonConnectUI 
-            : window.TonConnectUI;
-            
+        const TonConnectClass = (window.TON_CONNECT_UI && window.TON_CONNECT_UI.TonConnectUI) ? window.TON_CONNECT_UI.TonConnectUI : window.TonConnectUI;
         if (!this.tonConnectUI && TonConnectClass) {
             try {
-                const safeOrigin = "https://alpha-bunker-backend-production.up.railway.app";
-                
                 this.tonConnectUI = new TonConnectClass({ 
-                    manifestUrl: safeOrigin + '/tonconnect-manifest.json',
+                    manifestUrl: "https://alpha-bunker-backend-production.up.railway.app/tonconnect-manifest.json",
                     uiPreferences: { theme: 'DARK' }
                 });
-                
-                if (typeof this.tonConnectUI.connectionRestored === 'object') {
-                    await this.tonConnectUI.connectionRestored;
-                }
-                
+                if (typeof this.tonConnectUI.connectionRestored === 'object') await this.tonConnectUI.connectionRestored;
                 this.tonConnectUI.onStatusChange(async (wallet) => {
                     const btnHdr = document.getElementById('btn-wallet-hdr');
                     if (wallet?.account) {
                         localStorage.setItem('alpha_ton_connected', 'true');
-                        const shortAddress = wallet.account.address.slice(0, 4) + '...' + wallet.account.address.slice(-4);
-                        if (btnHdr) btnHdr.innerText = shortAddress;
+                        if (btnHdr) btnHdr.innerText = wallet.account.address.slice(0, 4) + '...' + wallet.account.address.slice(-4);
                         await fetch(`${this.backendUrl}/wallet/connect-ton`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, ton_address: wallet.account.address }) });
                         await this.refreshUserData();
                         this.updateProfileUI();
@@ -591,41 +635,24 @@ const app = {
                         this.updateProfileUI();
                     }
                 });
-            } catch (err) {
-                console.error("TonConnect init error:", err);
-            }
+            } catch (err) {}
         }
     },
 
     async connectWallet() {
         try {
-            this.haptic('medium'); 
-            this.initUserId(); 
-            
-            if (!this.tonConnectUI) {
-                await this.initTonConnect();
-            }
-
-            if (!this.tonConnectUI) {
-                this.showToast(this.getTrans('toast_ton_not_loaded'));
-                return;
-            }
-
+            this.haptic('medium'); this.initUserId(); 
+            if (!this.tonConnectUI) await this.initTonConnect();
+            if (!this.tonConnectUI) { this.showToast(this.getTrans('toast_ton_not_loaded')); return; }
             if (this.tonConnectUI.connected) {
                 if (confirm(this.getTrans('confirm_disconnect_wallet'))) { 
                     await this.tonConnectUI.disconnect(); 
-                    const btnHdr = document.getElementById('btn-wallet-hdr'); 
-                    if (btnHdr) btnHdr.innerText = this.getTrans('btn_wallet'); 
+                    if (document.getElementById('btn-wallet-hdr')) document.getElementById('btn-wallet-hdr').innerText = this.getTrans('btn_wallet'); 
                     localStorage.removeItem('alpha_ton_connected');
                     this.updateProfileUI();
                 }
-            } else { 
-                await this.tonConnectUI.openModal(); 
-            }
-        } catch (err) {
-            console.error("TonConnect openModal error:", err);
-            this.showToast(this.getTrans('toast_ton_error'));
-        }
+            } else { await this.tonConnectUI.openModal(); }
+        } catch (err) {}
     },
 
     openPaymentMethods() {
@@ -647,11 +674,8 @@ const app = {
         }
         modal.classList.remove('hidden');
     },
-
     openFavoritesModal() {
-        this.closeModals();
-        this.initUserId();
-        
+        this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-favorites-edit');
         if (!modal) {
             const modalHTML = `
@@ -661,12 +685,10 @@ const app = {
                             <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-star mr-2"></i> ${this.getTrans('favorites_title')}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">${this.getTrans('favorites_desc')}</p>
                         <div id="favorites-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
-                        
                         <div class="mt-4 pt-4 border-t border-[#00f3ff]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">${this.getTrans('btn_back')}</button>
-                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
+                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
                         </div>
                     </div>
                 </div>
@@ -674,34 +696,22 @@ const app = {
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             modal = document.getElementById('modal-favorites-edit');
         }
-
         modal.classList.remove('hidden');
         const container = document.getElementById('favorites-slots-form');
         let favs = JSON.parse(localStorage.getItem('alpha_user_favorites') || '[]');
-        
         let htmlContent = '';
         for (let i = 1; i <= 10; i++) {
-            const existing = favs[i-1] || '';
-            htmlContent += `
-                <div class="bg-black border border-[#00f3ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative shadow-md">
-                    <div class="absolute -top-2.5 left-3 bg-[#00f3ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Fav #${i}</div>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="text-[#00f3ff] font-bold">@</span>
-                        <input type="text" id="fav-username-${i}" value="${this.escapeHtml(existing)}" placeholder="username" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white focus:border-[#00f3ff] outline-none font-medium" />
-                    </div>
-                </div>
-            `;
+            htmlContent += `<div class="bg-black border border-[#00f3ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative shadow-md"><div class="absolute -top-2.5 left-3 bg-[#00f3ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Fav #${i}</div><div class="flex items-center gap-2 mt-1"><span class="text-[#00f3ff] font-bold">@</span><input type="text" id="fav-username-${i}" value="${this.escapeHtml(favs[i-1] || '')}" placeholder="username" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white outline-none" /></div></div>`;
         }
         container.innerHTML = htmlContent;
     },
+
     saveAllFavorites() {
         this.haptic('heavy');
         let favs = [];
         for (let i = 1; i <= 10; i++) {
             const input = document.getElementById(`fav-username-${i}`);
-            if (input && input.value.trim() !== '') {
-                favs.push(input.value.trim().replace('@', ''));
-            }
+            if (input && input.value.trim() !== '') favs.push(input.value.trim().replace('@', ''));
         }
         localStorage.setItem('alpha_user_favorites', JSON.stringify(favs));
         this.showToast(this.getTrans('toast_favs_saved'));
@@ -718,9 +728,7 @@ const app = {
     },
 
     async openTipMenuManagementModal() {
-        this.closeModals();
-        this.initUserId();
-        
+        this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-tip-menu-edit');
         if (!modal) {
             const modalHTML = `
@@ -730,12 +738,10 @@ const app = {
                             <h3 class="text-xl font-black text-[#ff00ff] uppercase tracking-wider"><i class="fa-solid fa-list-ul mr-2"></i> ${this.getTrans('b2b_edit_tips')}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        <p class="text-xs text-neutral-300 mb-4 font-medium leading-relaxed">Configura tus 10 opciones de propina. No olvides guardar los cambios.</p>
                         <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
-                        
                         <div class="mt-4 pt-4 border-t border-[#ff00ff]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2">${this.getTrans('btn_back')}</button>
-                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black hover:bg-[#ff00ff]/80 px-5 py-3 rounded-xl text-sm font-black transition uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
+                            <button onclick="app.closeModals()" class="bg-neutral-800 text-white px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
                         </div>
                     </div>
                 </div>
@@ -743,49 +749,27 @@ const app = {
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             modal = document.getElementById('modal-tip-menu-edit');
         }
-
         modal.classList.remove('hidden');
         const container = document.getElementById('tip-menu-slots-form');
         container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('msg_loading')}</div>`;
-
         const slots = await this.loadTipMenu(this.userId);
         let htmlContent = '';
         for (let i = 1; i <= 10; i++) {
             const existing = slots.find(s => s.slot_number === i) || { title: '', price_alpha: 10 };
-            htmlContent += `
-                <div class="bg-black border border-[#ff00ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative shadow-md">
-                    <div class="absolute -top-2.5 left-3 bg-[#ff00ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Slot #${i}</div>
-                    <div class="flex items-center gap-2 mt-1">
-                        <input type="text" id="tip-title-${i}" value="${this.escapeHtml(existing.title)}" placeholder="Ej: Video exclusivo 3min" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white focus:border-[#ff00ff] outline-none font-medium" />
-                        <div class="relative w-24 shrink-0">
-                            <i class="fa-solid fa-coins absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[#ffb703] text-xs"></i>
-                            <input type="number" id="tip-price-${i}" value="${existing.price_alpha}" placeholder="Precio" class="bg-neutral-900 border border-neutral-700 rounded-xl pl-7 pr-2 py-2.5 text-xs w-full text-white focus:border-[#ffb703] outline-none text-center font-black" />
-                        </div>
-                    </div>
-                </div>
-            `;
+            htmlContent += `<div class="bg-black border border-[#ff00ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative shadow-md"><div class="absolute -top-2.5 left-3 bg-[#ff00ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Slot #${i}</div><div class="flex items-center gap-2 mt-1"><input type="text" id="tip-title-${i}" value="${this.escapeHtml(existing.title)}" placeholder="Ej: Video exclusivo 3min" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white outline-none" /><div class="relative w-24 shrink-0"><i class="fa-solid fa-coins absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[#ffb703] text-xs"></i><input type="number" id="tip-price-${i}" value="${existing.price_alpha}" placeholder="Precio" class="bg-neutral-900 border border-neutral-700 rounded-xl pl-7 pr-2 py-2.5 text-xs w-full text-white text-center font-black" /></div></div></div>`;
         }
         container.innerHTML = htmlContent;
     },
 
     async saveAllTipSlots() {
-        this.haptic('heavy');
-        this.initUserId();
-        this.showToast(this.getTrans('toast_tip_saving'));
+        this.haptic('heavy'); this.initUserId(); this.showToast(this.getTrans('toast_tip_saving'));
         let successCount = 0;
-
         for (let i = 1; i <= 10; i++) {
-            const titleInput = document.getElementById(`tip-title-${i}`);
-            const priceInput = document.getElementById(`tip-price-${i}`);
-            const title = titleInput ? titleInput.value.trim() : '';
-            const priceAlpha = parseInt(priceInput ? priceInput.value : '0');
-
+            const title = document.getElementById(`tip-title-${i}`)?.value.trim() || '';
+            const priceAlpha = parseInt(document.getElementById(`tip-price-${i}`)?.value || '0');
             if (title && !isNaN(priceAlpha) && priceAlpha > 0) {
                 try {
-                    await fetch(`${this.backendUrl}/creators/tip-menu/update`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: this.userId, slot_number: i, title: title, price_alpha: priceAlpha })
-                    });
+                    await fetch(`${this.backendUrl}/creators/tip-menu/update`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, slot_number: i, title: title, price_alpha: priceAlpha }) });
                     successCount++;
                 } catch (err) {}
             }
@@ -795,9 +779,7 @@ const app = {
     },
 
     async openPayoutModal() {
-        this.closeModals();
-        this.initUserId();
-        
+        this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-payout-request');
         if (!modal) {
             const modalHTML = `
@@ -806,12 +788,10 @@ const app = {
                         <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         <h3 class="text-xl font-black text-emerald-400 mb-2 uppercase tracking-wider text-center"><i class="fa-solid fa-money-bill-transfer mr-2"></i> RETIRO B2B</h3>
                         <p class="text-xs text-neutral-300 text-center mb-4">Ingresa los datos para solicitar la liquidación de tus ganancias netas.</p>
-                        
                         <div class="bg-black border border-neutral-700 rounded-xl p-4 mb-4 text-center">
                             <span class="text-xs text-neutral-500 uppercase font-bold">Saldo Disponible</span>
                             <div class="text-2xl font-black text-emerald-400 mt-1" id="payout-balance-display">0 $ALPHA</div>
                         </div>
-
                         <div class="space-y-3">
                             <div>
                                 <label class="text-[10px] font-black text-neutral-400 uppercase tracking-widest ml-1 mb-1 block">Monto a retirar ($ALPHA)</label>
@@ -831,12 +811,10 @@ const app = {
                                 <input type="text" id="payout-account-details" placeholder="Ingresa tu dirección, email o número" class="bg-black border border-neutral-700 rounded-xl px-4 py-3 text-sm w-full text-white focus:border-emerald-500 outline-none font-bold" />
                             </div>
                         </div>
-
                         <div class="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-xl mt-4 flex items-start gap-2">
                             <i class="fa-solid fa-clock text-emerald-400 mt-0.5"></i>
                             <p class="text-[10px] text-emerald-300 font-medium leading-tight">Tu solicitud entrará en el período de seguridad y retención de 90 días antes de ser liquidada, según los términos B2B.</p>
                         </div>
-                        
                         <div class="mt-5">
                             <button onclick="app.submitPayoutRequest()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black py-3.5 rounded-xl uppercase transition shadow-[0_0_15px_rgba(16,185,129,0.4)] active:scale-95">ENVIAR SOLICITUD</button>
                         </div>
@@ -858,14 +836,11 @@ const app = {
                 amountInput.max = balance;
             }
         } catch (err) {}
-
         modal.classList.remove('hidden');
     },
 
     async submitPayoutRequest() {
-        this.haptic('heavy');
-        this.initUserId();
-        
+        this.haptic('heavy'); this.initUserId();
         const amountInput = document.getElementById('payout-amount-input');
         const methodSelect = document.getElementById('payout-method-select');
         const detailsInput = document.getElementById('payout-account-details');
@@ -874,48 +849,25 @@ const app = {
         const method = methodSelect.value;
         const details = detailsInput.value.trim();
 
-        if (isNaN(amount) || amount <= 0) {
-            this.showToast('⚠️ Ingresa un monto válido mayor a 0.');
-            return;
-        }
-
-        if (!details) {
-            this.showToast('⚠️ Ingresa los detalles de tu cuenta de destino.');
-            return;
-        }
+        if (isNaN(amount) || amount <= 0) { this.showToast('⚠️ Ingresa un monto válido mayor a 0.'); return; }
+        if (!details) { this.showToast('⚠️ Ingresa los detalles de tu cuenta de destino.'); return; }
 
         this.showToast('Procesando solicitud... ⏳');
-
         try {
             const res = await fetch(`${this.backendUrl}/wallet/request-payout`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: this.userId,
-                    amount_alpha: amount,
-                    payout_method: method,
-                    account_details: details
-                })
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: this.userId, amount_alpha: amount, payout_method: method, account_details: details })
             });
-            
             const data = await res.json();
-            
             if (res.ok && data.status === 'success') {
                 this.showToast('✅ Solicitud enviada (Sujeta a 90 días de retención).');
-                this.closeModals();
-                this.refreshUserData();
-            } else {
-                this.showToast(`⚠️ Error: ${data.detail || 'No se pudo procesar'}`);
-            }
-        } catch (err) {
-            this.showToast('⚠️ Error de conexión con el servidor.');
-        }
+                this.closeModals(); this.refreshUserData();
+            } else { this.showToast(`⚠️ Error: ${data.detail || 'No se pudo procesar'}`); }
+        } catch (err) { this.showToast('⚠️ Error de conexión con el servidor.'); }
     },
 
-    // 🛡️ Avatar Real del Creador en el Modal
     async viewCreatorProfile(creatorId, creatorName) {
-        this.haptic('medium');
-        this.closeModals();
+        this.haptic('medium'); this.closeModals();
         this.showToast(this.getTrans('toast_profile_connecting').replace('{name}', creatorName));
         
         let avatarHtml = `<i class="fa-solid fa-user-astronaut text-4xl text-[#ffb703]"></i>`;
@@ -936,21 +888,17 @@ const app = {
                             <h3 class="text-lg font-black text-[#00f3ff] uppercase tracking-wider" id="creator-profile-name">@CREATOR</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        
                         <div class="flex-1 overflow-y-auto p-4 space-y-4 pb-10">
                             <div class="flex flex-col items-center mb-6 mt-2">
                                 <div id="creator-profile-avatar" class="w-24 h-24 rounded-full border-2 border-[#ffb703] overflow-hidden bg-black flex items-center justify-center mb-3 shadow-[0_0_15px_rgba(255,183,3,0.4)]">
-                                    <!-- Dynamic Avatar -->
                                 </div>
                                 <button id="btn-dynamic-tip-menu" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-black py-3 px-8 rounded-xl text-sm shadow-[0_0_15px_rgba(255,183,3,0.5)] transition active:scale-95 uppercase">
                                     <i class="fa-solid fa-coins mr-1"></i> Tip Menu (Propinas)
                                 </button>
                             </div>
-                            
                             <h4 class="text-[#00f3ff] font-bold text-sm border-b border-neutral-800 pb-2 mb-2 uppercase tracking-widest">Publicaciones en el Búnker</h4>
                             <div id="creator-posts-container" class="space-y-4"></div>
                         </div>
-                        
                         <div class="p-3 border-t border-[#00f3ff]/30 bg-black flex justify-end">
                             <button onclick="app.closeModals();" class="bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 px-6 py-2.5 rounded-xl text-sm font-black transition uppercase">${this.getTrans('btn_back')}</button>
                         </div>
@@ -965,8 +913,8 @@ const app = {
         document.getElementById('creator-profile-avatar').innerHTML = avatarHtml;
         const tipBtn = document.getElementById('btn-dynamic-tip-menu');
         if(tipBtn) tipBtn.setAttribute('onclick', `app.openFanTipMenu(${creatorId}, null, '${creatorName}')`);
-
         modal.classList.remove('hidden');
+        
         const container = document.getElementById('creator-posts-container');
         container.innerHTML = `<div class="text-center text-neutral-500 mt-4 text-xs font-bold">${this.getTrans('msg_loading_bunker')}</div>`;
 
@@ -1022,14 +970,11 @@ const app = {
                     </div>
                 `;
             }).join('');
-        } catch (e) {
-            container.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">${this.getTrans('msg_error_profile')}</div>`;
-        }
+        } catch (e) { container.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">${this.getTrans('msg_error_profile')}</div>`; }
     },
+
     async openFanTipMenu(creatorId, postId, creatorName) {
-        this.closeModals();
-        this.initUserId();
-        
+        this.closeModals(); this.initUserId();
         let modal = document.getElementById('modal-fan-tip-menu');
         if (!modal) {
             const modalHTML = `
@@ -1041,7 +986,6 @@ const app = {
                         </div>
                         <p class="text-center font-bold text-white mb-4 uppercase tracking-widest text-sm">Apoya a <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
                         <div id="fan-tip-slots-container" class="flex-1 overflow-y-auto space-y-3 pb-4"></div>
-                        
                         <div class="mt-4 pt-4 border-t border-[#ffb703]/30 flex justify-between gap-2 shrink-0">
                             <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase">${this.getTrans('btn_back')}</button>
                         </div>
@@ -1057,7 +1001,6 @@ const app = {
 
         const container = document.getElementById('fan-tip-slots-container');
         container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold">${this.getTrans('msg_loading')}</div>`;
-        
         const slots = await this.loadTipMenu(creatorId);
         container.innerHTML = slots.length === 0 ? `<div class="text-center text-neutral-500 mt-10 font-bold bg-black/50 p-4 rounded-xl">${this.getTrans('msg_no_tip_menu')}</div>` : slots.map(s => `
             <button onclick="app.sendTipFromPost(${creatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-4 flex justify-between items-center text-white transition active:scale-95 shadow-md">
@@ -1066,9 +1009,9 @@ const app = {
             </button>
         `).join('');
     },
+
     async buyPackageStars(packageSlug, targetLevel = null) {
-        this.haptic('medium');
-        this.initUserId();
+        this.haptic('medium'); this.initUserId();
         this.showToast(this.getTrans('toast_invoice_gen'));
         try {
             const res = await fetch(`${this.backendUrl}/payments/create-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug }) });
@@ -1079,18 +1022,14 @@ const app = {
                         if (status === 'paid') { 
                             this.haptic('heavy'); 
                             this.showToast(this.getTrans('toast_stars_paid')); 
-                            
-                            // 🛡️ Fallback temporal para notificar pago de estrellas al servidor si el webhook falla
                             try {
                                 await fetch(`${this.backendUrl}/payments/verify-stars`, {
                                     method: 'POST', headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug })
                                 });
                             } catch(e) {}
-
                             setTimeout(async () => {
-                                await this.syncKYCStatus();
-                                await this.refreshUserData();
+                                await this.syncKYCStatus(); await this.refreshUserData();
                                 let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
                                 this.showLevelUpAnimation(finalLevel);
                             }, 1500);
@@ -1102,72 +1041,33 @@ const app = {
     },
 
     async rechargeAlphaCoins(priceTon, alphaTotal, targetLevel = null) {
-        this.haptic('medium');
-        this.initUserId();
-
-        if (!this.tonConnectUI || !this.tonConnectUI.connected) {
-            this.showToast(this.getTrans('toast_connect_ton_req') || '⚠️ Conecta tu billetera TON primero.');
-            this.openPaymentMethods();
-            return;
-        }
-
+        this.haptic('medium'); this.initUserId();
+        if (!this.tonConnectUI || !this.tonConnectUI.connected) { this.showToast(this.getTrans('toast_connect_ton_req') || '⚠️ Conecta tu billetera TON primero.'); this.openPaymentMethods(); return; }
         const MASTER_TON_WALLET = "UQAAnX4bGBzI0ujk35-XChap_wZ7x67NeJ85C_M1YIvLbYUF"; 
-
         const nanoTonAmount = Math.round(priceTon * 1e9).toString();
-
-        const transaction = {
-            validUntil: Math.floor(Date.now() / 1000) + 360,
-            messages: [
-                {
-                    address: MASTER_TON_WALLET,
-                    amount: nanoTonAmount
-                }
-            ]
-        };
+        const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: MASTER_TON_WALLET, amount: nanoTonAmount }] };
 
         try {
             this.showToast('Abriendo pasarela TON... 💎');
             const result = await this.tonConnectUI.sendTransaction(transaction);
-            
             if (result && result.boc) {
                 this.showToast('Procesando recarga en el servidor... ⏳');
-                
                 const res = await fetch(`${this.backendUrl}/wallet/recharge`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: this.userId,
-                        amount_ton: priceTon,
-                        alpha_added: alphaTotal,
-                        boc: result.boc
-                    })
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: this.userId, amount_ton: priceTon, alpha_added: alphaTotal, boc: result.boc })
                 });
-
                 const data = await res.json();
-                
                 if (res.ok && data.status === 'success') {
-                    this.haptic('heavy');
-                    this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
-                    
+                    this.haptic('heavy'); this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
                     setTimeout(async () => {
-                        await this.syncKYCStatus();
-                        await this.refreshUserData();
+                        await this.syncKYCStatus(); await this.refreshUserData();
                         let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
-                        
-                        if (finalLevel > this.userData.access_tier) {
-                            this.showLevelUpAnimation(finalLevel);
-                        }
+                        if (finalLevel > this.userData.access_tier) this.showLevelUpAnimation(finalLevel);
                     }, 1500);
-                    
                     this.closeModals();
-                } else {
-                    throw new Error(data.detail || 'Error validando la recarga en el servidor');
-                }
+                } else { throw new Error(data.detail || 'Error validando la recarga en el servidor'); }
             }
-        } catch (error) {
-            console.error("[TON PAYMENT ERROR]", error);
-            this.showToast('⚠️ Transacción cancelada o fallida.');
-        }
+        } catch (error) { this.showToast('⚠️ Transacción cancelada o fallida.'); }
     },
 
     async openCatalogPackages() {
@@ -1187,7 +1087,6 @@ const app = {
                 const order = ['spy', 'soldier', 'veteran', 'legend', 'icon-legend'];
                 packages.forEach(p => p.slug = p.slug.replace('_', '-'));
                 packages.sort((a, b) => order.indexOf(a.slug) - order.indexOf(b.slug));
-                
                 const rankMapping = { 'spy': 0, 'soldier': 1, 'veteran': 2, 'legend': 3, 'icon-legend': 4 };
 
                 container.innerHTML = packages.map(pkg => {
@@ -1227,7 +1126,6 @@ const app = {
     openExternalCheckout(packageSlug) {
         this.closeModals();
         if (!packageSlug || typeof packageSlug !== 'string') return;
-        
         const safeSlug = encodeURIComponent(packageSlug.replace(/[^a-zA-Z0-9_-]/g, ''));
         this.currentCheckoutPackage = safeSlug;
         
@@ -1248,26 +1146,15 @@ const app = {
                         <button onclick="app.closeCheckout()" class="absolute top-4 right-4 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
                         <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">${t1}</h2>
                         <p class="text-center text-gray-300 mb-6 text-[10px] uppercase font-bold tracking-widest">${t2}</p>
-
                         <div class="space-y-3">
-                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] hover:bg-[#601a3e] text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(128,42,85,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
-                                <i class="fa-solid fa-wallet text-xl"></i> ${lSkrill}
-                            </button>
-                            <button onclick="app.processOneClickPay('binance')" class="w-full bg-[#f3ba2f] hover:bg-[#d9a322] text-black font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(243,186,47,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
-                                <i class="fa-brands fa-bitcoin text-xl"></i> ${lBinance}
-                            </button>
-                            <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-[#ff4800] hover:bg-[#cc3900] text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(255,72,0,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
-                                <i class="fa-brands fa-paypal text-xl"></i> ${lPayoneer}
-                            </button>
+                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-[#802a55] hover:bg-[#601a3e] text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(128,42,85,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-solid fa-wallet text-xl"></i> ${lSkrill}</button>
+                            <button onclick="app.processOneClickPay('binance')" class="w-full bg-[#f3ba2f] hover:bg-[#d9a322] text-black font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(243,186,47,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-brands fa-bitcoin text-xl"></i> ${lBinance}</button>
+                            <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-[#ff4800] hover:bg-[#cc3900] text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(255,72,0,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-brands fa-paypal text-xl"></i> ${lPayoneer}</button>
                             <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
-                                <button onclick="app.openManualPayment()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-[#00f3ff] border border-[#00f3ff]/50 font-black py-3.5 rounded-xl shadow-[0_0_10px_rgba(0,243,255,0.2)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
-                                    <i class="fa-solid fa-building-columns text-xl"></i> ${lManual}
-                                </button>
+                                <button onclick="app.openManualPayment()" class="w-full bg-neutral-800 hover:bg-neutral-700 text-[#00f3ff] border border-[#00f3ff]/50 font-black py-3.5 rounded-xl shadow-[0_0_10px_rgba(0,243,255,0.2)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-solid fa-building-columns text-xl"></i> ${lManual}</button>
                             </div>
                             <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
-                                <button onclick="app.connectWallet()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95">
-                                    <i class="fa-brands fa-telegram text-xl"></i> ${lTon}
-                                </button>
+                                <button onclick="app.connectWallet()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-3.5 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.4)] uppercase flex justify-center items-center gap-2 transition active:scale-95"><i class="fa-brands fa-telegram text-xl"></i> ${lTon}</button>
                             </div>
                         </div>
                     </div>
@@ -1280,46 +1167,17 @@ const app = {
     },
 
     processOneClickPay(gateway) {
-        if (!this.currentCheckoutPackage) {
-            this.showToast('⚠️ Selecciona un plan primero.');
-            return;
-        }
-
+        if (!this.currentCheckoutPackage) { this.showToast('⚠️ Selecciona un plan primero.'); return; }
         const paymentLinks = {
-            skrill: {
-                'spy': 'https://skrill.me/rq/Felipe%20Rafael/2/USD?key=IorUWBDdPFS9AfS3GMIdlPa9KD4',
-                'soldier': 'https://skrill.me/rq/Felipe%20Rafael/4.99/USD?key=7AR7OlqodIdbV_WU4hSXJ435Na1',
-                'veteran': 'https://skrill.me/rq/Felipe%20Rafael/10.99/USD?key=Z06Cz-iVWCYDSILhZWO6R_qkLk_',
-                'legend': 'https://skrill.me/rq/Felipe%20Rafael/25/USD?key=6bBEAZr3PQhwTGbf_jW6yhRLknf',
-                'icon-legend': 'https://skrill.me/rq/Felipe%20Rafael/53/USD?key=hzBmtkvlrYlvYcH3MTpcQXQ_HG-'
-            },
-            binance: {
-                'spy': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452404659499556864&billType=request_a_payment',
-                'soldier': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405181270605824&billType=request_a_payment',
-                'veteran': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405438875680768&billType=request_a_payment',
-                'legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405771899920384&billType=request_a_payment',
-                'icon-legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452406167061315584&billType=request_a_payment'
-            },
-            payoneer: {
-                'legend': 'https://link.payoneer.com/Token?t=569B904EC3D94618B6563B0574CF479F&src=mobile',
-                'icon-legend': 'https://link.payoneer.com/Token?t=FA9D867359624921B264A059D1ADA74F&src=mobile'
-            }
+            skrill: { 'spy': 'https://skrill.me/rq/Felipe%20Rafael/2/USD?key=IorUWBDdPFS9AfS3GMIdlPa9KD4', 'soldier': 'https://skrill.me/rq/Felipe%20Rafael/4.99/USD?key=7AR7OlqodIdbV_WU4hSXJ435Na1', 'veteran': 'https://skrill.me/rq/Felipe%20Rafael/10.99/USD?key=Z06Cz-iVWCYDSILhZWO6R_qkLk_', 'legend': 'https://skrill.me/rq/Felipe%20Rafael/25/USD?key=6bBEAZr3PQhwTGbf_jW6yhRLknf', 'icon-legend': 'https://skrill.me/rq/Felipe%20Rafael/53/USD?key=hzBmtkvlrYlvYcH3MTpcQXQ_HG-' },
+            binance: { 'spy': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452404659499556864&billType=request_a_payment', 'soldier': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405181270605824&billType=request_a_payment', 'veteran': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405438875680768&billType=request_a_payment', 'legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405771899920384&billType=request_a_payment', 'icon-legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452406167061315584&billType=request_a_payment' },
+            payoneer: { 'legend': 'https://link.payoneer.com/Token?t=569B904EC3D94618B6563B0574CF479F&src=mobile', 'icon-legend': 'https://link.payoneer.com/Token?t=FA9D867359624921B264A059D1ADA74F&src=mobile' }
         };
-
         const targetUrl = paymentLinks[gateway] ? paymentLinks[gateway][this.currentCheckoutPackage] : null;
-
-        if (!targetUrl) {
-            this.showToast(this.getTrans('toast_gateway_unsupported'));
-            return;
-        }
-
+        if (!targetUrl) { this.showToast(this.getTrans('toast_gateway_unsupported')); return; }
         this.haptic('heavy');
         this.showToast(this.getTrans('toast_redirecting').replace('{gateway}', gateway.toUpperCase()));
-        
-        setTimeout(() => {
-            window.open(targetUrl, '_blank', 'noopener,noreferrer');
-            this.closeCheckout();
-        }, 1500);
+        setTimeout(() => { window.open(targetUrl, '_blank', 'noopener,noreferrer'); this.closeCheckout(); }, 1500);
     },
 
     openManualPayment() {
@@ -1330,58 +1188,23 @@ const app = {
             const title = esc(this.getTrans('manual_payment_title'));
             const desc = esc(this.getTrans('manual_payment_desc'));
             const btnBack = esc(this.getTrans('btn_back'));
-            
             const modalHTML = `
                 <div id="modal-manual-payment" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
                         <button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         <h2 class="text-xl font-black text-[#00f3ff] mb-2 uppercase tracking-wider text-center"><i class="fa-solid fa-building-columns mr-2"></i> ${title}</h2>
                         <p class="text-xs text-neutral-300 mb-6 text-center">${desc}</p>
-                        
                         <div class="bg-black border border-neutral-700 rounded-xl p-4 space-y-3 text-xs font-mono">
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
-                                <span class="text-neutral-500">Moneda:</span>
-                                <strong class="text-[#00f3ff]">USD</strong>
-                            </div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
-                                <span class="text-neutral-500">Tipo:</span>
-                                <strong class="text-[#00f3ff]">CORRIENTE</strong>
-                            </div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
-                                <span class="text-neutral-500">Beneficiario:</span>
-                                <strong class="text-white text-right max-w-[150px] truncate" title="FELIPE RAFAEL SANCHEZ PIÑEROS">FELIPE RAFAEL SANCHEZ PIÑEROS</strong>
-                            </div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
-                                <span class="text-neutral-500">Banco:</span>
-                                <strong class="text-white">Lead Bank</strong>
-                            </div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
-                                <span class="text-neutral-500">Cuenta:</span>
-                                <div class="flex items-center gap-2">
-                                    <strong class="text-[#ffb703]">215069784455</strong>
-                                    <button onclick="app.copyText('215069784455')" class="text-neutral-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
-                                </div>
-                            </div>
-                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
-                                <span class="text-neutral-500">Routing:</span>
-                                <div class="flex items-center gap-2">
-                                    <strong class="text-[#ffb703]">101019644</strong>
-                                    <button onclick="app.copyText('101019644')" class="text-neutral-400 hover:text-white"><i class="fa-regular fa-copy"></i></button>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <span class="text-neutral-500">Dirección Banco:</span>
-                                <strong class="text-white text-[10px]">1801 Main St., Kansas City, MO 64108</strong>
-                            </div>
-                            <div class="flex flex-col gap-1 mt-2">
-                                <span class="text-neutral-500">Dirección Beneficiario:</span>
-                                <strong class="text-white text-[10px]">13-55 Calle 43, Apto 1606, Bucaramanga, Santander 680006, CO</strong>
-                            </div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Moneda:</span><strong class="text-[#00f3ff]">USD</strong></div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Tipo:</span><strong class="text-[#00f3ff]">CORRIENTE</strong></div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Beneficiario:</span><strong class="text-white text-right max-w-[150px] truncate" title="FELIPE RAFAEL SANCHEZ PIÑEROS">FELIPE RAFAEL SANCHEZ PIÑEROS</strong></div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Banco:</span><strong class="text-white">Lead Bank</strong></div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Cuenta:</span><div class="flex items-center gap-2"><strong class="text-[#ffb703]">215069784455</strong><button onclick="app.copyText('215069784455')" class="text-neutral-400 hover:text-white"><i class="fa-regular fa-copy"></i></button></div></div>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2"><span class="text-neutral-500">Routing:</span><div class="flex items-center gap-2"><strong class="text-[#ffb703]">101019644</strong><button onclick="app.copyText('101019644')" class="text-neutral-400 hover:text-white"><i class="fa-regular fa-copy"></i></button></div></div>
+                            <div class="flex flex-col gap-1"><span class="text-neutral-500">Dirección Banco:</span><strong class="text-white text-[10px]">1801 Main St., Kansas City, MO 64108</strong></div>
+                            <div class="flex flex-col gap-1 mt-2"><span class="text-neutral-500">Dirección Beneficiario:</span><strong class="text-white text-[10px]">13-55 Calle 43, Apto 1606, Bucaramanga, Santander 680006, CO</strong></div>
                         </div>
-                        
-                        <div class="mt-6">
-                            <button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-black py-3 rounded-xl uppercase transition">${btnBack}</button>
-                        </div>
+                        <div class="mt-6"><button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-black py-3 rounded-xl uppercase transition">${btnBack}</button></div>
                     </div>
                 </div>
             `;
@@ -1398,7 +1221,6 @@ const app = {
         const oldModal = document.getElementById('checkoutModal');
         if (oldModal) oldModal.classList.add('hidden');
     },
-
     triggerGlobalMediaUpload(acceptType) {
         document.getElementById('global-media-menu')?.classList.add('hidden');
         const fileInput = document.getElementById('global-media-upload');
@@ -1410,8 +1232,7 @@ const app = {
         this.haptic('medium');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
-            let mediaRecorder;
-            let chunks = [];
+            let mediaRecorder; let chunks = [];
             try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
 
             this.showToast(this.getTrans('toast_recording_selfie'));
@@ -1436,25 +1257,18 @@ const app = {
                 reader.readAsDataURL(blob);
                 stream.getTracks().forEach(track => track.stop());
             };
-
             mediaRecorder.start();
             setTimeout(() => { if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); } }, 5000);
         } catch (err) { this.showToast(this.getTrans('toast_cam_error')); }
     },
     
-    // 🛡️ Bloqueo de Notas de Voz en Chat Global
     async startAudioRecorder(type) {
-        if (type === 'global') {
-            this.showToast('🚫 Notas de voz desactivadas en el Chat Global para evitar spam visual y auditivo.');
-            return;
-        }
-
+        if (type === 'global') { this.showToast('🚫 Notas de voz desactivadas en el Chat Global para evitar spam.'); return; }
         document.getElementById('global-media-menu')?.classList.add('hidden');
         this.haptic('medium');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            let mediaRecorder;
-            let chunks = [];
+            let mediaRecorder; let chunks = [];
             try { mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' }); } catch (e) { mediaRecorder = new MediaRecorder(stream); }
 
             this.showToast('🎙️ Grabando nota de voz...');
@@ -1479,7 +1293,6 @@ const app = {
                 reader.readAsDataURL(blob);
                 stream.getTracks().forEach(track => track.stop());
             };
-
             mediaRecorder.start();
             setTimeout(() => { if (mediaRecorder.state === 'recording') { mediaRecorder.stop(); } }, 15000); 
         } catch (err) { this.showToast('⚠️ Error al acceder al micrófono.'); }
@@ -1506,11 +1319,9 @@ const app = {
         const newName = aliasInput ? aliasInput.value.trim() : '', newBio = bioInput ? bioInput.value.trim() : '';
         if (newName) { this.userData.name = newName; localStorage.setItem('alpha_user_name', newName); }
         if (newBio) { localStorage.setItem('alpha_user_bio', newBio); }
-        
         try {
             await fetch(`${this.backendUrl}/users/sync`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ user_id: this.userId || 0, name: newName, bio: newBio, avatar: localStorage.getItem('alpha_user_avatar') }) });
         } catch(e) {}
-
         this.showToast(this.getTrans('toast_profile_saved')); 
         this.updateProfileUI();
     },
@@ -1554,20 +1365,16 @@ const app = {
         this.haptic('medium');
         const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
         if (!phone && !email) { this.showToast(this.getTrans('toast_reg_empty')); return; }
-        
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
-        
         this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
         this.initUserId();
         const isCreator = this.registerRoleSelected === 'creator';
         this.userData.role = this.registerRoleSelected; 
-        
         if(!existingName) {
             this.userData.name = phone || email.split('@')[0] || (isCreator ? "mastertom" : "VIP Fan");
             localStorage.setItem('alpha_user_name', this.userData.name); 
         }
-
         localStorage.setItem('alpha_logged_in', 'true'); 
         localStorage.setItem('alpha_user_role', this.registerRoleSelected);
         this.switchView('feed'); this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
@@ -1576,18 +1383,12 @@ const app = {
     async loginWithPhone() {
         this.haptic('medium'); const phone = document.getElementById('phone-input')?.value.trim();
         if (!phone) { this.showToast(this.getTrans('toast_login_empty')); return; }
-        
         const existingName = localStorage.getItem('alpha_user_name');
         ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
-        
         this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
         this.initUserId();
         localStorage.setItem('alpha_logged_in', 'true'); 
-        
-        if(!existingName || existingName === 'USER') {
-            localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
-        }
-        
+        if(!existingName || existingName === 'USER') localStorage.setItem('alpha_user_name', `Tel: ${phone}`);
         this.switchView('feed'); await this.syncKYCStatus(); this.updateProfileUI(); this.updateViewsCounter(); this.refreshUserData(); this.renderFeed();
     },
 
@@ -1609,59 +1410,6 @@ const app = {
         this.switchView('feed'); this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); this.refreshUserData(); this.renderFeed();
     },
 
-    async checkSession() {
-        try {
-            this.initUserId(); 
-            await this.initTonConnect(); 
-            this.initTheme();
-            
-            const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
-            this.currentLang = savedLang;
-            const langText = document.getElementById('fab-lang-text'); 
-            if (langText) langText.innerText = savedLang.toUpperCase();
-            
-            if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
-            
-            const activeLogin = localStorage.getItem('alpha_logged_in');
-            const hasConsent = localStorage.getItem('alpha_consent'); 
-            const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
-            
-            if (tgUser && tgUser.id) { 
-                localStorage.setItem('alpha_logged_in', 'true'); 
-                localStorage.setItem('alpha_consent', 'true'); 
-                if (!localStorage.getItem('alpha_user_name') || localStorage.getItem('alpha_user_name').startsWith('Tel:')) { 
-                    localStorage.setItem('alpha_user_name', tgUser.first_name || 'VIP User'); 
-                } 
-            }
-            
-            if (activeLogin === 'true' || (tgUser && tgUser.id) || !hasConsent) { 
-                this.switchView('feed'); 
-                try { 
-                    const initData = window.Telegram?.WebApp?.initData || "";
-                    const res = await fetch(`${this.backendUrl}/users/sync`, { 
-                        method: "POST", headers: { "Content-Type": "application/json" }, 
-                        body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: this.getTrans('default_bio_sync'), avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
-                    }); 
-                    const data = await res.json();
-                    if(res.ok && data.user) {
-                        if(data.user.avatar_url) localStorage.setItem('alpha_user_avatar', data.user.avatar_url);
-                        if(data.user.bio) localStorage.setItem('alpha_user_bio', data.user.bio);
-                        if(data.user.name) localStorage.setItem('alpha_user_name', data.user.name);
-                    }
-                } catch(e) {}
-                this.updateProfileUI(); this.updateViewsCounter(); await this.syncKYCStatus(); await this.refreshUserData(); this.renderFeed();
-            } else if (hasConsent === 'true') { 
-                this.switchView('login'); 
-            } else { 
-                this.switchView('consent'); 
-            }
-        } catch (e) {
-            console.error("[SESSION ERROR]:", e);
-            this.switchView('feed');
-            this.renderFeed();
-        }
-    },
-
     exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
 
     logout() { 
@@ -1671,7 +1419,7 @@ const app = {
     },
 
     switchView(viewName) {
-        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
+        ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { const el = document.getElementById(`view-${v}`); if (el) el.classList.add('hidden'); });
         const targetView = document.getElementById(`view-${viewName}`);
         if (targetView) { targetView.classList.remove('hidden'); window.scrollTo(0, 0); if (viewName !== 'lang') this.lastView = viewName; }
     },
@@ -1697,7 +1445,12 @@ const app = {
         const userValue = input ? input.value.trim().toUpperCase() : '';
         if (userValue === this.currentCaptcha && userValue !== '') {
             this._captchaFailCount = 0;
-            this.switchView('login');
+            const activeLogin = localStorage.getItem('alpha_logged_in');
+            if (activeLogin === 'true') {
+                this.switchView('feed');
+            } else {
+                this.switchView('login');
+            }
         } else {
             this._captchaFailCount++;
             if (this._captchaFailCount >= 5) {
@@ -1711,19 +1464,6 @@ const app = {
             this.generateCaptcha();
         }
     },
-
-    closeModals() {
-        this.haptic('light');
-        if (this.chatSocket) { this.chatSocket.close(); this.chatSocket = null; }
-        if (this.globalChatSocket) { this.globalChatSocket.close(); this.globalChatSocket = null; }
-        ['modal-profile', 'modal-settings', 'modal-creator-profile', 'modal-role', 'modal-catalog', 'modal-communities', 'modal-payment', 'modal-payment-methods', 'modal-favorites-edit', 'modal-banks', 'modal-chat', 'modal-global-chat', 'modal-kyc', 'modal-tip-menu-edit', 'modal-fan-tip-menu', 'media-lightbox-modal', 'modal-external-checkout', 'modal-manual-payment', 'modal-payout-request'].forEach(m => {
-            document.getElementById(m)?.classList.add('hidden');
-        });
-    },
-
-    openProfile() { this.closeModals(); document.getElementById('modal-profile')?.classList.remove('hidden'); this.syncKYCStatus(); this.updateProfileUI(); this.refreshUserData(); },
-    openMenuModal() { this.openCatalogPackages(); },
-    openCommunitiesModal() { this.closeModals(); },
 
     setupSystemMessageObserver(containerId) {
         const container = document.getElementById(containerId);
@@ -1754,32 +1494,128 @@ const app = {
         await this.loadGlobalChatHistory(); 
         BunkerChat.initGlobal(this.userId, this.backendUrl); 
     },
+
+    // 📡 RADAR Y SEÑAL DE CONEXIÓN P2P MESH
+    handleRadarUpdate(data) {
+        const chipsChat = document.getElementById('online-users-chips');
+        const chipsVideo = document.getElementById('bunker-video-active-members');
+        const counter = document.getElementById('views-counter');
+        const safeName = this.escapeHtml(data.name);
+        const chipIdChat = `radar-chat-${data.user_id}`;
+        const chipIdVideo = `radar-video-${data.user_id}`;
+        
+        if (data.status === 'offline') {
+            document.getElementById(chipIdChat)?.remove();
+            document.getElementById(chipIdVideo)?.remove();
+            this.closePeerConnection(data.user_id);
+        } else {
+            if (chipsChat && !document.getElementById(chipIdChat)) {
+                chipsChat.insertAdjacentHTML('beforeend', `<div id="${chipIdChat}" onclick="app.viewCreatorProfile(${data.user_id}, '${safeName}')" class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${safeName}</div>`);
+            }
+            if (data.status === 'live' && chipsVideo && !document.getElementById(chipIdVideo)) {
+                chipsVideo.insertAdjacentHTML('beforeend', `<div id="${chipIdVideo}" onclick="app.viewCreatorProfile(${data.user_id}, '${safeName}')" class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] text-amber-500 animate-pulse"></i> @${safeName}</div>`);
+            }
+        }
+        if (counter && chipsChat) counter.innerText = chipsChat.children.length.toString();
+
+        if (this.activeWebcamStream && data.status === 'live' && data.user_id != this.userId) {
+            if (parseInt(this.userId) < parseInt(data.user_id)) {
+                this.sendWebRTCOffer(data.user_id);
+            }
+        }
+    },
     
     updateOnlineUsersRadar() {
-        const chipsContainerChat = document.getElementById('online-users-chips');
-        const chipsContainerVideo = document.getElementById('bunker-video-active-members');
-        const countSpan = document.getElementById('online-users-count');
         const userName = localStorage.getItem('alpha_user_name') || 'mastertom';
-        
-        if (countSpan) countSpan.innerText = '1';
-        
-        if (chipsContainerChat) {
-            chipsContainerChat.innerHTML = `
-                <div onclick="app.viewCreatorProfile(${this.userId || 99999}, '${this.escapeHtml(userName)}')" class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate cursor-pointer hover:bg-neutral-800 transition">
-                    <i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${this.escapeHtml(userName)} (${this.getTrans('txt_you')})
-                </div>
-            `;
-        }
-        if(chipsContainerVideo) {
-            chipsContainerVideo.innerHTML = `
-                <div onclick="app.viewCreatorProfile(${this.userId || 99999}, '${this.escapeHtml(userName)}')" class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate cursor-pointer hover:bg-neutral-800 transition">
-                    <i class="fa-solid fa-circle text-[4px] text-amber-500"></i> @${this.escapeHtml(userName)}
-                </div>
-            `;
-        }
+        this.handleRadarUpdate({ user_id: this.userId, name: userName, status: 'online' });
     },
 
     async loadGlobalChatHistory() { const container = document.getElementById('global-chat-messages'); if (container) container.innerHTML = ''; try { const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); if (res.ok) { const data = await res.json(); if (data.messages && data.messages.length > 0) { data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); this.scrollToBottom('global-chat-messages'); } } } catch (e) {} },
+
+    async sendWebRTCOffer(targetId) {
+        try {
+            const pc = this.createPeerConnection(targetId);
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+            BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_offer', target_id: targetId, sdp: offer.sdp }));
+        } catch(e) {}
+    },
+
+    async handleWebRTCMessage(data) {
+        const { type, caller_id, sdp, candidate } = data;
+        if (!this.activeWebcamStream) return; 
+        try {
+            if (type === 'webrtc_offer') {
+                const pc = this.createPeerConnection(caller_id);
+                await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_answer', target_id: caller_id, sdp: answer.sdp }));
+            } else if (type === 'webrtc_answer') {
+                const pc = this.peerConnections[caller_id];
+                if (pc) await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
+            } else if (type === 'webrtc_ice') {
+                const pc = this.peerConnections[caller_id];
+                if (pc && candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+        } catch(e) {}
+    },
+
+    createPeerConnection(targetId) {
+        if (this.peerConnections[targetId]) return this.peerConnections[targetId];
+        const pc = new RTCPeerConnection(this.rtcConfig);
+        this.peerConnections[targetId] = pc;
+        if (this.activeWebcamStream) {
+            this.activeWebcamStream.getTracks().forEach(track => pc.addTrack(track, this.activeWebcamStream));
+        }
+        pc.onicecandidate = (e) => {
+            if (e.candidate) BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_ice', target_id: targetId, candidate: e.candidate }));
+        };
+        pc.ontrack = (e) => {
+            if (!this.remoteStreams[targetId]) {
+                this.remoteStreams[targetId] = new MediaStream();
+                const videoContainer = document.getElementById('bunker-video-grid') || this.createVideoGrid();
+                const vidEl = document.createElement('video');
+                vidEl.id = `remote-video-${targetId}`;
+                vidEl.autoplay = true; vidEl.playsInline = true;
+                vidEl.className = 'w-full h-full object-cover border-2 border-[#ff00ff] rounded-xl shadow-lg';
+                vidEl.srcObject = this.remoteStreams[targetId];
+                const wrapper = document.createElement('div');
+                wrapper.className = 'relative flex-1 min-w-[45%] max-w-[50%] max-h-full';
+                wrapper.appendChild(vidEl);
+                videoContainer.appendChild(wrapper);
+            }
+            this.remoteStreams[targetId].addTrack(e.track);
+        };
+        return pc;
+    },
+
+    createVideoGrid() {
+        const feed = document.getElementById('bunker-webcam-feed');
+        feed.className = 'w-full h-full object-cover border-2 border-[#00f3ff] rounded-xl shadow-lg';
+        let grid = document.getElementById('bunker-video-grid');
+        if (!grid) {
+            const container = feed.parentElement;
+            container.classList.remove('justify-center');
+            container.classList.add('flex-wrap', 'gap-2', 'p-2', 'content-start', 'overflow-y-auto');
+            grid = document.createElement('div');
+            grid.id = 'bunker-video-grid';
+            grid.className = 'flex flex-wrap w-full h-full gap-2 justify-center content-start';
+            const wrapper = document.createElement('div');
+            wrapper.className = 'relative flex-1 min-w-[45%] max-w-[50%] max-h-full';
+            wrapper.appendChild(feed);
+            container.appendChild(grid);
+            grid.appendChild(wrapper); 
+        }
+        return grid;
+    },
+
+    closePeerConnection(targetId) {
+        if (this.peerConnections[targetId]) { this.peerConnections[targetId].close(); delete this.peerConnections[targetId]; }
+        if (this.remoteStreams[targetId]) delete this.remoteStreams[targetId];
+        const vidEl = document.getElementById(`remote-video-${targetId}`);
+        if (vidEl && vidEl.parentElement) vidEl.parentElement.remove();
+    },
 
     async handleChatMediaPreview(event, type) {
         document.getElementById('global-media-menu')?.classList.add('hidden');
@@ -1809,10 +1645,7 @@ const app = {
                 if (previewContainer) { 
                     previewContainer.classList.remove('hidden'); 
                     if(previewImg) previewImg.classList.add('hidden'); 
-                    if(previewVideo) {
-                        previewVideo.src = e.target.result; 
-                        previewVideo.classList.remove('hidden'); 
-                    }
+                    if(previewVideo) { previewVideo.src = e.target.result; previewVideo.classList.remove('hidden'); }
                     if(previewName) previewName.innerText = `${this.getTrans('txt_video')}: ${file.name.substring(0,12)}...`; 
                 } 
                 if (inputEl) inputEl.focus(); 
@@ -1827,10 +1660,7 @@ const app = {
                 if (previewContainer) { 
                     previewContainer.classList.remove('hidden'); 
                     if(previewImg) previewImg.classList.add('hidden'); 
-                    if(previewVideo) {
-                        previewVideo.src = ""; 
-                        previewVideo.classList.add('hidden'); 
-                    }
+                    if(previewVideo) { previewVideo.src = ""; previewVideo.classList.add('hidden'); }
                     if(previewName) previewName.innerHTML = `<i class="fa-solid fa-microphone text-[#ffb703] mr-1"></i> ${this.getTrans('txt_audio')}: ${file.name.substring(0,12)}...`; 
                 } 
                 if (inputEl) inputEl.focus(); 
@@ -1841,14 +1671,8 @@ const app = {
             this.tempChatMediaData = await this.compressImage(file, 800, 0.7); 
             if (previewContainer) { 
                 previewContainer.classList.remove('hidden'); 
-                if(previewVideo) {
-                    previewVideo.classList.add('hidden'); 
-                    previewVideo.src = ""; 
-                }
-                if(previewImg) {
-                    previewImg.src = this.tempChatMediaData; 
-                    previewImg.classList.remove('hidden'); 
-                }
+                if(previewVideo) { previewVideo.classList.add('hidden'); previewVideo.src = ""; }
+                if(previewImg) { previewImg.src = this.tempChatMediaData; previewImg.classList.remove('hidden'); }
                 if(previewName) previewName.innerText = `${this.getTrans('txt_photo')}: ${file.name.substring(0,12)}...`; 
             }
             if (inputEl) inputEl.focus(); 
@@ -1861,28 +1685,24 @@ const app = {
         const uploadInput = document.getElementById(`${type}-media-upload`), previewContainer = document.getElementById(`${type}-chat-preview-container`), previewImg = document.getElementById(`${type}-chat-preview-img`), previewVideo = document.getElementById(`${type}-chat-preview-video`);
         if (uploadInput) uploadInput.value = ''; if (previewContainer) previewContainer.classList.add('hidden'); if (previewImg) { previewImg.src = ''; previewImg.classList.add('hidden'); } if (previewVideo) { previewVideo.src = ''; previewVideo.classList.add('hidden'); }
     },
+
     async deleteChatMessage(msgId, btnElement, realMsgId) {
         this.haptic('medium');
         if(confirm(this.getTrans('confirm_delete_chat'))) {
             try {
                 if (realMsgId) {
                     await fetch(`${this.backendUrl}/chat/delete_message`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ user_id: this.userId, msg_id: realMsgId })
                     });
                 }
                 const bubble = btnElement.closest('.flex-col');
                 if(bubble) {
-                    bubble.style.transition = 'all 0.3s ease';
-                    bubble.style.opacity = '0';
-                    bubble.style.height = '0px';
+                    bubble.style.transition = 'all 0.3s ease'; bubble.style.opacity = '0'; bubble.style.height = '0px';
                     setTimeout(() => bubble.remove(), 300);
                 }
                 this.showToast(this.getTrans('toast_chat_deleted'));
-            } catch(e) {
-                console.error(e);
-            }
+            } catch(e) { console.error(e); }
         }
     },
 
@@ -1994,7 +1814,7 @@ const app = {
         const isAdminUser = this.isAdminUser(), userTier = this.userData?.access_tier || 0;
         if (userTier < 4 && !isAdminUser) { this.showToast(this.getTrans('toast_tier_req_bunker')); this.openCatalogPackages(); return; }
         const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
-        if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
+        if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-transform duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
         if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
         if(btnGoLive) btnGoLive.classList.remove('hidden');
         if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
@@ -2010,6 +1830,7 @@ const app = {
             if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); videoElem.classList.remove('hidden'); }
             if (placeholder) { placeholder.classList.add('hidden'); }
             await this.populateMediaDevices(stream);
+            if (typeof BunkerChat !== 'undefined') BunkerChat.sendGlobal(JSON.stringify({ type: 'join_video' }));
         } catch (err) { const placeholder = document.getElementById('cam-loading-placeholder'); if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-4xl text-red-600 mb-2"></i>`; } }
     },
 
@@ -2085,10 +1906,12 @@ const app = {
     leaveVideoBunker() {
         this.haptic('light');
         if (this.activeWebcamStream) { this.activeWebcamStream.getTracks().forEach(track => track.stop()); this.activeWebcamStream = null; }
+        Object.keys(this.peerConnections).forEach(id => this.closePeerConnection(id));
         const bunker = document.getElementById('floating-video-bunker'), videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
         if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
         if (placeholder) placeholder.classList.remove('hidden'); if (bunker) bunker.classList.add('hidden');
         this.isVideoMinimized = false;
+        if (typeof BunkerChat !== 'undefined') BunkerChat.sendGlobal(JSON.stringify({ type: 'leave_video' }));
     },
 
     startVideoCall() { this.haptic('light'); this.openGlobalChat(); },
@@ -2161,7 +1984,6 @@ const app = {
         } catch (e) {} 
     },
     
-    // 🛡️ Lógica de Likes Sumables en Tiempo Real
     async toggleLike(postId) {
         this.haptic('light');
         let liked = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
@@ -2177,7 +1999,6 @@ const app = {
                 el.innerText = isLiking ? currentCount + 1 : Math.max(0, currentCount - 1);
             }
         });
-        this.renderFeed(); 
         
         try {
             await fetch(`${this.backendUrl}/posts/like`, {
@@ -2198,13 +2019,10 @@ const app = {
                 feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">${this.getTrans('msg_no_posts')}</div>`; 
                 return; 
             }
-
             feedContainer.innerHTML = posts.map(post => {
                 const isLiked = likedPosts.includes(post.id), isAdminUser = this.isAdminUser(), isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
-                const safeAuthor = this.escapeHtml(post.author || 'mastertom'), safeContent = this.escapeHtml(post.content), safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
-                const showTipBtn = (post.author_role === 'creator' || post.author_role === 'admin');
+                const safeAuthor = this.escapeHtml(post.author || 'mastertom'), safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
                 const rankInfo = this.getRankBadge(post.levelRequired);
-
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
                         <div class="flex items-center justify-between mb-2">
@@ -2230,7 +2048,6 @@ const app = {
                                 </button>
                             </div>
                         ` : (post.media_url ? `<img src="${this.sanitizeUrl(post.media_url)}" class="rounded-xl w-full max-h-80 object-cover mb-3" alt="Media"/>` : '')}
-                        
                         <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
                             <button onclick="app.toggleLike(${post.id})" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border ${isLiked ? 'bg-red-500/20 border-red-500 text-red-400' : 'border-neutral-700 text-neutral-400'}">
                                 <i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
@@ -2242,9 +2059,7 @@ const app = {
                     </div>
                 `;
             }).join('');
-        } catch (e) {
-            feedContainer.innerHTML = `<div class="text-center text-red-500 mt-4 text-xs font-bold">${this.getTrans('msg_error_profile')}</div>`;
-        }
+        } catch (e) {}
     },
 
     selectCreatorRole() { this.closeModals(); },
@@ -2259,22 +2074,13 @@ document.addEventListener("DOMContentLoaded", () => {
     app.generateCaptcha();
     
     const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
-    
-    const applyPrivacyBlackout = () => { 
-        if (isTelegram) document.body.classList.add('privacy-blur'); 
-    };
-    const removePrivacyBlackout = () => {
-        document.body.classList.remove('privacy-blur');
-    };
+    const applyPrivacyBlackout = () => { if (isTelegram) document.body.classList.add('privacy-blur'); };
+    const removePrivacyBlackout = () => { document.body.classList.remove('privacy-blur'); };
 
     if (isTelegram) {
-        document.addEventListener('visibilitychange', () => { 
-            if (document.hidden) applyPrivacyBlackout(); 
-            else removePrivacyBlackout(); 
-        });
+        document.addEventListener('visibilitychange', () => { if (document.hidden) applyPrivacyBlackout(); else removePrivacyBlackout(); });
         window.addEventListener('blur', applyPrivacyBlackout);
         window.addEventListener('focus', removePrivacyBlackout);
-        
         document.addEventListener('contextmenu', event => event.preventDefault());
         document.addEventListener('keydown', (e) => {
             if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText(app.getTrans('txt_protected_content')); app.showToast(app.getTrans('toast_screenshots_blocked')); }
