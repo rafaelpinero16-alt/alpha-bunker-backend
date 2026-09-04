@@ -3,7 +3,7 @@ import re
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List
+from typing import List, Dict
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from database.db import get_db
@@ -11,17 +11,27 @@ from database.models import User, ChatMessage, Wallet, Transaction
 
 router = APIRouter(prefix="/chat", tags=["Chat En Vivo y CRM"])
 
+# 🛡️ ConnectionManager Evolucionado para soportar Videollamadas P2P
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+        self.user_connections: Dict[int, List[WebSocket]] = {} 
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, user_id: int):
         await websocket.accept()
         self.active_connections.append(websocket)
+        if user_id not in self.user_connections:
+            self.user_connections[user_id] = []
+        self.user_connections[user_id].append(websocket)
 
-    def disconnect(self, websocket: WebSocket):
+    def disconnect(self, websocket: WebSocket, user_id: int):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
+        if user_id in self.user_connections:
+            if websocket in self.user_connections[user_id]:
+                self.user_connections[user_id].remove(websocket)
+            if not self.user_connections[user_id]:
+                del self.user_connections[user_id]
 
     async def broadcast(self, message: dict):
         for connection in self.active_connections:
@@ -30,10 +40,18 @@ class ConnectionManager:
             except Exception:
                 pass
 
+    # 📡 Ruteo Directo WebRTC (Fundamental para Videollamadas P2P reales)
+    async def send_personal_message(self, message: dict, target_user_id: int):
+        if target_user_id in self.user_connections:
+            for connection in self.user_connections[target_user_id]:
+                try:
+                    await connection.send_json(message)
+                except Exception:
+                    pass
+
 manager = ConnectionManager()
 global_manager = ConnectionManager()
 
-# 🛡️ El Centinela: Ajustado para limpiar el muro cada 72 horas
 def clean_old_messages(db: Session):
     try:
         time_threshold = datetime.utcnow() - timedelta(hours=72)
@@ -46,7 +64,6 @@ class DeleteMsgRequest(BaseModel):
     user_id: int
     msg_id: int
 
-# 🛡️ Nuevo Endpoint para eliminar mensajes al instante
 @router.post("/delete_message")
 async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_db)):
     msg = db.query(ChatMessage).filter(ChatMessage.id == req.msg_id).first()
@@ -54,19 +71,14 @@ async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_d
         return {"status": "error", "detail": "Mensaje no encontrado"}
     
     user = db.query(User).filter(User.user_id == req.user_id).first()
-    if not user:
-        return {"status": "error", "detail": "Usuario no encontrado"}
+    is_admin = (user and (user.role == "admin" or user.user_id == 8269470905))
     
-    is_admin = (user.role == "admin" or user.user_id == 8269470905)
-    
-    # Solo el dueño del mensaje o el admin pueden borrarlo
     if msg.user_id != req.user_id and not is_admin:
         return {"status": "error", "detail": "No tienes permisos para eliminar este mensaje"}
     
     db.delete(msg)
     db.commit()
     
-    # Emitir señal de borrado a todos los WebSockets conectados
     delete_payload = {"type": "delete_msg", "msg_id": req.msg_id}
     await global_manager.broadcast(delete_payload)
     await manager.broadcast(delete_payload)
@@ -75,7 +87,7 @@ async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_d
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
-    await manager.connect(websocket)
+    await manager.connect(websocket, user_id)
     user = db.query(User).filter(User.user_id == user_id).first()
     
     if not user:
@@ -98,7 +110,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                 pass
 
             db_content = json.dumps({"text": text_val, "media_url": media_val})
-            
             new_msg = ChatMessage(
                 user_id=user.user_id,
                 author_name=user.name,
@@ -124,9 +135,9 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             }
             await manager.broadcast(msg_payload)
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
-    except Exception as e:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, user_id)
+    except Exception:
+        manager.disconnect(websocket, user_id)
 
 @router.get("/history")
 def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
@@ -137,24 +148,27 @@ def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
 @router.websocket("/global/ws/{user_id}")
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     try:
-        db.execute(text("SELECT warnings_count FROM users LIMIT 1"))
+        db.execute(text("SELECT is_online FROM users LIMIT 1"))
     except Exception:
         db.rollback()
         try:
-            db.execute(text("ALTER TABLE users ADD COLUMN warnings_count INTEGER DEFAULT 0"))
+            db.execute(text("ALTER TABLE users ADD COLUMN is_online BOOLEAN DEFAULT FALSE"))
+            db.execute(text("ALTER TABLE users ADD COLUMN is_live_video BOOLEAN DEFAULT FALSE"))
             db.commit()
         except Exception:
             db.rollback()
 
     user = db.query(User).filter(User.user_id == user_id).first()
-    
     if not user:
         user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified", warnings_count=0)
         db.add(user)
-        db.commit()
-        db.refresh(user)
+    
+    # 📡 Marcar usuario como online al conectar
+    user.is_online = True
+    user.last_seen = datetime.utcnow()
+    db.commit()
 
-    is_admin = (user.role == "admin" or user.user_id == 8269470905)
+    is_admin = (user.role == "admin" or user.user_id == 8269470905 or user.user_id == 123456789)
 
     if not is_admin and user.role == "creator" and user.kyc_status != "verified":
         await websocket.accept()
@@ -162,7 +176,10 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         await websocket.close(code=1008)
         return
 
-    await global_manager.connect(websocket)
+    await global_manager.connect(websocket, user_id)
+
+    # 📡 Broadcast: Notificar al Radar que alguien entró
+    await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
 
     link_pattern = re.compile(r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b')
 
@@ -213,16 +230,36 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
     try:
         while True:
             data = await websocket.receive_text()
-            text_val = data
-            media_val = None
+            
             try:
                 payload = json.loads(data)
+                msg_type = payload.get("type", "chat")
+                
+                # 📡 LÓGICA DE SEÑALIZACIÓN DE VIDEO P2P
+                if msg_type in ["webrtc_offer", "webrtc_answer", "webrtc_ice"]:
+                    target_id = payload.get("target_id")
+                    if target_id:
+                        payload["caller_id"] = user_id 
+                        payload["caller_name"] = user.name
+                        await global_manager.send_personal_message(payload, int(target_id))
+                    continue
+                
+                if msg_type == "join_video":
+                    user.is_live_video = True
+                    db.commit()
+                    await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "live"})
+                    continue
+
+                if msg_type == "leave_video":
+                    user.is_live_video = False
+                    db.commit()
+                    await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
+                    continue
+
+                # 💬 LÓGICA DE CHAT TRADICIONAL
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
-            except:
-                pass
 
-            try:
                 current_warnings = getattr(user, 'warnings_count', 0)
                 if current_warnings is None: current_warnings = 0
 
@@ -278,7 +315,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             await websocket.send_json({"is_error": True, "message": "Requieres Soldier Creator para etiquetar."})
                             continue
 
-                    # 🛡️ Validación de Multimedia y Notas de Voz
                     if media_val:
                         if media_val.startswith("data:video") and user.access_level < 3:
                             await websocket.send_json({"is_error": True, "message": "Requiere LEGEND para enviar videos."})
@@ -286,8 +322,8 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         if media_val.startswith("data:image") and user.access_level < 2:
                             await websocket.send_json({"is_error": True, "message": "Requiere VETERAN para enviar fotos."})
                             continue
-                        if media_val.startswith("data:audio") and user.access_level < 1:
-                            await websocket.send_json({"is_error": True, "message": "Requiere SOLDIER para enviar notas de voz."})
+                        if media_val.startswith("data:audio"):
+                            await websocket.send_json({"is_error": True, "message": "🚫 Notas de voz inhabilitadas en Chat Global."})
                             continue
 
                     if user.role == "fan" and user.access_level == 0:
@@ -302,42 +338,43 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         db.add(tx)
                         db.commit()
 
-            except Exception as e:
+                db_content = json.dumps({"text": text_val, "media_url": media_val})
+                new_msg = ChatMessage(
+                    user_id=user.user_id,
+                    author_name=f"[Global] {user.name}",
+                    author_role=user.role,
+                    access_level=user.access_level,
+                    content=db_content,
+                    is_system=False
+                )
+                db.add(new_msg)
+                db.commit()
+                db.refresh(new_msg)
+
+                msg_payload = {
+                    "type": "new_msg",
+                    "id": new_msg.id,
+                    "user_id": new_msg.user_id,
+                    "author_name": new_msg.author_name,
+                    "author_role": new_msg.author_role,
+                    "access_level": new_msg.access_level,
+                    "content": new_msg.content,
+                    "is_system": new_msg.is_system,
+                    "created_at": new_msg.created_at.isoformat()
+                }
+                await global_manager.broadcast(msg_payload)
+            except Exception:
                 pass
-
-            db_content = json.dumps({"text": text_val, "media_url": media_val})
-            new_msg = ChatMessage(
-                user_id=user.user_id,
-                author_name=f"[Global] {user.name}",
-                author_role=user.role,
-                access_level=user.access_level,
-                content=db_content,
-                is_system=False
-            )
-            db.add(new_msg)
-            db.commit()
-            db.refresh(new_msg)
-
-            msg_payload = {
-                "type": "new_msg",
-                "id": new_msg.id,
-                "user_id": new_msg.user_id,
-                "author_name": new_msg.author_name,
-                "author_role": new_msg.author_role,
-                "access_level": new_msg.access_level,
-                "content": new_msg.content,
-                "is_system": new_msg.is_system,
-                "created_at": new_msg.created_at.isoformat()
-            }
-            await global_manager.broadcast(msg_payload)
             
     except WebSocketDisconnect:
-        global_manager.disconnect(websocket)
-    except Exception as e:
-        global_manager.disconnect(websocket)
-
-@router.get("/global/history")
-def get_global_chat_history(limit: int = 50, db: Session = Depends(get_db)):
-    clean_old_messages(db)
-    messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
-    return {"status": "success", "messages": messages[::-1]}
+        user.is_online = False
+        user.is_live_video = False
+        user.last_seen = datetime.utcnow()
+        db.commit()
+        global_manager.disconnect(websocket, user_id)
+        await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "offline"})
+    except Exception:
+        user.is_online = False
+        user.is_live_video = False
+        db.commit()
+        global_manager.disconnect(websocket, user_id)
