@@ -2130,18 +2130,40 @@ const app = {
 
     toggleMinimizeVideo() {
         this.haptic('light');
-        const bunker = document.getElementById('floating-video-bunker'), controls = document.getElementById('video-controls-bar'), icon = document.getElementById('icon-minimize');
+        const bunker = document.getElementById('floating-video-bunker');
         this.isVideoMinimized = !this.isVideoMinimized;
-        if (this.isVideoMinimized) { 
-            bunker.classList.add('pip-mode'); 
-            bunker.classList.remove('inset-0'); 
-            controls.classList.add('hidden'); 
-            icon.className = 'fa-solid fa-expand'; 
-        } else { 
-            bunker.classList.remove('pip-mode'); 
-            bunker.classList.add('inset-0'); 
-            controls.classList.remove('hidden'); 
-            icon.className = 'fa-solid fa-compress'; 
+
+        // Comprobar si ya existe la pestaña lateral
+        let floatingTab = document.getElementById('floating-video-tab');
+
+        if (this.isVideoMinimized) {
+            // 1. Ocultar el videochat principal a la fuerza
+            bunker.classList.add('video-hidden');
+            
+            // 2. Crear y mostrar la pestaña lateral si no existe
+            if (!floatingTab) {
+                floatingTab = document.createElement('div');
+                floatingTab.id = 'floating-video-tab';
+                floatingTab.className = 'video-floating-tab';
+                floatingTab.innerHTML = `
+                    <div class="pulse-dot"></div>
+                    <i class="fa-solid fa-video"></i>
+                `;
+                // Al hacer clic en la pestaña, se vuelve a maximizar
+                floatingTab.onclick = () => this.toggleMinimizeVideo();
+                document.body.appendChild(floatingTab);
+            } else {
+                floatingTab.style.display = 'flex';
+            }
+            
+        } else {
+            // 1. Mostrar el videochat principal a pantalla completa
+            bunker.classList.remove('video-hidden');
+            
+            // 2. Ocultar la pestaña lateral
+            if (floatingTab) {
+                floatingTab.style.display = 'none';
+            }
         }
     },
 
@@ -2172,8 +2194,16 @@ const app = {
         const bunker = document.getElementById('floating-video-bunker'), videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
         if (videoElem) { videoElem.srcObject = null; videoElem.classList.add('hidden'); }
         if (placeholder) placeholder.classList.remove('hidden'); 
-        if (bunker) bunker.classList.add('hidden');
+        if (bunker) {
+            bunker.classList.add('hidden');
+            bunker.classList.remove('video-hidden'); // Limpiar la clase de ocultación por si acaso
+        }
         this.isVideoMinimized = false;
+        
+        // Eliminar la pestaña flotante al salir por completo
+        const floatingTab = document.getElementById('floating-video-tab');
+        if (floatingTab) floatingTab.style.display = 'none';
+
         if (typeof BunkerChat !== 'undefined') BunkerChat.sendGlobal(JSON.stringify({ type: 'leave_video' }));
     },
 
