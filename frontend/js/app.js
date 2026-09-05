@@ -660,22 +660,19 @@ const app = {
                                 <i class="fa-solid fa-champagne-glasses text-lg"></i> PIG'BROS 🚀PartyN'Play🚀VIP • 💬CHAT & VC📽
                             </button>
                             
-                            <!-- The Bunker Chat -->
+                            <!-- THE BUNKER CHAT -->
                             <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20 active:scale-95 text-center leading-tight">
                                 <i class="fa-solid fa-lock text-lg"></i> ⚜️🔐The Bunker CHat 🔐⚜️
                             </button>
                             
-                            <!-- Beta House -->
-                            <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-emerald-500 text-emerald-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.4)] transition hover:bg-emerald-500/20 active:scale-95 text-center leading-tight">
-                                <i class="fa-solid fa-house-chimney-user text-lg"></i> ⚜️ Beta House ⚜️
-                            </button>
+                        
                             
-                            <!-- Euphoria -->
+                            <!-- BETA HOUSE -->
                             <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
                                 <i class="fa-solid fa-masks-theater text-lg"></i> EUPHORIA
                             </button>
                             
-                            <!-- The Red Vault -->
+                            <!-- EUPHORIA -->
                             <button onclick="app.openLink('https://t.me/+N0BuW-guPM42OGNh')" class="w-full bg-black border border-red-500 text-red-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
                                 <i class="fa-solid fa-fire-flame-curved text-lg"></i> THE RED VAULT VIP
                             </button>
