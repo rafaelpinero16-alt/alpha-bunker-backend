@@ -7,12 +7,26 @@
     --bg-deep: #050505;
 }
 
+html {
+    background-color: #000; /* Fondo negro exterior para cuando se abra en PC */
+    width: 100%;
+    height: 100%;
+}
+
 body {
     background-color: var(--bg-deep);
     color: #fff;
     font-family: 'Rajdhani', sans-serif;
     font-size: 1.15rem;
     overflow-x: hidden;
+    
+    /* 🛡️ Forzar vista vertical móvil (App) en cualquier pantalla */
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.1);
+
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -80,7 +94,7 @@ body.light-theme .text-neutral-300 {
 
 /* 🛡️ REGLA PARA MANTENER LA CABECERA DEL CHAT FIJA Y EVITAR DESPLAZAMIENTOS */
 #modal-global-chat .glass-panel {
-    max-height: 100vh; /* Ajuste crítico para móviles */
+    max-height: 100vh;
     display: flex;
     flex-direction: column;
 }
@@ -95,9 +109,11 @@ body.light-theme .text-neutral-300 {
     background-image: none !important;
 }
 
+/* 🛡️ Ajuste de Ancho para los fondos fijos en PC */
 .tron-grid {
     position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
+    top: 0; left: 0; right: 0; margin: 0 auto;
+    width: 100%; max-width: 480px; height: 100vh;
     background-image: 
         linear-gradient(rgba(0, 243, 255, 0.1) 1px, transparent 1px),
         linear-gradient(90deg, rgba(0, 243, 255, 0.1) 1px, transparent 1px);
@@ -110,7 +126,8 @@ body.light-theme .text-neutral-300 {
 
 .grid-fade {
     position: fixed;
-    top: 0; left: 0; width: 100vw; height: 100vh;
+    top: 0; left: 0; right: 0; margin: 0 auto;
+    width: 100%; max-width: 480px; height: 100vh;
     background: radial-gradient(circle at center 30%, transparent 0%, var(--bg-deep) 70%);
     z-index: -1;
 }
@@ -123,8 +140,8 @@ body.light-theme .text-neutral-300 {
 .watermark-footer {
     position: fixed;
     bottom: 4px;
-    left: 0;
-    width: 100%;
+    left: 0; right: 0; margin: 0 auto;
+    width: 100%; max-width: 480px;
     text-align: center;
     font-family: 'Orbitron', sans-serif;
     font-size: 9px;
@@ -330,6 +347,11 @@ body.light-theme .text-neutral-300 {
 @keyframes levitate {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
+}
+
+/* 🛡️ Limitar elementos fijos al contenedor en PC */
+.fab-lang, .toast {
+    max-width: 480px;
 }
 
 .fab-lang {
