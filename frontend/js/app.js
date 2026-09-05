@@ -2296,16 +2296,41 @@ const app = {
 
                 let onlineDotHtml = post.is_online ? `<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black animate-pulse" title="Online"></div>` : '';
 
+                // 🛡️ Lógica de Blur / Candado para Media
                 let mediaHtml = '';
                 if (post.media_url) {
                     const cleanUrl = this.sanitizeUrl(post.media_url);
                     const isVid = cleanUrl.match(/\.(mp4|webm)/i) || cleanUrl.startsWith('data:video');
+                    const blurClass = post.is_locked ? "blur-xl grayscale pointer-events-none opacity-50 select-none" : "";
+                    const clickEvt = post.is_locked ? "" : `onclick="app.openLightbox('${cleanUrl}', '${isVid ? 'video' : 'image'}')"`;
+
                     if (isVid) {
-                        mediaHtml = `<div class="relative cursor-pointer group mb-3" onclick="app.openLightbox('${cleanUrl}', 'video')"><video src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover" autoplay muted loop playsinline></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
+                        mediaHtml = `<div class="relative ${post.is_locked ? '' : 'cursor-pointer group'} mb-3" ${clickEvt}><video src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover ${blurClass}" ${post.is_locked ? '' : 'autoplay loop'} muted playsinline></video>${!post.is_locked ? `<div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div>` : ''}</div>`;
                     } else {
-                        mediaHtml = `<div class="relative cursor-pointer group mb-3" onclick="app.openLightbox('${cleanUrl}', 'image')"><img src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover" alt="Media"/><div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
+                        mediaHtml = `<div class="relative ${post.is_locked ? '' : 'cursor-pointer group'} mb-3" ${clickEvt}><img src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover ${blurClass}" alt="Media"/>${!post.is_locked ? `<div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div>` : ''}</div>`;
                     }
                 }
+
+                let lockOverlay = post.is_locked ? `<div class="absolute inset-0 flex flex-col items-center justify-center bg-black/30 rounded-xl z-10 p-4 text-center"><i class="fa-solid fa-lock text-5xl text-amber-400 mb-3 drop-shadow-md"></i><span class="text-[10px] font-black text-white bg-black/80 px-3 py-1.5 rounded-full mb-3 border border-amber-500/50 uppercase tracking-widest">Nivel Requerido: ${rankInfo.name}</span><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2.5 px-5 rounded-xl text-xs shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95 transition uppercase tracking-wider pointer-events-auto"><i class="fa-solid fa-key mr-1"></i> Desbloquear (${post.price_alpha || 20} $ALPHA)</button></div>` : '';
+
+                let finalMediaSection = post.media_url ? `<div class="relative">${mediaHtml}${lockOverlay}</div>` : (post.is_locked ? `<div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3 relative"><i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i><span class="block text-xs font-bold text-neutral-400 mb-3 uppercase">Contenido protegido</span><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2 px-4 rounded-xl text-xs uppercase shadow-md transition active:scale-95"><i class="fa-solid fa-key mr-1"></i> Desbloquear (${post.price_alpha || 20} $ALPHA)</button></div>` : '');
+
+                let textContent = post.content ? `<p class="text-sm ${post.is_locked && !post.media_url ? 'blur-md select-none opacity-50' : 'text-neutral-200'} mb-3">${this.escapeHtml(post.content)}</p>` : '';
+
+                // 🛡️ Footer de interacciones desactivado si el post está bloqueado
+                let footerHtml = post.is_locked ? `
+                    <div class="flex items-center justify-between pt-2 border-t border-neutral-800 opacity-40 pointer-events-none select-none">
+                        <button class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border border-neutral-700 text-neutral-400"><i class="fa-solid fa-heart"></i> <span>${post.likes_count || 0}</span></button>
+                        <button class="bg-neutral-800 border border-neutral-700 text-neutral-500 font-bold py-1.5 px-3 rounded-lg text-xs"><i class="fa-solid fa-lock"></i> Tip</button>
+                    </div>
+                ` : `
+                    <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
+                        <button onclick="app.toggleLike(${post.id})" id="btn-like-main-${post.id}" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border transition-all ${isLiked ? 'bg-[#ff00ff]/20 border-[#ff00ff] text-[#ff00ff] shadow-[0_0_10px_#ff00ff]' : 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}">
+                            <i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
+                        </button>
+                        <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold py-1.5 px-3 rounded-lg text-xs shadow-[0_0_10px_rgba(245,158,11,0.3)] transition active:scale-95">🪙 Tip</button>
+                    </div>
+                `;
 
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
@@ -2325,16 +2350,11 @@ const app = {
                                 ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
-                        ${post.content ? `<p class="text-sm text-neutral-200 mb-3">${this.escapeHtml(post.content)}</p>` : ''}
                         
-                        ${post.is_locked ? `<div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3"><i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="mt-3 bg-amber-500 text-black font-black py-2 px-4 rounded-xl text-xs">🔓 Desbloquear (${post.price_alpha || 20} $ALPHA)</button></div>` : mediaHtml}
+                        ${textContent}
+                        ${finalMediaSection}
+                        ${footerHtml}
                         
-                        <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
-                            <button onclick="app.toggleLike(${post.id})" id="btn-like-main-${post.id}" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border transition-all ${isLiked ? 'bg-[#ff00ff]/20 border-[#ff00ff] text-[#ff00ff] shadow-[0_0_10px_#ff00ff]' : 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}">
-                                <i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
-                            </button>
-                            <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 text-black font-bold py-1.5 px-3 rounded-lg text-xs">🪙 Tip</button>
-                        </div>
                     </div>
                 `;
             }).join('');
