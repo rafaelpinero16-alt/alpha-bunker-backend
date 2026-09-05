@@ -639,58 +639,100 @@ const app = {
 
     openMenuModal() { this.openCatalogPackages(); },
 
-    openCommunitiesModal() {
+    async viewCreatorProfile(userId, userName) {
         this.closeModals();
-        let modal = document.getElementById('modal-communities-links');
-        if(!modal) {
+        this.haptic('light');
+        let modal = document.getElementById('modal-creator-profile');
+        if (!modal) {
             const modalHTML = `
-                <div id="modal-communities-links" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
-                    <div class="bg-neutral-900 border-2 border-[#ff00ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(255,0,255,0.3)]">
-                        <h3 class="text-xl font-black text-[#ff00ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title">ECOSISTEMA</span></h3>
-                        <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc">Únete a nuestros canales y grupos oficiales.</p>
-                        
-                        <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-2">
-                            <!-- Alpha World -->
-                            <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
-                                <i class="fa-solid fa-globe text-lg"></i> 🔱♨️Alpha World♨️🔱
-                            </button>
-                            
-                            <!-- Pig'Bros -->
-                            <button onclick="app.openLink('https://t.me/+7NhKBpvAE_dkODgx')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-[#ff00ff]/20 active:scale-95 text-center leading-tight">
-                                <i class="fa-solid fa-champagne-glasses text-lg"></i> PIG'BROS 🚀PartyN'Play🚀VIP • 💬CHAT & VC📽
-                            </button>
-                            
-                            <!-- THE BUNKER CHAT -->
-                            <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20 active:scale-95 text-center leading-tight">
-                                <i class="fa-solid fa-lock text-lg"></i> ⚜️🔐The Bunker CHat 🔐⚜️
-                            </button>
-                            
-                        
-                            
-                            <!-- BETA HOUSE -->
-                            <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
-                                <i class="fa-solid fa-masks-theater text-lg"></i> BETA HOUSE
-                            </button>
-                            
-                            <!-- EUPHORIA -->
-                            <button onclick="app.openLink('https://t.me/+N0BuW-guPM42OGNh')" class="w-full bg-black border border-red-500 text-red-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
-                                <i class="fa-solid fa-fire-flame-curved text-lg"></i> EUPHORIA
+                <div id="modal-creator-profile" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md max-h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
+                        <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        <div class="flex flex-col items-center text-center mb-4">
+                            <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden bg-black mb-3 flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.4)]">
+                                <img id="creator-prof-avatar" src="" class="w-full h-full object-cover hidden" onerror="this.style.display='none'">
+                                <i id="creator-prof-default-icon" class="fa-solid fa-user text-2xl text-[#00f3ff]"></i>
+                                <div id="creator-prof-dot" class="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-black hidden"></div>
+                            </div>
+                            <h3 id="creator-prof-name" class="text-xl font-black text-white uppercase tracking-wider">@${userName}</h3>
+                            <span id="creator-prof-status" class="text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border">OFFLINE</span>
+                        </div>
+                        <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-4 text-center">Cargando biografía...</div>
+                        <div class="flex gap-2 mb-4 shrink-0">
+                            <button onclick="app.openFanTipMenu(${userId}, null, '${userName}')" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-coins"></i> Enviar Tip
                             </button>
                         </div>
-                        <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition" id="btn-eco-close">CERRAR</button>
+                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2">Publicaciones del Creador</h4>
+                        <div id="creator-prof-posts" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                            <div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>
+                        </div>
                     </div>
                 </div>
             `;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
-            modal = document.getElementById('modal-communities-links');
+            modal = document.getElementById('modal-creator-profile');
         }
-        
-        const safeTxt = (key, def) => this.getTrans(key) || def;
-        document.getElementById('com-eco-title').innerText = safeTxt('com_title_eco', "ECOSISTEMA");
-        document.getElementById('com-eco-desc').innerText = safeTxt('com_desc_eco', "Únete a nuestros canales y grupos oficiales.");
-        document.getElementById('btn-eco-close').innerText = safeTxt('btn_cancel', "CERRAR");
-
         modal.classList.remove('hidden');
+
+        const avatarEl = document.getElementById('creator-prof-avatar');
+        const defaultIconEl = document.getElementById('creator-prof-default-icon');
+        const dotEl = document.getElementById('creator-prof-dot');
+        const nameEl = document.getElementById('creator-prof-name');
+        const statusEl = document.getElementById('creator-prof-status');
+        const bioEl = document.getElementById('creator-prof-bio');
+        const postsContainer = document.getElementById('creator-prof-posts');
+
+        nameEl.innerText = `@${userName}`;
+        avatarEl.classList.add('hidden');
+        defaultIconEl.style.display = 'block';
+        dotEl.classList.add('hidden');
+        statusEl.innerText = 'OFFLINE';
+        statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-neutral-700 text-neutral-400 bg-neutral-800';
+        bioEl.innerText = 'Operativo en el Ecosistema Alpha.';
+        postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>`;
+
+        try {
+            const res = await fetch(`${this.backendUrl}/kyc/status/${userId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.avatar_url) {
+                    avatarEl.src = this.sanitizeUrl(data.avatar_url);
+                    avatarEl.classList.remove('hidden');
+                    defaultIconEl.style.display = 'none';
+                }
+                if (data.bio) bioEl.innerText = data.bio;
+                if (data.is_online) {
+                    dotEl.classList.remove('hidden');
+                    statusEl.innerText = '● ONLINE';
+                    statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
+                }
+            }
+        } catch(e) {}
+
+        try {
+            const feedRes = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
+            if (feedRes.ok) {
+                const feedData = await feedRes.json();
+                const creatorPosts = (feedData.posts || []).filter(p => p.creator_id == userId);
+                if (creatorPosts.length === 0) {
+                    postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4 bg-black/40 rounded-xl">No hay publicaciones de este usuario.</div>`;
+                } else {
+                    postsContainer.innerHTML = creatorPosts.map(p => `
+                        <div class="bg-black border border-neutral-800 rounded-xl p-3 text-white text-xs space-y-2">
+                            <p class="text-neutral-200">${this.escapeHtml(p.content || '')}</p>
+                            ${p.media_url ? `<img src="${this.sanitizeUrl(p.media_url)}" class="rounded-lg w-full max-h-36 object-cover" />` : ''}
+                            <div class="flex justify-between items-center text-[10px] text-neutral-400 pt-1 border-t border-neutral-900">
+                                <span>❤️ ${p.likes_count || 0} likes</span>
+                                <span class="text-[#00f3ff]">${p.price_alpha ? p.price_alpha + ' $ALPHA' : 'Gratis'}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            }
+        } catch(e) {
+            postsContainer.innerHTML = `<div class="text-center text-red-400 text-xs py-4">Error al cargar publicaciones.</div>`;
+        }
     },
 
     // 🛡️ RESTRICCIÓN DE TELÉFONO EN EL REGISTRO
@@ -2238,6 +2280,15 @@ const app = {
                 const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
                 const rankInfo = this.getRankBadge(post.levelRequired);
                 
+                let avatarHtml = '';
+                if (post.author_avatar) {
+                    avatarHtml = `<img src="${this.sanitizeUrl(post.author_avatar)}" class="w-full h-full object-cover">`;
+                } else {
+                    avatarHtml = `<i class="fa-solid fa-user text-xs text-[#00f3ff]"></i>`;
+                }
+
+                let onlineDotHtml = post.is_online ? `<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black animate-pulse" title="Online"></div>` : '';
+
                 let mediaHtml = '';
                 if (post.media_url) {
                     const cleanUrl = this.sanitizeUrl(post.media_url);
@@ -2252,11 +2303,15 @@ const app = {
                 return `
                     <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
                         <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2 cursor-pointer" onclick="app.viewCreatorProfile(${post.creator_id || 99999}, '${safeAuthorAttr}')">
-                                <div class="w-9 h-9 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center">
-                                    <i class="fa-solid fa-user text-xs text-[#00f3ff]"></i>
+                            <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.viewCreatorProfile(${post.creator_id || 99999}, '${safeAuthorAttr}')">
+                                <div class="relative w-10 h-10 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center shadow-md">
+                                    ${avatarHtml}
+                                    ${onlineDotHtml}
                                 </div>
-                                <span class="font-bold text-amber-400 text-sm">@${safeAuthor}</span>
+                                <div class="flex flex-col">
+                                    <span class="font-bold text-amber-400 text-sm hover:underline">@${safeAuthor}</span>
+                                    <span class="text-[9px] ${post.is_online ? 'text-emerald-400 font-bold' : 'text-neutral-500'}">${post.is_online ? '● ONLINE' : '○ OFFLINE'}</span>
+                                </div>
                             </div>
                             <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
                                 <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
