@@ -125,7 +125,7 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
                 "author_avatar": author_avatar,
                 "is_online": is_online,
                 "content": p.text_es,
-                "media_url": None if is_locked else p.image_url,
+                "media_url": p.image_url, # 🛡️ CAMBIO CLAVE: Ya no enviamos "None". Siempre enviamos la URL para poder aplicar el BLUR frontalmente.
                 "levelRequired": p.levelRequired,
                 "is_ppv": p.is_ppv,
                 "price_alpha": p.price_alpha,
