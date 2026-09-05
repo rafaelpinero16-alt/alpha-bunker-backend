@@ -69,7 +69,7 @@ def create_post(data: PostCreateRequest, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=500, detail="Error al crear la publicación.")
 
-# 🛡️ Nuevo Endpoint para sumar Likes Reales
+# 🛡️ Endpoint para sumar Likes Reales y Orgánicos
 @router.post("/like")
 def toggle_like(data: LikeRequest, db: Session = Depends(get_db)):
     ensure_db_schema(db)
@@ -107,6 +107,8 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
         for p in posts:
             post_author = db.query(User).filter(User.user_id == p.creator_id).first()
             author_role = post_author.role if post_author else "fan"
+            author_avatar = post_author.avatar_url if post_author and post_author.avatar_url else None
+            is_online = post_author.is_online if post_author and hasattr(post_author, 'is_online') else False
 
             is_ppv_locked = p.is_ppv and p.price_alpha > 0 and p.id not in unlocked_post_ids
             is_tier_locked = p.levelRequired > user_access_level
@@ -120,6 +122,8 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
                 "creator_id": p.creator_id,
                 "author": p.author,
                 "author_role": author_role,
+                "author_avatar": author_avatar,
+                "is_online": is_online,
                 "content": p.text_es,
                 "media_url": None if is_locked else p.image_url,
                 "levelRequired": p.levelRequired,
@@ -197,7 +201,7 @@ def delete_post(data: dict, db: Session = Depends(get_db)):
         if not post:
             raise HTTPException(status_code=404, detail="Post no encontrado")
             
-        if post.creator_id != user_id and user_id != ADMIN_TELEGRAM_ID and user_id != 123456789: # JaviAdmin ID placeholder
+        if post.creator_id != user_id and user_id != ADMIN_TELEGRAM_ID and user_id != 123456789:
             raise HTTPException(status_code=403, detail="No tienes permisos para eliminar este post.")
             
         db.delete(post)
