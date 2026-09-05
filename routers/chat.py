@@ -145,6 +145,12 @@ def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
     messages = db.query(ChatMessage).filter(ChatMessage.author_name.notlike("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
+@router.get("/global/history")
+def get_global_chat_history(limit: int = 50, db: Session = Depends(get_db)):
+    clean_old_messages(db)
+    messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
+    return {"status": "success", "messages": messages[::-1]}
+
 @router.websocket("/global/ws/{user_id}")
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     try:
