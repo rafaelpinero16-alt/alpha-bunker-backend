@@ -637,7 +637,9 @@ const app = {
         this.refreshUserData(); 
     },
 
-    openMenuModal() { this.openCatalogPackages(); },
+    openMenuModal() { 
+        this.openCatalogPackages(); 
+    },
 
     async viewCreatorProfile(userId, userName) {
         this.closeModals();
@@ -645,26 +647,31 @@ const app = {
         let modal = document.getElementById('modal-creator-profile');
         if (!modal) {
             const modalHTML = `
-                <div id="modal-creator-profile" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
-                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md max-h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
-                        <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
-                        <div class="flex flex-col items-center text-center mb-4">
-                            <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden bg-black mb-3 flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.4)]">
+                <div id="modal-creator-profile" class="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
+                        <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
+                        
+                        <div class="flex flex-col items-center text-center mb-3 shrink-0">
+                            <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden bg-black mb-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.4)]">
                                 <img id="creator-prof-avatar" src="" class="w-full h-full object-cover hidden" onerror="this.style.display='none'">
                                 <i id="creator-prof-default-icon" class="fa-solid fa-user text-2xl text-[#00f3ff]"></i>
                                 <div id="creator-prof-dot" class="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-black hidden"></div>
                             </div>
-                            <h3 id="creator-prof-name" class="text-xl font-black text-white uppercase tracking-wider">@${userName}</h3>
+                            <h3 id="creator-prof-name" class="text-xl font-black text-white uppercase tracking-wider truncate w-full px-4">@${userName}</h3>
                             <span id="creator-prof-status" class="text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border">OFFLINE</span>
+                            <span class="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-widest">Operativo en el Ecosistema Alfa</span>
                         </div>
-                        <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-4 text-center">Cargando biografía...</div>
-                        <div class="flex gap-2 mb-4 shrink-0">
+                        
+                        <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-3 text-center shrink-0">Cargando biografía...</div>
+                        
+                        <div class="flex gap-2 mb-3 shrink-0">
                             <button onclick="app.openFanTipMenu(${userId}, null, '${userName}')" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
                                 <i class="fa-solid fa-coins"></i> Enviar Tip
                             </button>
                         </div>
-                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2">Publicaciones del Creador</h4>
-                        <div id="creator-prof-posts" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                        
+                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2 shrink-0">Publicaciones del Creador</h4>
+                        <div id="creator-prof-posts" class="flex-1 overflow-y-auto space-y-3 pr-2 pb-6">
                             <div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>
                         </div>
                     </div>
@@ -701,7 +708,7 @@ const app = {
                     avatarEl.classList.remove('hidden');
                     defaultIconEl.style.display = 'none';
                 }
-                if (data.bio) bioEl.innerText = data.bio;
+                if (data.bio) { bioEl.innerText = data.bio; } else { bioEl.innerText = 'Operativo en el Ecosistema Alpha.'; }
                 if (data.is_online) {
                     dotEl.classList.remove('hidden');
                     statusEl.innerText = '● ONLINE';
@@ -719,9 +726,9 @@ const app = {
                     postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4 bg-black/40 rounded-xl">No hay publicaciones de este usuario.</div>`;
                 } else {
                     postsContainer.innerHTML = creatorPosts.map(p => `
-                        <div class="bg-black border border-neutral-800 rounded-xl p-3 text-white text-xs space-y-2">
+                        <div class="bg-black border border-neutral-800 rounded-xl p-3 text-white text-xs space-y-2 relative group">
                             <p class="text-neutral-200">${this.escapeHtml(p.content || '')}</p>
-                            ${p.media_url ? `<img src="${this.sanitizeUrl(p.media_url)}" class="rounded-lg w-full max-h-36 object-cover" />` : ''}
+                            ${p.media_url ? `<div class="relative w-full cursor-pointer" onclick="app.openLightbox('${this.sanitizeUrl(p.media_url)}', '${p.media_url.match(/\.(mp4|webm)/i) || p.media_url.startsWith('data:video') ? 'video' : 'image'}')"><img src="${this.sanitizeUrl(p.media_url)}" class="rounded-lg w-full max-h-48 object-cover" /><div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-lg pointer-events-none"><i class="fa-solid fa-expand text-white text-2xl drop-shadow-md"></i></div></div>` : ''}
                             <div class="flex justify-between items-center text-[10px] text-neutral-400 pt-1 border-t border-neutral-900">
                                 <span>❤️ ${p.likes_count || 0} likes</span>
                                 <span class="text-[#00f3ff]">${p.price_alpha ? p.price_alpha + ' $ALPHA' : 'Gratis'}</span>
@@ -1651,13 +1658,44 @@ const app = {
                 chipsVideo.insertAdjacentHTML('beforeend', `<div id="${chipIdVideo}" onclick="app.viewCreatorProfile(${data.user_id}, '${safeName}')" class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] text-amber-500 animate-pulse"></i> @${safeName}</div>`);
             }
         }
-        if (counter && chipsChat) counter.innerText = chipsChat.children.length.toString();
+        if (counter && chipsChat) {
+            counter.innerText = Math.max(1, chipsChat.children.length).toString();
+        }
 
         if (this.activeWebcamStream && data.status === 'live' && data.user_id != this.userId) {
             if (parseInt(this.userId) < parseInt(data.user_id)) {
                 this.sendWebRTCOffer(data.user_id);
             }
         }
+    },
+    
+    updateOnlineUsersRadar() {
+        const userName = localStorage.getItem('alpha_user_name') || 'mastertom';
+        this.handleRadarUpdate({ user_id: this.userId, name: userName, status: 'online' });
+        if (typeof BunkerChat !== 'undefined' && BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) {
+            BunkerChat.sendGlobal(JSON.stringify({ type: "radar_update", user_id: this.userId, name: userName, status: "online" }));
+        }
+    },
+
+    async joinVideoBunker() {
+        this.haptic('medium'); 
+        this.initUserId();
+        const isAdminUser = this.isAdminUser(), userTier = this.userData?.access_tier || 0;
+        if (userTier < 4 && !isAdminUser) { this.showToast('Requiere Icon Legend'); this.openCatalogPackages(); return; }
+        const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
+        if(bunker) { 
+            bunker.classList.remove('hidden'); 
+            this.isVideoMinimized = false; 
+            bunker.className = 'fixed inset-0 z-[200] bg-[#050505] flex flex-col h-screen w-screen overflow-hidden transition-all duration-300'; 
+            document.getElementById('video-controls-bar')?.classList.remove('hidden'); 
+            const iconMin = document.getElementById('icon-minimize');
+            if(iconMin) iconMin.className = 'fa-solid fa-compress'; 
+        }
+        if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if(btnGoLive) btnGoLive.classList.remove('hidden');
+        if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
+        await this.requestAndLoadMedia();
+        this.updateOnlineUsersRadar(); 
     },
     
     updateOnlineUsersRadar() {
