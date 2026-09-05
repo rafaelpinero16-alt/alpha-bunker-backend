@@ -646,26 +646,53 @@ const app = {
             const modalHTML = `
                 <div id="modal-communities-links" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#ff00ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(255,0,255,0.3)]">
-                        <h3 class="text-xl font-black text-[#ff00ff] mb-4 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> ECOSISTEMA</h3>
-                        <p class="text-xs text-neutral-300 text-center mb-6">Únete a nuestros canales y grupos oficiales.</p>
-                        <div class="space-y-3">
-                            <button onclick="app.openLink('https://t.me/therealonetom')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 rounded-xl uppercase flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20">
-                                <i class="fa-brands fa-telegram text-lg"></i> Soporte Oficial
+                        <h3 class="text-xl font-black text-[#ff00ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title">ECOSISTEMA</span></h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc">Únete a nuestros canales y grupos oficiales.</p>
+                        
+                        <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-2">
+                            <!-- Alpha World -->
+                            <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-globe text-lg"></i> 🔱♨️Alpha World♨️🔱
                             </button>
-                            <button onclick="app.openLink('https://t.me/TheCloudyVIPBunker')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 rounded-xl uppercase flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-[#ff00ff]/20">
-                                <i class="fa-solid fa-tower-broadcast text-lg"></i> The Cloudy VIP Bunker
+                            
+                            <!-- Pig'Bros -->
+                            <button onclick="app.openLink('https://t.me/+7NhKBpvAE_dkODgx')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-[#ff00ff]/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-champagne-glasses text-lg"></i> PIG'BROS 🚀PartyN'Play🚀VIP • 💬CHAT & VC📽
                             </button>
-                            <button onclick="app.openLink('https://t.me/AlphaAdMosphere')" class="w-full bg-black border border-[#ffb703] text-[#ffb703] font-black py-3 rounded-xl uppercase flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(255,183,3,0.4)] transition hover:bg-[#ffb703]/20">
-                                <i class="fa-solid fa-bullhorn text-lg"></i> Alpha AdMosphere
+                            
+                            <!-- The Bunker Chat -->
+                            <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-lock text-lg"></i> ⚜️🔐The Bunker CHat 🔐⚜️
+                            </button>
+                            
+                            <!-- Beta House -->
+                            <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-emerald-500 text-emerald-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.4)] transition hover:bg-emerald-500/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-house-chimney-user text-lg"></i> ⚜️ Beta House ⚜️
+                            </button>
+                            
+                            <!-- Euphoria -->
+                            <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-masks-theater text-lg"></i> EUPHORIA
+                            </button>
+                            
+                            <!-- The Red Vault -->
+                            <button onclick="app.openLink('https://t.me/+N0BuW-guPM42OGNh')" class="w-full bg-black border border-red-500 text-red-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-fire-flame-curved text-lg"></i> THE RED VAULT VIP
                             </button>
                         </div>
-                        <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition">Cerrar</button>
+                        <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition" id="btn-eco-close">CERRAR</button>
                     </div>
                 </div>
             `;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             modal = document.getElementById('modal-communities-links');
         }
+        
+        const safeTxt = (key, def) => this.getTrans(key) || def;
+        document.getElementById('com-eco-title').innerText = safeTxt('com_title_eco', "ECOSISTEMA");
+        document.getElementById('com-eco-desc').innerText = safeTxt('com_desc_eco', "Únete a nuestros canales y grupos oficiales.");
+        document.getElementById('btn-eco-close').innerText = safeTxt('btn_cancel', "CERRAR");
+
         modal.classList.remove('hidden');
     },
 
