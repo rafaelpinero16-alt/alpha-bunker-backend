@@ -669,12 +669,12 @@ const app = {
                             
                             <!-- BETA HOUSE -->
                             <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
-                                <i class="fa-solid fa-masks-theater text-lg"></i> EUPHORIA
+                                <i class="fa-solid fa-masks-theater text-lg"></i> BETA HOUSE
                             </button>
                             
                             <!-- EUPHORIA -->
                             <button onclick="app.openLink('https://t.me/+N0BuW-guPM42OGNh')" class="w-full bg-black border border-red-500 text-red-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
-                                <i class="fa-solid fa-fire-flame-curved text-lg"></i> THE RED VAULT VIP
+                                <i class="fa-solid fa-fire-flame-curved text-lg"></i> EUPHORIA
                             </button>
                         </div>
                         <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition" id="btn-eco-close">CERRAR</button>
