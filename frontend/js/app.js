@@ -1049,13 +1049,55 @@ const app = {
         }
     },
 
-    // 🛡️ ACCESO RÁPIDO A CHAT DIRECTO DESDE PERFIL
+    // 🛡️ ACCESO RÁPIDO A CHAT DIRECTO DESDE PERFIL Y ACTUALIZACIÓN DE TÍTULO CRM
     openDirectChat(targetId, targetName) {
         this.closeModals();
         if (typeof BunkerChat !== 'undefined' && typeof BunkerChat.setTargetUser === 'function') {
             BunkerChat.setTargetUser(targetId, targetName);
         }
+        const chatTitle = document.getElementById('crm-chat-title') || document.getElementById('chat-title');
+        if (chatTitle) {
+            chatTitle.innerText = `CHAT CON @${targetName}`;
+        }
         this.openSupport();
+    },
+
+    // 🛡️ GESTIÓN DE SEGUIR / MUTUAL FOLLOW Y BLOQUEO DE USUARIO
+    toggleFollow(targetId, targetName) {
+        this.haptic('medium');
+        let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
+        const isFollowing = following.includes(targetId);
+        
+        if (isFollowing) {
+            following = following.filter(id => id !== targetId);
+            this.showToast(`Dejaste de seguir a @${targetName}`);
+        } else {
+            following.push(targetId);
+            this.showToast(`¡Ahora sigues a @${targetName}! 🤝`);
+        }
+        localStorage.setItem('alpha_user_following', JSON.stringify(following));
+        
+        const btn = document.getElementById('btn-profile-follow');
+        if (btn) {
+            btn.innerHTML = isFollowing ? '<i class="fa-solid fa-user-plus"></i> Seguir' : '<i class="fa-solid fa-user-check"></i> Siguiendo';
+            btn.className = isFollowing 
+                ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
+                : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
+        }
+    },
+
+    blockUser(targetId, targetName) {
+        this.haptic('heavy');
+        if (confirm(`¿Estás seguro de bloquear a @${targetName}? Ya no verás sus publicaciones ni mensajes.`)) {
+            let blocked = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
+            if (!blocked.includes(targetId)) {
+                blocked.push(targetId);
+                localStorage.setItem('alpha_user_blocked', JSON.stringify(blocked));
+            }
+            this.showToast(`Usuario @${targetName} bloqueado.`);
+            this.closeModals();
+            this.renderFeed();
+        }
     },
 
     async buyPackageStars(packageSlug, targetLevel = null) {
@@ -1183,13 +1225,30 @@ const app = {
         this.closeModals();
         this.haptic('light');
         let modal = document.getElementById('modal-creator-profile');
+        
+        let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
+        const isFollowing = following.includes(userId);
+        const followBtnText = isFollowing ? 'Siguiendo' : 'Seguir';
+        const followBtnClass = isFollowing 
+            ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
+            : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
+        const followIcon = isFollowing ? 'fa-user-check' : 'fa-user-plus';
+
         if (!modal) {
             const modalHTML = `
                 <div id="modal-creator-profile" class="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
                         <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
                         
-                        <div class="flex flex-col items-center text-center mb-3 shrink-0">
+                        <!-- Menú desplegable de 3 puntos (Opciones de Bloqueo) -->
+                        <div class="absolute top-4 left-4 z-20">
+                            <button onclick="document.getElementById('creator-options-menu').classList.toggle('hidden')" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-ellipsis-vertical text-xl"></i></button>
+                            <div id="creator-options-menu" class="hidden absolute left-0 mt-2 w-36 bg-black border border-neutral-700 rounded-xl shadow-xl z-30 flex flex-col overflow-hidden">
+                                <button onclick="app.blockUser(${userId}, '${userName}')" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-900 text-left w-full"><i class="fa-solid fa-ban mr-1"></i> Bloquear</button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col items-center text-center mb-3 shrink-0 mt-2">
                             <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden bg-black mb-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.4)]">
                                 <img id="creator-prof-avatar" src="" class="w-full h-full object-cover hidden" onerror="this.style.display='none'">
                                 <i id="creator-prof-default-icon" class="fa-solid fa-user text-2xl text-[#00f3ff]"></i>
@@ -1207,7 +1266,13 @@ const app = {
                                 <i class="fa-solid fa-coins"></i> Enviar Tip
                             </button>
                             <button onclick="app.openDirectChat(${userId}, '${userName}')" class="flex-1 bg-[#00f3ff] hover:bg-[#00f3ff]/80 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-comments"></i> Chat Directo
+                                <i class="fa-solid fa-comments"></i> Chat
+                            </button>
+                        </div>
+
+                        <div class="flex gap-2 mb-3 shrink-0">
+                            <button id="btn-profile-follow" onclick="app.toggleFollow(${userId}, '${userName}')" class="${followBtnClass}">
+                                <i class="fa-solid ${followIcon}"></i> ${followBtnText}
                             </button>
                         </div>
                         
@@ -1220,6 +1285,14 @@ const app = {
             `;
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             modal = document.getElementById('modal-creator-profile');
+        } else {
+            // Actualizar botones dinámicos si el modal ya existía
+            const followBtn = modal.querySelector('#btn-profile-follow');
+            if (followBtn) {
+                followBtn.setAttribute('onclick', `app.toggleFollow(${userId}, '${userName}')`);
+                followBtn.className = followBtnClass;
+                followBtn.innerHTML = `<i class="fa-solid ${followIcon}"></i> ${followBtnText}`;
+            }
         }
         modal.classList.remove('hidden');
 
@@ -1867,7 +1940,18 @@ const app = {
     async requestAndLoadMedia() {
         try {
             let stream; 
-            try { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true }); } catch (e) { stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); }
+            const cachedCamId = localStorage.getItem('alpha_preferred_cam');
+            const cachedMicId = localStorage.getItem('alpha_preferred_mic');
+            let constraints = { video: true, audio: true };
+            if (cachedCamId) constraints.video = { deviceId: { exact: cachedCamId } };
+            if (cachedMicId === 'none') constraints.audio = false;
+            else if (cachedMicId) constraints.audio = { deviceId: { exact: cachedMicId } };
+
+            try { 
+                stream = await navigator.mediaDevices.getUserMedia(constraints); 
+            } catch (e) { 
+                stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); 
+            }
             this.activeWebcamStream = stream; 
             this.isMicMuted = false; 
             this.isCamOff = false; 
@@ -1877,7 +1961,9 @@ const app = {
             if (placeholder) { placeholder.classList.add('hidden'); }
             await this.populateMediaDevices(stream);
             if (typeof BunkerChat !== 'undefined') BunkerChat.sendGlobal(JSON.stringify({ type: 'join_video' }));
-        } catch (err) {}
+        } catch (err) {
+            this.showToast('⚠️ Permiso de cámara denegado o no disponible.');
+        }
     },
 
     async populateMediaDevices(currentStream) {
@@ -1896,10 +1982,16 @@ const app = {
                 if (!seen.has(cleanLabel)) { seen.add(cleanLabel); const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = cleanLabel; selectCam.appendChild(opt); }
             });
             if(!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = `🎥 Forzar OBS`; selectCam.appendChild(optObs); }
+            
+            const savedCam = localStorage.getItem('alpha_preferred_cam');
+            if (savedCam) selectCam.value = savedCam;
         }
         if (selectMic) {
             selectMic.innerHTML = `<option value="none">🔇 Silenciar</option>`;
             audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `Micrófono #${index + 1}`; selectMic.appendChild(opt); });
+            
+            const savedMic = localStorage.getItem('alpha_preferred_mic');
+            if (savedMic) selectMic.value = savedMic;
         }
     },
 
@@ -1940,6 +2032,9 @@ const app = {
     async applyAVSettings() {
         this.haptic('heavy');
         const camId = document.getElementById('setting-cam-source')?.value, micId = document.getElementById('setting-mic-source')?.value;
+        if (camId) localStorage.setItem('alpha_preferred_cam', camId);
+        if (micId) localStorage.setItem('alpha_preferred_mic', micId);
+
         if (this.activeWebcamStream) { this.activeWebcamStream.getTracks().forEach(track => track.stop()); }
         let constraints = { video: true, audio: false };
         if (camId === 'obs-fallback') constraints.video = true; else if (camId) constraints.video = { deviceId: { exact: camId } };
@@ -2173,14 +2268,18 @@ const app = {
             const data = res.ok ? await res.json() : {}; 
             const posts = data.posts || [];
             const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
-            if (posts.length === 0) { 
+            const blockedUsers = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
+
+            const visiblePosts = posts.filter(p => !blockedUsers.includes(String(p.creator_id)));
+
+            if (visiblePosts.length === 0) { 
                 feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">No hay publicaciones disponibles</div>`; 
                 return; 
             }
             
             let html = '';
-            for (let i = 0; i < posts.length; i++) {
-                const post = posts[i];
+            for (let i = 0; i < visiblePosts.length; i++) {
+                const post = visiblePosts[i];
                 const isLiked = likedPosts.includes(post.id);
                 const isAdminUser = this.isAdminUser();
                 const isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
