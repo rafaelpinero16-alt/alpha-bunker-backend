@@ -646,6 +646,7 @@ const app = {
     openMenuModal() { 
         this.openCatalogPackages(); 
     },
+
     async openCatalogPackages() {
         this.closeModals();
         let modal = document.getElementById('modal-catalog');
@@ -1265,7 +1266,7 @@ const app = {
                         if (cleanUrl) {
                             if (isLocked) {
                                 mediaContent = `
-                                    <div class="relative w-full flex justify-center">
+                                    <div class="relative w-full">
                                         <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover blur-md grayscale opacity-50 pointer-events-none select-none mx-auto block" />
                                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg z-10 text-center pointer-events-none">
                                             <i class="fa-solid fa-lock text-3xl text-amber-400 mb-1 drop-shadow-md"></i>
@@ -1511,7 +1512,7 @@ const app = {
             await pc.setLocalDescription(offer);
             BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_offer', target_id: targetId, sdp: offer.sdp }));
         } catch(e) {}
-    }, // Coma corregida aquí
+    },
 
     async handleWebRTCMessage(data) {
         const { type, caller_id, sdp, candidate } = data;
