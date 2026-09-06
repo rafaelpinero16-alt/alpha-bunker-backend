@@ -12,15 +12,18 @@ const BunkerChat = {
         return baseUrl.replace('https://', 'wss://').replace('http://', 'ws://');
     },
 
-    // 🛡️ Centro de Mando: Fijar usuario objetivo para chat directo con la 'R' de leído instantánea
     setTargetUser(targetId, targetName = 'Usuario') {
         this.activeTargetUserId = targetId ? String(targetId) : null;
         this.activeTargetName = targetName;
         
-        // Actualizar título dinámicamente en la cabecera del CRM
         const headerTitle = document.getElementById('crm-chat-title') || document.getElementById('chat-title');
         if (headerTitle) {
             headerTitle.innerText = targetId ? `CHAT CON @${targetName}` : "CENTRO DE MANDO CRM";
+        }
+
+        // 🛡️ Notificar lectura instantánea ('R') al abrir o cambiar de chat privado
+        if (targetId && this.crmSocket && this.crmSocket.readyState === WebSocket.OPEN) {
+            this.crmSocket.send(JSON.stringify({ type: 'mark_read', target_id: targetId }));
         }
     },
 
@@ -49,6 +52,9 @@ const BunkerChat = {
         this.crmSocket.onopen = () => {
             this.reconnectAttemptsCRM = 0;
             console.log("[CRM] Centro de mando conectado.");
+            if (this.activeTargetUserId) {
+                this.crmSocket.send(JSON.stringify({ type: 'mark_read', target_id: this.activeTargetUserId }));
+            }
         };
 
         this.crmSocket.onmessage = (event) => {
@@ -62,10 +68,21 @@ const BunkerChat = {
                 } else if (data.type === 'delete_msg') {
                     const bubble = document.getElementById(`media-menu-${data.msg_id}`)?.closest('.flex-col');
                     if (bubble) bubble.remove();
+                } else if (data.type === 'messages_read') {
+                    // Actualizar marca de lectura 'R' instantánea
+                    document.querySelectorAll('.msg-status-indicator').forEach(el => {
+                        el.innerText = 'R';
+                        el.className = 'text-[9px] text-cyan-400 font-bold ml-1.5 msg-status-indicator';
+                        el.title = 'Leído';
+                    });
                 } else {
                     if (typeof app !== 'undefined') {
                         app.appendChatMessage(data, 'chat-messages');
                         app.scrollToBottom('chat-messages');
+                        
+                        if (String(data.user_id) === String(this.activeTargetUserId)) {
+                            this.crmSocket.send(JSON.stringify({ type: 'mark_read', target_id: data.user_id }));
+                        }
                     }
                 }
             } catch (e) {
@@ -107,7 +124,6 @@ const BunkerChat = {
                 } else if (data.type === 'radar_update') {
                     if (typeof app !== 'undefined') app.handleRadarUpdate(data);
                 } else if (data.type === 'online_count_update') {
-                    // 🛡️ Actualización exacta del contador de usuarios online en tiempo real
                     const countEl = document.getElementById('online-users-count');
                     if (countEl && data.count !== undefined) {
                         countEl.innerText = data.count;

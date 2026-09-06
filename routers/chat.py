@@ -40,7 +40,6 @@ class ConnectionManager:
             except Exception:
                 pass
 
-    # 📡 Ruteo Directo (Fundamental para Videollamadas P2P y Mensajería CRM Privada)
     async def send_personal_message(self, message: dict, target_user_id: int):
         if target_user_id in self.user_connections:
             for connection in self.user_connections[target_user_id]:
@@ -68,7 +67,7 @@ def ensure_chat_schema(db: Session):
 
 def clean_old_messages(db: Session):
     try:
-        time_threshold = datetime.utcnow() - timedelta(hours=72)
+        time_threshold = datetime.utcnow() - timedelta(hours=24) # 🛡️ Retención estricta de 24 horas en chats
         db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
         db.commit()
     except Exception:
@@ -116,25 +115,42 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
         while True:
             data = await websocket.receive_text()
             
-            text_val = data
+            text_val = ""
             media_val = None
             target_id = None
+            msg_type = "chat"
             try:
                 payload = json.loads(data)
+                msg_type = payload.get("type", "chat")
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
                 target_id = payload.get("target_id", None)
             except Exception:
-                pass
+                text_val = data
+
+            # 🛡️ Manejo instantáneo de marcas de lectura 'R'
+            if msg_type == "mark_read":
+                target_int = payload.get("target_id")
+                if target_int:
+                    db.query(ChatMessage).filter(
+                        ChatMessage.user_id == int(target_int),
+                        ChatMessage.recipient_id == user_id,
+                        ChatMessage.is_read == False
+                    ).update({"is_read": True})
+                    db.commit()
+                    await manager.send_personal_message({"type": "messages_read", "reader_id": user_id}, int(target_int))
+                continue
 
             db_content = json.dumps({"text": text_val, "media_url": media_val})
             new_msg = ChatMessage(
                 user_id=user.user_id,
+                recipient_id=int(target_id) if target_id else None,
                 author_name=user.name,
                 author_role=user.role,
                 access_level=user.access_level,
                 content=db_content,
-                is_system=False
+                is_system=False,
+                is_read=False
             )
             db.add(new_msg)
             db.commit()
@@ -144,15 +160,16 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                 "type": "new_msg",
                 "id": new_msg.id,
                 "user_id": new_msg.user_id,
+                "recipient_id": new_msg.recipient_id,
                 "author_name": new_msg.author_name,
                 "author_role": new_msg.author_role,
                 "access_level": new_msg.access_level,
                 "content": new_msg.content,
                 "is_system": new_msg.is_system,
+                "is_read": new_msg.is_read,
                 "created_at": new_msg.created_at.isoformat()
             }
 
-            # 🛡️ Si hay un destinatario específico en el CRM, enviárselo al target y al emisor
             if target_id:
                 target_int = int(target_id)
                 await manager.send_personal_message(msg_payload, target_int)
@@ -189,10 +206,15 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified", warnings_count=0)
         db.add(user)
     
-    # 📡 Marcar usuario como online al conectar
     user.is_online = True
     user.last_seen = datetime.utcnow()
     db.commit()
+
+    # 🛡️ Broadcast en tiempo real del conteo online exacto (registrando todas las cuentas)
+    online_count = db.query(User).filter(User.is_online == True).count()
+    await global_manager.connect(websocket, user_id)
+    await global_manager.broadcast({"type": "online_count_update", "count": online_count})
+    await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
 
     is_admin = (user.role == "admin" or user.user_id == 8269470905 or user.user_id == 123456789)
 
@@ -201,11 +223,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         await websocket.send_json({"is_error": True, "message": "🚫 ACCESO DENEGADO: Creadores requieren KYC (+18) aprobado para el Chat Global."})
         await websocket.close(code=1008)
         return
-
-    await global_manager.connect(websocket, user_id)
-
-    # 📡 Broadcast: Notificar al Radar que alguien entró
-    await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
 
     link_pattern = re.compile(r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b')
 
@@ -261,7 +278,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                 payload = json.loads(data)
                 msg_type = payload.get("type", "chat")
                 
-                # 📡 LÓGICA DE SEÑALIZACIÓN DE VIDEO P2P
+                # 📡 SEÑALIZACIÓN WEBTRC P2P (Soporte Multiusuario Completo)
                 if msg_type in ["webrtc_offer", "webrtc_answer", "webrtc_ice"]:
                     target_id = payload.get("target_id")
                     if target_id:
@@ -282,7 +299,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                     await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
                     continue
 
-                # 💬 LÓGICA DE CHAT TRADICIONAL GLOBAL
+                # 💬 CHAT TRADICIONAL GLOBAL
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
 
@@ -301,7 +318,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             db.add(tx)
                         db.commit()
 
-                        warning_msg = f"⚠️ @{user.name}, contenido bloqueado por política de seguridad (Scam/CSAM/Links). Llevas {user.warnings_count} de 4 advertencias. A la 5ta serás BANEADO. Multa: -{penalty_amount} $ALPHA."
+                        warning_msg = f"⚠️ @{user.name}, contenido bloqueado por política de seguridad. Llevas {user.warnings_count} de 4 advertencias. Multa: -{penalty_amount} $ALPHA."
                         
                         sys_msg = ChatMessage(
                             user_id=8269470905, 
@@ -332,37 +349,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                     if current_warnings >= 5:
                         await websocket.send_json({"is_error": True, "message": "🚫 Cuenta restringida (5/5 faltas)."})
                         continue
-
-                    if "@" in text_val:
-                        if user.role != "creator":
-                            await websocket.send_json({"is_error": True, "message": "Etiquetar es exclusivo para Creadores."})
-                            continue
-                        if user.role == "creator" and user.access_level < 1:
-                            await websocket.send_json({"is_error": True, "message": "Requieres Soldier Creator para etiquetar."})
-                            continue
-
-                    if media_val:
-                        if media_val.startswith("data:video") and user.access_level < 3:
-                            await websocket.send_json({"is_error": True, "message": "Requiere LEGEND para enviar videos."})
-                            continue
-                        if media_val.startswith("data:image") and user.access_level < 2:
-                            await websocket.send_json({"is_error": True, "message": "Requiere VETERAN para enviar fotos."})
-                            continue
-                        if media_val.startswith("data:audio"):
-                            await websocket.send_json({"is_error": True, "message": "🚫 Notas de voz inhabilitadas en Chat Global."})
-                            continue
-
-                    if user.role == "fan" and user.access_level == 0:
-                        wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
-                        if not wallet or wallet.alpha_balance < 1:
-                            await websocket.send_json({"is_error": True, "message": "Saldo insuficiente (Costo: 1 $ALPHA)."})
-                            continue 
-                        
-                        wallet.alpha_balance -= 1
-                        wallet.total_spent += 1
-                        tx = Transaction(sender_id=user_id, receiver_id=None, amount=1, tx_type="spy_chat_fee")
-                        db.add(tx)
-                        db.commit()
 
                 db_content = json.dumps({"text": text_val, "media_url": media_val})
                 new_msg = ChatMessage(
@@ -399,6 +385,8 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         user.last_seen = datetime.utcnow()
         db.commit()
         global_manager.disconnect(websocket, user_id)
+        online_count = db.query(User).filter(User.is_online == True).count()
+        await global_manager.broadcast({"type": "online_count_update", "count": online_count})
         await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "offline"})
     except Exception as outer_err:
         print(f"[GLOBAL WS OUTER ERROR]: {outer_err}")
@@ -406,6 +394,8 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
             user.is_online = False
             user.is_live_video = False
             db.commit()
+            online_count = db.query(User).filter(User.is_online == True).count()
+            await global_manager.broadcast({"type": "online_count_update", "count": online_count})
         except:
             pass
         global_manager.disconnect(websocket, user_id)
