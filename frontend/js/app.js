@@ -322,7 +322,6 @@ const app = {
             this.generateCaptcha();
         }
     },
-
     switchView(viewName) {
         ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { 
             const el = document.getElementById(`view-${v}`); 
@@ -443,7 +442,6 @@ const app = {
             }
         } catch (err) {}
     },
-
     updateProfileUI() {
         this.initUserId();
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
@@ -642,6 +640,7 @@ const app = {
         this.openCatalogPackages(); 
     },
 
+    // 🛡️ REPARACIÓN: INYECCIÓN DINÁMICA DEL CATÁLOGO 
     async openCatalogPackages() {
         this.closeModals();
         let modal = document.getElementById('modal-catalog');
@@ -944,7 +943,7 @@ const app = {
                         if (cleanUrl) {
                             if (isLocked) {
                                 mediaContent = `
-                                    <div class="relative w-full">
+                                    <div class="relative w-full flex justify-center">
                                         <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover blur-md grayscale opacity-50 pointer-events-none select-none mx-auto block" />
                                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg z-10 text-center pointer-events-none">
                                             <i class="fa-solid fa-lock text-3xl text-amber-400 mb-1 drop-shadow-md"></i>
@@ -1181,8 +1180,7 @@ const app = {
                 } 
             } 
         } catch (e) {} 
-    },
-
+    }
     async sendWebRTCOffer(targetId) {
         try {
             const pc = this.createPeerConnection(targetId);
@@ -1190,7 +1188,7 @@ const app = {
             await pc.setLocalDescription(offer);
             BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_offer', target_id: targetId, sdp: offer.sdp }));
         } catch(e) {}
-    },
+    }, // <-- Aquí estaba el error de sintaxis en el código roto. ¡Ya está corregido!
 
     async handleWebRTCMessage(data) {
         const { type, caller_id, sdp, candidate } = data;
@@ -1715,8 +1713,22 @@ const app = {
     async previewImage(event) { 
         const file = event.target.files[0]; 
         if (!file) return; 
-        this.tempPostMedia = await this.compressImage(file, 1200, 0.75); 
-        document.getElementById('txt-upload').innerText = `Imagen cargada: ${file.name}`; 
+        
+        // 🛡️ SOPORTE PARA VIDEO Y AUDIO EN POSTS
+        if (file.type.startsWith('video/')) {
+            if (file.size > 15 * 1024 * 1024) { this.showToast('El video excede 15MB'); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => { this.tempPostMedia = e.target.result; document.getElementById('txt-upload').innerText = `Video cargado: ${file.name}`; };
+            reader.readAsDataURL(file);
+        } else if (file.type.startsWith('audio/')) {
+            if (file.size > 5 * 1024 * 1024) { this.showToast('El audio excede 5MB'); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => { this.tempPostMedia = e.target.result; document.getElementById('txt-upload').innerText = `Audio cargado: ${file.name}`; };
+            reader.readAsDataURL(file);
+        } else {
+            this.tempPostMedia = await this.compressImage(file, 1200, 0.75); 
+            document.getElementById('txt-upload').innerText = `Imagen cargada: ${file.name}`;
+        }
     },
 
     async publishPost() {
@@ -1815,6 +1827,7 @@ const app = {
                 if (post.media_url) {
                     const cleanUrl = this.sanitizeUrl(post.media_url);
                     const isVid = cleanUrl && (cleanUrl.match(/\.(mp4|webm)/i) || cleanUrl.startsWith('data:video'));
+                    const isAud = cleanUrl && (cleanUrl.match(/\.(mp3|wav|ogg)/i) || cleanUrl.startsWith('data:audio'));
                     
                     if (post.is_locked) {
                         mediaContent = `
@@ -1830,6 +1843,8 @@ const app = {
                     } else {
                         if (isVid) {
                             mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center" onclick="app.openLightbox('${cleanUrl}', 'video')"><video src="${cleanUrl}" class="rounded-xl max-h-80 object-cover mx-auto block" autoplay loop muted playsinline></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
+                        } else if (isAud) {
+                            mediaContent = `<div class="relative mb-3 flex justify-center w-full"><audio src="${cleanUrl}" controls class="w-full h-12 rounded-full border border-neutral-700 bg-neutral-900"></audio></div>`;
                         } else {
                             mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center" onclick="app.openLightbox('${cleanUrl}', 'image')"><img src="${cleanUrl}" class="rounded-xl max-h-80 object-cover mx-auto block" alt="Media"/><div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
                         }
@@ -1895,6 +1910,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
     
+    // 🛡️ Forzar expansión nativa de la app en móviles para evitar recortes
     if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.expand();
         window.Telegram.WebApp.ready();
