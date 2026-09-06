@@ -8,12 +8,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from datetime import date
 from database.db import get_db
-from database.models import User, Follow
+from database.models import User, Follow, Wallet, Transaction
 from core.config import bot 
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-# 🛡️ Esquema ampliado para capturar el avatar y la bio permanentemente
+# 🛡️ Esquema ampliado para capturar el avatar, bio y sistema de referidos
 class UserSyncSchema(BaseModel):
     user_id: int
     name: Optional[str] = None
@@ -21,6 +21,7 @@ class UserSyncSchema(BaseModel):
     avatar: Optional[str] = None
     init_data: Optional[str] = None
     is_telegram: Optional[bool] = False
+    referred_by: Optional[int] = None
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
@@ -41,6 +42,8 @@ def ensure_user_schema(db: Session):
             db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT"))
             db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT"))
             db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE"))
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT"))
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS has_referral_discount BOOLEAN DEFAULT FALSE"))
             db.commit()
         except Exception:
             db.rollback()
@@ -100,6 +103,37 @@ async def sync_user(data: UserSyncSchema, db: Session = Depends(get_db)):
             role="fan",
             avatar_url=data.avatar
         )
+        
+        # 🛡️ LÓGICA DE REFERIDOS: Asignar sponsor y bonificación de 100 AlphaCoins
+        if data.referred_by and data.referred_by != data.user_id:
+            referrer = db.query(User).filter(User.user_id == data.referred_by).first()
+            if referrer:
+                user.referred_by = data.referred_by
+                user.has_referral_discount = True # 10% de descuento en su primera compra
+                
+                # Verificar si ya se otorgó la bonificación para evitar duplicados
+                existing_reward = db.query(Transaction).filter(
+                    Transaction.sender_id == data.user_id,
+                    Transaction.tx_type == "referral_bonus"
+                ).first()
+                
+                if not existing_reward:
+                    ref_wallet = db.query(Wallet).filter(Wallet.user_id == data.referred_by).first()
+                    if not ref_wallet:
+                        ref_wallet = Wallet(user_id=data.referred_by, alpha_balance=100, total_earned=100)
+                        db.add(ref_wallet)
+                    else:
+                        ref_wallet.alpha_balance += 100
+                        ref_wallet.total_earned += 100
+                        
+                    tx = Transaction(
+                        sender_id=data.user_id,
+                        receiver_id=data.referred_by,
+                        amount=100,
+                        tx_type="referral_bonus"
+                    )
+                    db.add(tx)
+
         db.add(user)
     else:
         if data.name and data.name not in ["USER", "Agente Búnker", "VIP Fan"]:
