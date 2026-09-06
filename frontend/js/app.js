@@ -221,6 +221,16 @@ const app = {
             if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
+            // Registrar y actualizar el contador de visitas diarias en el servidor
+            try {
+                const visitRes = await fetch(`${this.backendUrl}/users/visit/increment`, { method: 'POST' });
+                if (visitRes.ok) {
+                    const visitData = await visitRes.json();
+                    const counterEl = document.getElementById('daily-visits-counter');
+                    if (counterEl) counterEl.innerText = visitData.daily_visits;
+                }
+            } catch(err) {}
+
             const splash = document.getElementById('view-splash');
             if (splash) splash.classList.remove('hidden');
 
@@ -466,8 +476,8 @@ const app = {
         const avatarImg = document.getElementById('prof-avatar-img');
         const avatarFeed = document.getElementById('avatar-feed');
         if (savedAvatar) {
-            if (avatarImg) { avatarImg.src = savedAvatar; avatarImg.classList.remove('hidden'); }
-            if (avatarFeed) avatarFeed.src = savedAvatar;
+            if (avatarImg) { avatarImg.src = this.sanitizeUrl(savedAvatar); avatarImg.classList.remove('hidden'); }
+            if (avatarFeed) avatarFeed.src = this.sanitizeUrl(savedAvatar);
         }
 
         const rankDisplay = document.getElementById('prof-rank'), rankFeed = document.getElementById('rank-feed');
@@ -1062,27 +1072,39 @@ const app = {
         this.openSupport();
     },
 
-    // 🛡️ GESTIÓN DE SEGUIR / MUTUAL FOLLOW Y BLOQUEO DE USUARIO
-    toggleFollow(targetId, targetName) {
+    // 🛡️ GESTIÓN DE SEGUIR / MUTUAL FOLLOW (CONECTADO AL BACKEND)
+    async toggleFollow(targetId, targetName) {
         this.haptic('medium');
-        let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
-        const isFollowing = following.includes(targetId);
-        
-        if (isFollowing) {
-            following = following.filter(id => id !== targetId);
-            this.showToast(`Dejaste de seguir a @${targetName}`);
-        } else {
-            following.push(targetId);
-            this.showToast(`¡Ahora sigues a @${targetName}! 🤝`);
-        }
-        localStorage.setItem('alpha_user_following', JSON.stringify(following));
-        
-        const btn = document.getElementById('btn-profile-follow');
-        if (btn) {
-            btn.innerHTML = isFollowing ? '<i class="fa-solid fa-user-plus"></i> Seguir' : '<i class="fa-solid fa-user-check"></i> Siguiendo';
-            btn.className = isFollowing 
-                ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
-                : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/users/follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ follower_id: parseInt(this.userId), following_id: parseInt(targetId) })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                this.showToast(data.message);
+                
+                // Actualizar estado local en cache
+                let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
+                if (data.following) {
+                    if (!following.includes(targetId)) following.push(targetId);
+                } else {
+                    following = following.filter(id => id !== targetId);
+                }
+                localStorage.setItem('alpha_user_following', JSON.stringify(following));
+
+                const btn = document.getElementById('btn-profile-follow');
+                if (btn) {
+                    btn.innerHTML = data.following ? '<i class="fa-solid fa-user-check"></i> Siguiendo' : '<i class="fa-solid fa-user-plus"></i> Seguir';
+                    btn.className = data.following 
+                        ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
+                        : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
+                }
+            }
+        } catch(e) {
+            this.showToast('⚠️ Error al actualizar seguimiento.');
         }
     },
 
@@ -1286,7 +1308,6 @@ const app = {
             document.body.insertAdjacentHTML('beforeend', modalHTML);
             modal = document.getElementById('modal-creator-profile');
         } else {
-            // Actualizar botones dinámicos si el modal ya existía
             const followBtn = modal.querySelector('#btn-profile-follow');
             if (followBtn) {
                 followBtn.setAttribute('onclick', `app.toggleFollow(${userId}, '${userName}')`);
@@ -1811,13 +1832,15 @@ const app = {
         }
 
         const safeAuthorName = this.escapeHtml(msg.author_name);
+        let readStatusHtml = isMe ? (msg.is_read ? '<span class="text-[9px] text-cyan-400 font-bold ml-1.5" title="Leído">R</span>' : '<span class="text-[9px] text-neutral-400 ml-1.5" title="Enviado">✓</span>') : '';
+        
         let html = '';
         if (msg.is_system) {
             const msgId = `sys-msg-${msg.id || Date.now()}`;
             html = `<div id="${msgId}" class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             setTimeout(() => { const el = document.getElementById(msgId); if(el) el.remove(); }, 3000);
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">Tú • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">Tú • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia} <span class="inline-flex items-center">${readStatusHtml}</span></div></div>`;
         } else {
             html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black cursor-pointer hover:underline" onclick="app.viewCreatorProfile(${msg.user_id}, '${safeAuthorName}')">@${safeAuthorName}</span> • ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
