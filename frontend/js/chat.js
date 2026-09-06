@@ -51,7 +51,6 @@ const BunkerChat = {
             try {
                 const data = JSON.parse(event.data);
                 
-                // Manejo de restricciones de rango emitidas desde el backend
                 if (data.is_error || data.type === 'tier_error') {
                     if (typeof app !== 'undefined') {
                         app.showToast(data.message || 'Acceso restringido por rango de suscripción.');
@@ -138,13 +137,11 @@ const BunkerChat = {
     },
 
     sendCRM(payload, requiredTier = 0) {
-        // Validación de rango antes del despacho
         if (!this.validateTierAccess(requiredTier)) return false;
 
         if (this.crmSocket && this.crmSocket.readyState === WebSocket.OPEN) {
             let finalPayload = payload;
 
-            // Inyectar datos de enrutamiento y rango del emisor si es un objeto
             if (typeof payload === 'string') {
                 try {
                     const parsed = JSON.parse(payload);
@@ -158,8 +155,14 @@ const BunkerChat = {
                 finalPayload = JSON.stringify(payload);
             }
 
-            this.crmSocket.send(finalPayload);
-            return true;
+            try {
+                this.crmSocket.send(finalPayload);
+                return true;
+            } catch (err) {
+                console.error("[CRM] Error al enviar paquete multimedia:", err);
+                if (typeof app !== 'undefined') app.showToast("⚠️ Archivo demasiado pesado para transmitir.");
+                return false;
+            }
         }
         console.warn("[CRM] Socket inactivo.");
         return false;
@@ -167,8 +170,15 @@ const BunkerChat = {
 
     sendGlobal(payload) {
         if (this.globalSocket && this.globalSocket.readyState === WebSocket.OPEN) {
-            this.globalSocket.send(typeof payload === 'object' ? JSON.stringify(payload) : payload);
-            return true;
+            const finalPayload = typeof payload === 'object' ? JSON.stringify(payload) : payload;
+            try {
+                this.globalSocket.send(finalPayload);
+                return true;
+            } catch (err) {
+                console.error("[GLOBAL] Error al enviar multimedia al global:", err);
+                if (typeof app !== 'undefined') app.showToast("⚠️ El archivo multimedia excede el límite del canal.");
+                return false;
+            }
         }
         console.warn("[GLOBAL] Socket inactivo.");
         return false;
