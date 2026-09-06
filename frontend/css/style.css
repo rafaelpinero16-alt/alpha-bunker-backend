@@ -36,6 +36,13 @@ body {
     transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* 🚀 SOPORTE DE ACELERACIÓN HARDWARE 3D / 60 FPS */
+.gpu-accelerated {
+    transform: translate3d(0, 0, 0);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+}
+
 /* ☀️ MODO CLARO COMPLETO Y CONTRASTADO */
 body.light-theme {
     --bg-deep: #f1f5f9;
