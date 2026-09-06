@@ -12,14 +12,18 @@ const BunkerChat = {
         return baseUrl.replace('https://', 'wss://').replace('http://', 'ws://');
     },
 
-    // 🛡️ Centro de Mando: Fijar usuario objetivo para chat directo
+    // 🛡️ Centro de Mando: Fijar usuario objetivo para chat directo con la 'R' de leído instantánea
     setTargetUser(targetId, targetName = 'Usuario') {
         this.activeTargetUserId = targetId ? String(targetId) : null;
         this.activeTargetName = targetName;
-        console.log(`[CRM] Canal fijado con: @${targetName} (ID: ${targetId || 'Soporte General'})`);
+        
+        // Actualizar título dinámicamente en la cabecera del CRM
+        const headerTitle = document.getElementById('crm-chat-title') || document.getElementById('chat-title');
+        if (headerTitle) {
+            headerTitle.innerText = targetId ? `CHAT CON @${targetName}` : "CENTRO DE MANDO CRM";
+        }
     },
 
-    // 🛡️ Validar permiso de rango antes de emitir mensaje
     validateTierAccess(requiredTier = 1) {
         if (typeof app === 'undefined') return true;
         const userTier = app.userData?.access_tier || 0;
@@ -44,7 +48,7 @@ const BunkerChat = {
 
         this.crmSocket.onopen = () => {
             this.reconnectAttemptsCRM = 0;
-            console.log("[CRM] Centro de mando conectado exitosamente.");
+            console.log("[CRM] Centro de mando conectado.");
         };
 
         this.crmSocket.onmessage = (event) => {
@@ -53,7 +57,7 @@ const BunkerChat = {
                 
                 if (data.is_error || data.type === 'tier_error') {
                     if (typeof app !== 'undefined') {
-                        app.showToast(data.message || 'Acceso restringido por rango de suscripción.');
+                        app.showToast(data.message || 'Acceso restringido.');
                     }
                 } else if (data.type === 'delete_msg') {
                     const bubble = document.getElementById(`media-menu-${data.msg_id}`)?.closest('.flex-col');
@@ -65,22 +69,18 @@ const BunkerChat = {
                     }
                 }
             } catch (e) {
-                console.error("[CRM] Error procesando mensaje del centro de mando:", e);
+                console.error("[CRM] Error procesando mensaje:", e);
             }
         };
 
         this.crmSocket.onclose = () => {
-            console.warn("[CRM] Conexión cerrada. Reintentando...");
             if (this.reconnectAttemptsCRM < this.maxReconnectAttempts) {
                 this.reconnectAttemptsCRM++;
                 setTimeout(() => this.initCRM(userId, baseUrl), this.reconnectDelay);
-            } else {
-                if (typeof app !== 'undefined') app.showToast("⚠️ Centro de mando CRM desconectado. Recarga la app.");
             }
         };
 
         this.crmSocket.onerror = (err) => {
-            console.error("[CRM] Error de WebSocket:", err);
             this.crmSocket.close();
         };
     },
@@ -106,6 +106,12 @@ const BunkerChat = {
                     if (typeof app !== 'undefined') app.handleWebRTCMessage(data);
                 } else if (data.type === 'radar_update') {
                     if (typeof app !== 'undefined') app.handleRadarUpdate(data);
+                } else if (data.type === 'online_count_update') {
+                    // 🛡️ Actualización exacta del contador de usuarios online en tiempo real
+                    const countEl = document.getElementById('online-users-count');
+                    if (countEl && data.count !== undefined) {
+                        countEl.innerText = data.count;
+                    }
                 } else if (data.type === 'delete_msg') {
                     const bubble = document.getElementById(`media-menu-${data.msg_id}`)?.closest('.flex-col');
                     if (bubble) bubble.remove();
@@ -121,17 +127,13 @@ const BunkerChat = {
         };
 
         this.globalSocket.onclose = () => {
-            console.warn("[GLOBAL] Conexión perdida. Intentando reconectar...");
             if (this.reconnectAttemptsGlobal < this.maxReconnectAttempts) {
                 this.reconnectAttemptsGlobal++;
                 setTimeout(() => this.initGlobal(userId, baseUrl), this.reconnectDelay);
-            } else {
-                if (typeof app !== 'undefined') app.showToast("⚠️ Chat Global desconectado. Recarga la app.");
             }
         };
 
         this.globalSocket.onerror = (err) => {
-            console.error("[GLOBAL] Error en socket:", err);
             this.globalSocket.close();
         };
     },
@@ -159,12 +161,10 @@ const BunkerChat = {
                 this.crmSocket.send(finalPayload);
                 return true;
             } catch (err) {
-                console.error("[CRM] Error al enviar paquete multimedia:", err);
-                if (typeof app !== 'undefined') app.showToast("⚠️ Archivo demasiado pesado para transmitir.");
+                if (typeof app !== 'undefined') app.showToast("⚠️ Error al transmitir mensaje.");
                 return false;
             }
         }
-        console.warn("[CRM] Socket inactivo.");
         return false;
     },
 
@@ -175,12 +175,9 @@ const BunkerChat = {
                 this.globalSocket.send(finalPayload);
                 return true;
             } catch (err) {
-                console.error("[GLOBAL] Error al enviar multimedia al global:", err);
-                if (typeof app !== 'undefined') app.showToast("⚠️ El archivo multimedia excede el límite del canal.");
                 return false;
             }
         }
-        console.warn("[GLOBAL] Socket inactivo.");
         return false;
     },
     

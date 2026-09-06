@@ -17,7 +17,7 @@ class User(Base):
     legal_name = Column(String(150), nullable=True)
     is_adult = Column(Boolean, default=False)
     
-    # 🛡️ Sistema de Presencia y Radar (NUEVO)
+    # 🛡️ Sistema de Presencia y Radar
     is_online = Column(Boolean, default=False)
     is_live_video = Column(Boolean, default=False)
     last_seen = Column(DateTime, default=datetime.utcnow)
@@ -29,6 +29,15 @@ class User(Base):
     subscription_expires_at = Column(DateTime, nullable=True)     
     can_receive_tips = Column(Boolean, default=True)             
     
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# 🛡️ NUEVO MODELO: Gestión de Seguidores (Mutual Follow & Notificaciones)
+class Follow(Base):
+    __tablename__ = "follows"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    follower_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
+    following_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class TipMenuSlot(Base):
@@ -105,11 +114,13 @@ class ChatMessage(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
+    recipient_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=True) # 🛡️ Soporte CRM Directo 1 a 1
     author_name = Column(String(100), nullable=False)
     author_role = Column(String(20), default="fan")  
     access_level = Column(Integer, default=0)        
     content = Column(Text, nullable=False)
     is_system = Column(Boolean, default=False)       
+    is_read = Column(Boolean, default=False) # 🛡️ Indicador de Lectura ('R')
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class VideoCallSession(Base):
