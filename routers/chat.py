@@ -11,7 +11,7 @@ from database.models import User, ChatMessage, Wallet, Transaction
 
 router = APIRouter(prefix="/chat", tags=["Chat En Vivo y CRM"])
 
-# 🛡️ ConnectionManager Evolucionado para soportar Videollamadas P2P
+# 🛡️ ConnectionManager Evolucionado para soportar Videollamadas P2P y CRM Directo
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -40,7 +40,7 @@ class ConnectionManager:
             except Exception:
                 pass
 
-    # 📡 Ruteo Directo WebRTC (Fundamental para Videollamadas P2P reales)
+    # 📡 Ruteo Directo (Fundamental para Videollamadas P2P y Mensajería CRM Privada)
     async def send_personal_message(self, message: dict, target_user_id: int):
         if target_user_id in self.user_connections:
             for connection in self.user_connections[target_user_id]:
@@ -51,6 +51,20 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 global_manager = ConnectionManager()
+
+def ensure_chat_schema(db: Session):
+    try:
+        db.execute(text("SELECT is_online FROM users LIMIT 1"))
+    except Exception:
+        db.rollback()
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE"))
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_live_video BOOLEAN DEFAULT FALSE"))
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS warnings_count INTEGER DEFAULT 0"))
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP"))
+            db.commit()
+        except Exception:
+            db.rollback()
 
 def clean_old_messages(db: Session):
     try:
@@ -66,6 +80,7 @@ class DeleteMsgRequest(BaseModel):
 
 @router.post("/delete_message")
 async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_db)):
+    ensure_chat_schema(db)
     msg = db.query(ChatMessage).filter(ChatMessage.id == req.msg_id).first()
     if not msg:
         return {"status": "error", "detail": "Mensaje no encontrado"}
@@ -87,11 +102,12 @@ async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_d
 
 @router.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
+    ensure_chat_schema(db)
     await manager.connect(websocket, user_id)
     user = db.query(User).filter(User.user_id == user_id).first()
     
     if not user:
-        user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified")
+        user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified", warnings_count=0)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -102,11 +118,13 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             
             text_val = data
             media_val = None
+            target_id = None
             try:
                 payload = json.loads(data)
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
-            except:
+                target_id = payload.get("target_id", None)
+            except Exception:
                 pass
 
             db_content = json.dumps({"text": text_val, "media_url": media_val})
@@ -133,36 +151,38 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                 "is_system": new_msg.is_system,
                 "created_at": new_msg.created_at.isoformat()
             }
-            await manager.broadcast(msg_payload)
+
+            # 🛡️ Si hay un destinatario específico en el CRM, enviárselo al target y al emisor
+            if target_id:
+                target_int = int(target_id)
+                await manager.send_personal_message(msg_payload, target_int)
+                await manager.send_personal_message(msg_payload, user_id)
+            else:
+                await manager.broadcast(msg_payload)
+
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
-    except Exception:
+    except Exception as e:
+        print(f"[CRM WS ERROR]: {e}")
         manager.disconnect(websocket, user_id)
 
 @router.get("/history")
 def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
+    ensure_chat_schema(db)
     clean_old_messages(db)
     messages = db.query(ChatMessage).filter(ChatMessage.author_name.notlike("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
 @router.get("/global/history")
 def get_global_chat_history(limit: int = 50, db: Session = Depends(get_db)):
+    ensure_chat_schema(db)
     clean_old_messages(db)
     messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
 @router.websocket("/global/ws/{user_id}")
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
-    try:
-        db.execute(text("SELECT is_online FROM users LIMIT 1"))
-    except Exception:
-        db.rollback()
-        try:
-            db.execute(text("ALTER TABLE users ADD COLUMN is_online BOOLEAN DEFAULT FALSE"))
-            db.execute(text("ALTER TABLE users ADD COLUMN is_live_video BOOLEAN DEFAULT FALSE"))
-            db.commit()
-        except Exception:
-            db.rollback()
+    ensure_chat_schema(db)
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
@@ -262,7 +282,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                     await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
                     continue
 
-                # 💬 LÓGICA DE CHAT TRADICIONAL
+                # 💬 LÓGICA DE CHAT TRADICIONAL GLOBAL
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
 
@@ -369,7 +389,8 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                     "created_at": new_msg.created_at.isoformat()
                 }
                 await global_manager.broadcast(msg_payload)
-            except Exception:
+            except Exception as inner_err:
+                print(f"[GLOBAL WS INNER ERROR]: {inner_err}")
                 pass
             
     except WebSocketDisconnect:
@@ -379,8 +400,12 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         db.commit()
         global_manager.disconnect(websocket, user_id)
         await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "offline"})
-    except Exception:
-        user.is_online = False
-        user.is_live_video = False
-        db.commit()
+    except Exception as outer_err:
+        print(f"[GLOBAL WS OUTER ERROR]: {outer_err}")
+        try:
+            user.is_online = False
+            user.is_live_video = False
+            db.commit()
+        except:
+            pass
         global_manager.disconnect(websocket, user_id)

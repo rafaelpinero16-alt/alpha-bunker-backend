@@ -30,7 +30,7 @@ class LikeRequest(BaseModel):
     post_id: int
     action: str
 
-# 🛡️ Función para forzar la estructura correcta en la Base de Datos
+# 🛡️ Función para forzar la estructura correcta y el tipo TEXT en la Base de Datos para soportar videos/audios Base64
 def ensure_db_schema(db: Session):
     try:
         db.execute(text("ALTER TABLE posts ALTER COLUMN image_url TYPE TEXT"))
@@ -125,7 +125,7 @@ def get_feed(user_id: int, db: Session = Depends(get_db)):
                 "author_avatar": author_avatar,
                 "is_online": is_online,
                 "content": p.text_es,
-                "media_url": p.image_url, # 🛡️ CAMBIO CLAVE: Ya no enviamos "None". Siempre enviamos la URL para poder aplicar el BLUR frontalmente.
+                "media_url": p.image_url, 
                 "levelRequired": p.levelRequired,
                 "is_ppv": p.is_ppv,
                 "price_alpha": p.price_alpha,

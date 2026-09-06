@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from database.db import get_db
 from database.models import User
 from core.config import bot 
@@ -25,6 +26,20 @@ class ProfileUpdate(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
 
+# 🛡️ Función para forzar la estructura de la tabla de usuarios en la BD
+def ensure_user_schema(db: Session):
+    try:
+        db.execute(text("SELECT avatar_url FROM users LIMIT 1"))
+    except Exception:
+        db.rollback()
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT"))
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT"))
+            db.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE"))
+            db.commit()
+        except Exception:
+            db.rollback()
+
 def verify_telegram_auth(init_data: str) -> bool:
     try:
         token = bot.token
@@ -44,6 +59,8 @@ def verify_telegram_auth(init_data: str) -> bool:
 
 @router.post("/sync")
 async def sync_user(data: UserSyncSchema, db: Session = Depends(get_db)):
+    ensure_user_schema(db)
+    
     # 🔒 Seguridad inyectada: Validación HMAC de Telegram
     if data.is_telegram and data.init_data:
         if not verify_telegram_auth(data.init_data):
@@ -69,12 +86,18 @@ async def sync_user(data: UserSyncSchema, db: Session = Depends(get_db)):
         if data.avatar:
             user.avatar_url = data.avatar
             
-    db.commit()
-    db.refresh(user)
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error interno al sincronizar el usuario.")
+        
     return {"status": "success", "message": "Usuario sincronizado correctamente", "user": user}
 
 @router.get("/profile/{user_id}")
 async def get_user_profile_alias(user_id: int, db: Session = Depends(get_db)):
+    ensure_user_schema(db)
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -82,6 +105,7 @@ async def get_user_profile_alias(user_id: int, db: Session = Depends(get_db)):
 
 @router.get("/{user_id}")
 async def get_user_profile(user_id: int, db: Session = Depends(get_db)):
+    ensure_user_schema(db)
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -89,6 +113,7 @@ async def get_user_profile(user_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{user_id}")
 async def update_user_profile(user_id: int, data: ProfileUpdate, db: Session = Depends(get_db)):
+    ensure_user_schema(db)
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -100,6 +125,11 @@ async def update_user_profile(user_id: int, data: ProfileUpdate, db: Session = D
     if data.avatar_url is not None:
         user.avatar_url = data.avatar_url
         
-    db.commit()
-    db.refresh(user)
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Error al actualizar el perfil.")
+        
     return {"message": "Perfil actualizado con éxito", "user": user}
