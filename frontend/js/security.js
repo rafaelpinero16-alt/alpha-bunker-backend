@@ -55,7 +55,7 @@
                 }
             };
             window.addEventListener('resize', check);
-            setInterval(check, 2000);
+            setInterval(check, 2500);
         },
 
         // ── Limpia tokens comprometidos de versiones anteriores ──
@@ -67,19 +67,14 @@
         _hookForms() {
             if (typeof app === 'undefined') return;
 
-            // Restaura sesión segura si existe
+            // Restaura sesión segura si existe de manera controlada
             const secureSession = AlphaSecurity.loadSecureState();
-            if (secureSession) {
+            if (secureSession && (!window.Telegram || !window.Telegram.WebApp?.initData)) {
                 if (!app.isAdmin) {
                     app.userAccessLevel = secureSession.lvl;
                     app.userData.access_tier = secureSession.tier;
                     if(secureSession.usr) app.userData.name = secureSession.usr;
                 }
-                setTimeout(() => {
-                    app.updateProfileUI();
-                    app.switchView('feed');
-                    app.renderFeed();
-                }, 100);
             }
 
             // Sanitización al publicar posts
@@ -114,7 +109,7 @@
         }
     };
 
-    // Ejecutar inmediatamente al cargar
+    // Ejecutar inmediatamente al cargar de forma silenciosa
     AlphaSecurity._cleanLegacyTokens();
     AlphaSecurity._devtoolsCheck();
 
