@@ -35,12 +35,12 @@ def ensure_db_schema(db: Session):
     try:
         db.execute(text("ALTER TABLE posts ALTER COLUMN image_url TYPE TEXT"))
         db.commit()
-    except:
+    except Exception:
         db.rollback()
     try:
-        db.execute(text("ALTER TABLE posts ADD COLUMN likes_count INTEGER DEFAULT 0"))
+        db.execute(text("ALTER TABLE posts ADD COLUMN IF NOT EXISTS likes_count INTEGER DEFAULT 0"))
         db.commit()
-    except:
+    except Exception:
         db.rollback()
 
 @router.get("/")

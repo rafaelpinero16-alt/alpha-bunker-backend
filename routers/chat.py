@@ -183,6 +183,42 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
         print(f"[CRM WS ERROR]: {e}")
         manager.disconnect(websocket, user_id)
 
+@router.get("/conversations/{user_id}")
+def get_user_conversations(user_id: int, db: Session = Depends(get_db)):
+    """Obtiene la lista de conversaciones DMs activas para la bandeja de entrada estilo Telegram."""
+    ensure_chat_schema(db)
+    clean_old_messages(db)
+    try:
+        msgs = db.query(ChatMessage).filter(
+            ((ChatMessage.user_id == user_id) | (ChatMessage.recipient_id == user_id)) & 
+            (ChatMessage.recipient_id != None)
+        ).order_by(ChatMessage.created_at.desc()).all()
+        
+        partners_map = {}
+        for m in msgs:
+            partner_id = m.recipient_id if m.user_id == user_id else m.user_id
+            if partner_id and partner_id != user_id:
+                if partner_id not in partners_map:
+                    partner_user = db.query(User).filter(User.user_id == partner_id).first()
+                    unread_count = db.query(ChatMessage).filter(
+                        ChatMessage.user_id == partner_id,
+                        ChatMessage.recipient_id == user_id,
+                        ChatMessage.is_read == False
+                    ).count()
+                    partners_map[partner_id] = {
+                        "user_id": partner_id,
+                        "name": partner_user.name if partner_user else f"Agente {partner_id}",
+                        "avatar_url": partner_user.avatar_url if partner_user else None,
+                        "is_online": getattr(partner_user, 'is_online', False) if partner_user else False,
+                        "last_message": m.content,
+                        "last_time": m.created_at.isoformat(),
+                        "unread_count": unread_count
+                    }
+        return {"status": "success", "conversations": list(partners_map.values())}
+    except Exception as e:
+        print(f"[CONVERSATIONS ERROR]: {e}")
+        return {"status": "success", "conversations": []}
+
 @router.get("/history")
 def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
     ensure_chat_schema(db)
@@ -210,7 +246,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
     user.last_seen = datetime.utcnow()
     db.commit()
 
-    # 🛡️ Broadcast en tiempo real del conteo online exacto (registrando todas las cuentas)
     online_count = db.query(User).filter(User.is_online == True).count()
     await global_manager.connect(websocket, user_id)
     await global_manager.broadcast({"type": "online_count_update", "count": online_count})
@@ -278,7 +313,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                 payload = json.loads(data)
                 msg_type = payload.get("type", "chat")
                 
-                # 📡 SEÑALIZACIÓN WEBTRC P2P (Soporte Multiusuario Completo)
                 if msg_type in ["webrtc_offer", "webrtc_answer", "webrtc_ice"]:
                     target_id = payload.get("target_id")
                     if target_id:
@@ -299,7 +333,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                     await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
                     continue
 
-                # 💬 CHAT TRADICIONAL GLOBAL
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
 
