@@ -20,7 +20,7 @@ body {
     font-size: 1.15rem;
     overflow-x: hidden;
     
-    /* 🛡️ Forzar vista vertical móvil (App) en cualquier pantalla */
+    /* 🛡️ Vista vertical móvil por defecto (APK / Móvil) */
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
@@ -356,7 +356,6 @@ body.light-theme .text-neutral-300 {
     50% { transform: translateY(-8px); }
 }
 
-/* 🛡️ Limitar elementos fijos al contenedor en PC */
 .fab-lang, .toast {
     max-width: 480px;
 }
@@ -431,4 +430,17 @@ body.light-theme .text-neutral-300 {
 .rank-badge {
     mix-blend-mode: screen;
     background-color: transparent !important;
+}
+
+/* 🖥️ ADAPTACIÓN PARA ESCRITORIO (ESTILO TELEGRAM DESKTOP) */
+@media (min-width: 768px) {
+    body {
+        max-width: 1100px;
+        border-left: 2px solid rgba(0, 243, 255, 0.25);
+        border-right: 2px solid rgba(0, 243, 255, 0.25);
+        box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+    }
+    .tron-grid, .grid-fade, .watermark-footer, .fab-lang, .toast {
+        max-width: 1100px;
+    }
 }
