@@ -76,7 +76,7 @@ const app = {
         const isLight = body.classList.contains('light-theme');
         localStorage.setItem('alpha_theme', isLight ? 'light' : 'dark');
         const themeSwitch = document.getElementById('theme-switch');
-        if(themeSwitch) themeSwitch.checked = isLight;
+        if (themeSwitch) themeSwitch.checked = isLight;
         this.showToast(isLight ? this.getTrans('toast_theme_light') : this.getTrans('toast_theme_dark'));
     },
 
@@ -85,13 +85,12 @@ const app = {
         const isLight = savedTheme === 'light';
         if (isLight) document.body.classList.add('light-theme');
         const themeSwitch = document.getElementById('theme-switch');
-        if(themeSwitch) themeSwitch.checked = isLight;
+        if (themeSwitch) themeSwitch.checked = isLight;
     },
 
     initSplash3D() {
         const canvas = document.getElementById('splash-3d-canvas');
         if (!canvas || typeof THREE === 'undefined') return;
-        
         try {
             const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
             renderer.setSize(canvas.clientWidth || 180, canvas.clientHeight || 180);
@@ -109,7 +108,7 @@ const app = {
             const particlesGeo = new THREE.BufferGeometry();
             const count = 70;
             const positions = new Float32Array(count * 3);
-            for(let i = 0; i < count * 3; i++) {
+            for (let i = 0; i < count * 3; i++) {
                 positions[i] = (Math.random() - 0.5) * 5;
             }
             particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -127,9 +126,7 @@ const app = {
             };
             animate();
 
-            setTimeout(() => {
-                cancelAnimationFrame(animationId);
-            }, 3000);
+            setTimeout(() => { cancelAnimationFrame(animationId); }, 3000);
         } catch(e) {
             console.warn("[3D Splash] No se pudo inicializar WebGL:", e);
         }
@@ -159,8 +156,8 @@ const app = {
         const feedDot = document.getElementById('feed-neon-dot');
         const isOnline = this.userData.isOnline !== false;
         
-        if(profileDot) profileDot.style.display = isOnline ? 'block' : 'none';
-        if(feedDot) feedDot.style.display = isOnline ? 'block' : 'none';
+        if (profileDot) profileDot.style.display = isOnline ? 'block' : 'none';
+        if (feedDot) feedDot.style.display = isOnline ? 'block' : 'none';
         
         if (badge) {
             badge.innerText = isOnline ? '● ONLINE' : '○ OFFLINE';
@@ -177,24 +174,168 @@ const app = {
         }
     },
 
+    // 🛠️ CENTRO DE AJUSTES PRINCIPAL
     openSettingsModal() {
         this.haptic('light');
+        this.closeModals();
         const modal = document.getElementById('modal-settings');
         if (modal) {
             modal.classList.remove('hidden');
+            this.switchSettingsTab('account');
             const nameInput = document.getElementById('settings-username-input');
-            const savedName = localStorage.getItem('alpha_user_name') || 'mastertom';
+            const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name || 'mastertom';
             if (nameInput) nameInput.value = savedName;
             this.updateOnlineStatusUI();
             const isLight = document.body.classList.contains('light-theme');
             const themeSwitch = document.getElementById('theme-switch');
-            if(themeSwitch) themeSwitch.checked = isLight;
+            if (themeSwitch) themeSwitch.checked = isLight;
+            
+            const walletAddrEl = document.getElementById('settings-wallet-address');
+            if (walletAddrEl) {
+                const connected = (this.tonConnectUI && this.tonConnectUI.connected) || localStorage.getItem('alpha_ton_connected') === 'true';
+                const rawAddr = this.tonConnectUI?.account?.address;
+                walletAddrEl.innerText = connected ? (rawAddr ? (rawAddr.slice(0, 6) + '...' + rawAddr.slice(-4)) : 'Conectada ✅') : 'No conectada';
+            }
+            
+            this.refreshMediaDevicesList();
+            this.renderSettingsContacts();
+            this.loadAlphaCoinsHistory();
         }
     },
 
     closeSettingsModal() { 
         this.haptic('light'); 
         document.getElementById('modal-settings')?.classList.add('hidden'); 
+    },
+
+    switchSettingsTab(tabName) {
+        this.haptic('light');
+        const tabs = ['account', 'av', 'wallet', 'contacts', 'alphacoins', 'chats'];
+        tabs.forEach(t => {
+            const btn = document.getElementById(`tab-btn-${t}`);
+            const panel = document.getElementById(`settings-panel-${t}`);
+            if (btn) {
+                if (t === tabName) {
+                    btn.className = 'px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-white font-bold text-xs uppercase tracking-wider shrink-0 transition settings-tab-active';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-xs uppercase tracking-wider shrink-0 transition';
+                }
+            }
+            if (panel) {
+                if (t === tabName) panel.classList.remove('hidden');
+                else panel.classList.add('hidden');
+            }
+        });
+    },
+
+    async refreshMediaDevicesList() {
+        await this.populateMediaDevices();
+        const camSelect = document.getElementById('setting-cam-source');
+        const micSelect = document.getElementById('setting-mic-source');
+        const setCam = document.getElementById('settings-av-cam-source');
+        const setMic = document.getElementById('settings-av-mic-source');
+        if (camSelect && setCam) setCam.innerHTML = camSelect.innerHTML;
+        if (micSelect && setMic) setMic.innerHTML = micSelect.innerHTML;
+        const savedCam = localStorage.getItem('alpha_preferred_cam');
+        const savedMic = localStorage.getItem('alpha_preferred_mic');
+        if (savedCam && setCam) setCam.value = savedCam;
+        if (savedMic && setMic) setMic.value = savedMic;
+    },
+
+    async applyGeneralAVSettings() {
+        this.haptic('heavy');
+        const camId = document.getElementById('settings-av-cam-source')?.value;
+        const micId = document.getElementById('settings-av-mic-source')?.value;
+        if (camId) localStorage.setItem('alpha_preferred_cam', camId);
+        if (micId) localStorage.setItem('alpha_preferred_mic', micId);
+        
+        const bunkerCam = document.getElementById('setting-cam-source');
+        const bunkerMic = document.getElementById('setting-mic-source');
+        if (bunkerCam && camId) bunkerCam.value = camId;
+        if (bunkerMic && micId) bunkerMic.value = micId;
+        
+        if (this.activeWebcamStream) {
+            await this.applyAVSettings();
+        }
+        this.showToast('Configuración A/V guardada correctamente ✅');
+    },
+
+    addContactFromSettings() {
+        this.haptic('medium');
+        const input = document.getElementById('settings-contact-input');
+        const val = input ? input.value.trim().replace('@', '') : '';
+        if (!val) { this.showToast('Ingresa un alias o ID'); return; }
+        let contacts = JSON.parse(localStorage.getItem('alpha_user_contacts') || '[]');
+        if (!contacts.includes(val)) {
+            contacts.push(val);
+            localStorage.setItem('alpha_user_contacts', JSON.stringify(contacts));
+            this.showToast(`@${val} agregado a contactos`);
+        } else {
+            this.showToast('El contacto ya existe en tu directorio');
+        }
+        if (input) input.value = '';
+        this.renderSettingsContacts();
+    },
+
+    renderSettingsContacts() {
+        const listEl = document.getElementById('settings-contacts-list');
+        if (!listEl) return;
+        let contacts = JSON.parse(localStorage.getItem('alpha_user_contacts') || '[]');
+        if (contacts.length === 0) {
+            listEl.innerHTML = '<div class="text-center text-neutral-500 text-xs py-3">No tienes contactos guardados aún.</div>';
+            return;
+        }
+        listEl.innerHTML = contacts.map(c => `
+            <div class="bg-black border border-neutral-800 p-2.5 rounded-xl flex items-center justify-between">
+                <span class="text-xs font-bold text-[#00f3ff]">@${this.escapeHtml(c)}</span>
+                <div class="flex gap-1.5">
+                    <button onclick="app.openDirectChat(null, '${this.escapeHtml(c)}')" class="bg-[#00f3ff] text-black px-2.5 py-1 rounded-lg text-[10px] font-black uppercase hover:scale-105 transition"><i class="fa-solid fa-message"></i></button>
+                    <button onclick="app.removeContactFromSettings('${this.escapeHtml(c)}')" class="bg-red-900/50 text-red-300 px-2 py-1 rounded-lg text-[10px] hover:bg-red-800 transition"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    },
+
+    removeContactFromSettings(username) {
+        this.haptic('light');
+        let contacts = JSON.parse(localStorage.getItem('alpha_user_contacts') || '[]');
+        contacts = contacts.filter(c => c !== username);
+        localStorage.setItem('alpha_user_contacts', JSON.stringify(contacts));
+        this.renderSettingsContacts();
+    },
+
+    async loadAlphaCoinsHistory() {
+        const container = document.getElementById('settings-alphacoins-history');
+        if (!container) return;
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}`);
+            if (res.ok) {
+                const data = await res.json();
+                const txs = data.transactions || [];
+                if (txs.length === 0) {
+                    container.innerHTML = '<div class="text-center text-neutral-500 text-xs py-4">No hay transacciones registradas aún.</div>';
+                } else {
+                    container.innerHTML = txs.map(tx => `
+                        <div class="bg-black border border-neutral-800 p-2 rounded-xl flex justify-between items-center text-xs">
+                            <div>
+                                <span class="font-bold text-white block">${this.escapeHtml(tx.tx_type || 'Movimiento')}</span>
+                                <span class="text-[9px] text-neutral-400">${tx.created_at ? new Date(tx.created_at).toLocaleDateString() : 'Reciente'}</span>
+                            </div>
+                            <span class="font-black ${tx.amount > 0 ? 'text-emerald-400' : 'text-red-400'}">${tx.amount > 0 ? '+' : ''}${tx.amount} $ALPHA</span>
+                        </div>
+                    `).join('');
+                }
+            }
+        } catch(e) {
+            container.innerHTML = '<div class="text-center text-neutral-500 text-xs py-4">No se pudo cargar el historial.</div>';
+        }
+    },
+
+    clearChatCache() {
+        this.haptic('medium');
+        localStorage.removeItem('alpha_cached_chats');
+        this.showToast('Caché local de mensajes eliminada ✅');
     },
 
     async updateUsernameSettings() {
@@ -587,7 +728,7 @@ const app = {
         const walletConnected = (this.tonConnectUI && this.tonConnectUI.connected) || localStorage.getItem('alpha_ton_connected') === 'true';
 
         let warningText = "";
-        if(this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label')}: ${this.userData.warnings}/5`;
+        if (this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label')}: ${this.userData.warnings}/5`;
 
         if (kycStatusEl) {
             if (userRole === 'fan' && walletConnected) {
@@ -771,7 +912,6 @@ const app = {
                         <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
                         <h3 class="text-2xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-store mr-2"></i> RANGOS BÚNKER</h3>
                         <p class="text-xs text-neutral-300 text-center mb-4">Adquiere tu rango oficial para desbloquear accesos tácticos.</p>
-                        
                         <div id="catalog-packages-list" class="overflow-y-auto pr-2 pb-6 space-y-4"></div>
                     </div>
                 </div>
@@ -1033,7 +1173,7 @@ const app = {
             }
         }
         this.showToast(this.getTrans('toast_tip_saved').replace('{count}', successCount));
-        if(successCount > 0) this.closeModals();
+        if (successCount > 0) this.closeModals();
     },
 
     async openFanTipMenu(creatorId, postId, creatorName) {
@@ -1087,14 +1227,12 @@ const app = {
         document.getElementById('btn-fan-tip-back').innerText = this.getTrans('btn_back') || "VOLVER";
 
         document.getElementById('fan-tip-creator-name').innerText = `@${safeCreatorName}`;
-        
         modal.classList.remove('hidden');
 
         const container = document.getElementById('fan-tip-slots-container');
         container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold text-xs">${this.getTrans('msg_loading')}</div>`;
         
         const slots = await this.loadTipMenu(targetCreatorId);
-        
         if (slots.length === 0) {
             container.innerHTML = ``; 
         } else {
@@ -1172,7 +1310,8 @@ const app = {
         }
         this.loadConversation(targetId, targetName);
     },
-    // 🛡️ MÉTODOS DE GESTIÓN DE DMs (ESTILO TELEGRAM)
+
+    // 🛡️ DMs: BANDEJA DE ENTRADA Y CHATS INDIVIDUALES
     async openSupport() {
         this.closeModals();
         document.getElementById('modal-chat')?.classList.remove('hidden');
@@ -1215,7 +1354,7 @@ const app = {
                             } catch(e) {}
 
                             return `
-                                <div onclick="app.loadConversation(${c.user_id}, '${this.escapeHtml(c.name)}')" class="bg-neutral-900 border border-neutral-800 hover:border-[#00f3ff]/50 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer transition shadow-md">
+                                <div onclick="app.loadConversation('${c.user_id}', '${this.escapeHtml(c.name)}')" class="bg-neutral-900 border border-neutral-800 hover:border-[#00f3ff]/50 rounded-2xl p-3.5 flex items-center justify-between cursor-pointer transition shadow-md">
                                     <div class="flex items-center gap-3">
                                         <div class="relative w-12 h-12 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center shrink-0">
                                             ${avatarHtml}
@@ -1270,6 +1409,485 @@ const app = {
             BunkerChat.setTargetUser(null, '');
         }
         this.openSupport();
+    },
+
+    async toggleFollow(targetId, targetName) {
+        this.haptic('medium');
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/users/follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ follower_id: parseInt(this.userId), following_id: parseInt(targetId) })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                this.showToast(data.message);
+                
+                let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
+                if (data.following) {
+                    if (!following.includes(String(targetId))) following.push(String(targetId));
+                } else {
+                    following = following.filter(id => String(id) !== String(targetId));
+                }
+                localStorage.setItem('alpha_user_following', JSON.stringify(following));
+
+                const btn = document.getElementById('btn-profile-follow');
+                if (btn) {
+                    btn.innerHTML = data.following ? '<i class="fa-solid fa-user-check"></i> Siguiendo' : '<i class="fa-solid fa-user-plus"></i> Seguir';
+                    btn.className = data.following 
+                        ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
+                        : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
+                }
+            }
+        } catch(e) {
+            this.showToast('⚠️ Error al actualizar seguimiento.');
+        }
+    },
+
+    blockUser(targetId, targetName) {
+        this.haptic('heavy');
+        if (confirm(`¿Estás seguro de bloquear a @${targetName}? Ya no verás sus publicaciones ni mensajes.`)) {
+            let blocked = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
+            if (!blocked.includes(String(targetId))) {
+                blocked.push(String(targetId));
+                localStorage.setItem('alpha_user_blocked', JSON.stringify(blocked));
+            }
+            this.showToast(`Usuario @${targetName} bloqueado.`);
+            this.closeModals();
+            this.renderFeed();
+        }
+    },
+
+    openCommunitiesModal() {
+        this.closeModals();
+        this.haptic('medium');
+        let modal = document.getElementById('modal-communities-links');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-communities-links" class="fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+                        <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span>ECOSISTEMA</span></h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6">Únete a nuestros canales y grupos oficiales.</p>
+                        
+                        <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
+                            <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-globe text-lg"></i> 🔱♨️Alpha World♨️🔱
+                            </button>
+                            <button onclick="app.openLink('https://t.me/+7NhKBpvAE_dkODgx')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-ff00ff/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-champagne-glasses text-lg"></i> PIG'BROS 🚀PartyN'Play🚀VIP • 💬CHAT & VC📽
+                            </button>
+                            <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-lock text-lg"></i> ⚜️🔐The Bunker CHat 🔐⚜️
+                            </button>
+                            <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-masks-theater text-lg"></i> BETA HOUSE
+                            </button>
+                            <button onclick="app.openLink('https://t.me/+N0BuW-guPM42OGNh')" class="w-full bg-black border border-red-500 text-red-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
+                                <i class="fa-solid fa-fire-flame-curved text-lg"></i> EUPHORIA
+                            </button>
+                        </div>
+                        <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition">CERRAR</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-communities-links');
+        }
+        modal.classList.remove('hidden');
+    },
+
+    async viewCreatorProfile(userId, userName) {
+        this.closeModals();
+        this.haptic('light');
+        let modal = document.getElementById('modal-creator-profile');
+        const safeUserId = String(userId);
+        const safeUserName = String(userName || 'Usuario');
+        
+        let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
+        const isFollowing = following.includes(safeUserId);
+        const followBtnText = isFollowing ? 'Siguiendo' : 'Seguir';
+        const followBtnClass = isFollowing 
+            ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
+            : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
+        const followIcon = isFollowing ? 'fa-user-check' : 'fa-user-plus';
+
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-creator-profile" class="fixed inset-0 z-[250] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
+                        <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
+                        
+                        <div class="absolute top-4 left-4 z-20">
+                            <button onclick="document.getElementById('creator-options-menu').classList.toggle('hidden')" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-ellipsis-vertical text-xl"></i></button>
+                            <div id="creator-options-menu" class="hidden absolute left-0 mt-2 w-36 bg-black border border-neutral-700 rounded-xl shadow-xl z-30 flex flex-col overflow-hidden">
+                                <button id="btn-block-creator-action" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-900 text-left w-full"><i class="fa-solid fa-ban mr-1"></i> Bloquear</button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col items-center text-center mb-3 shrink-0 mt-2">
+                            <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden bg-black mb-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.4)]">
+                                <img id="creator-prof-avatar" src="" class="w-full h-full object-cover hidden" onerror="this.style.display='none'">
+                                <i id="creator-prof-default-icon" class="fa-solid fa-user text-2xl text-[#00f3ff]"></i>
+                                <div id="creator-prof-dot" class="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-black hidden"></div>
+                            </div>
+                            <h3 id="creator-prof-name" class="text-xl font-black text-white uppercase tracking-wider truncate w-full px-4">@${safeUserName}</h3>
+                            <span id="creator-prof-status" class="text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border">OFFLINE</span>
+                            <span class="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-widest">Operativo en el Ecosistema Alfa</span>
+                        </div>
+                        
+                        <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-3 text-center shrink-0">Cargando biografía...</div>
+                        
+                        <div class="flex gap-2 mb-3 shrink-0">
+                            <button id="btn-creator-tip-action" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-coins"></i> Enviar Tip
+                            </button>
+                            <button id="btn-creator-chat-action" class="flex-1 bg-[#00f3ff] hover:bg-[#00f3ff]/80 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-comments"></i> Chat
+                            </button>
+                        </div>
+
+                        <div class="flex gap-2 mb-3 shrink-0">
+                            <button id="btn-profile-follow" class="${followBtnClass}">
+                                <i class="fa-solid ${followIcon}"></i> ${followBtnText}
+                            </button>
+                        </div>
+                        
+                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2 shrink-0">Publicaciones del Creador</h4>
+                        <div id="creator-prof-posts" class="flex-1 overflow-y-auto space-y-3 pr-2 pb-6">
+                            <div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-creator-profile');
+        }
+
+        modal.classList.remove('hidden');
+
+        const tipBtn = document.getElementById('btn-creator-tip-action');
+        if (tipBtn) tipBtn.setAttribute('onclick', `app.openFanTipMenu('${safeUserId}', null, '${safeUserName}')`);
+        
+        const chatBtn = document.getElementById('btn-creator-chat-action');
+        if (chatBtn) chatBtn.setAttribute('onclick', `app.openDirectChat('${safeUserId}', '${safeUserName}')`);
+        
+        const followBtn = document.getElementById('btn-profile-follow');
+        if (followBtn) {
+            followBtn.setAttribute('onclick', `app.toggleFollow('${safeUserId}', '${safeUserName}')`);
+            followBtn.className = followBtnClass;
+            followBtn.innerHTML = `<i class="fa-solid ${followIcon}"></i> ${followBtnText}`;
+        }
+        
+        const blockBtn = document.getElementById('btn-block-creator-action');
+        if (blockBtn) blockBtn.setAttribute('onclick', `app.blockUser('${safeUserId}', '${safeUserName}')`);
+
+        const avatarEl = document.getElementById('creator-prof-avatar');
+        const defaultIconEl = document.getElementById('creator-prof-default-icon');
+        const dotEl = document.getElementById('creator-prof-dot');
+        const nameEl = document.getElementById('creator-prof-name');
+        const statusEl = document.getElementById('creator-prof-status');
+        const bioEl = document.getElementById('creator-prof-bio');
+        const postsContainer = document.getElementById('creator-prof-posts');
+
+        if (nameEl) nameEl.innerText = `@${safeUserName}`;
+        if (avatarEl) avatarEl.classList.add('hidden');
+        if (defaultIconEl) defaultIconEl.style.display = 'block';
+        if (dotEl) dotEl.classList.add('hidden');
+        if (statusEl) {
+            statusEl.innerText = 'OFFLINE';
+            statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-neutral-700 text-neutral-400 bg-neutral-800';
+        }
+        if (bioEl) bioEl.innerText = 'Operativo en el Ecosistema Alpha.';
+        if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>`;
+
+        try {
+            const res = await fetch(`${this.backendUrl}/kyc/status/${safeUserId}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.avatar_url && avatarEl && defaultIconEl) {
+                    avatarEl.src = this.sanitizeUrl(data.avatar_url);
+                    avatarEl.classList.remove('hidden');
+                    defaultIconEl.style.display = 'none';
+                }
+                if (data.bio && bioEl) { bioEl.innerText = data.bio; }
+                if (data.is_online && dotEl && statusEl) {
+                    dotEl.classList.remove('hidden');
+                    statusEl.innerText = '● ONLINE';
+                    statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
+                }
+            }
+        } catch(e) {}
+
+        try {
+            const feedRes = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
+            if (feedRes.ok && postsContainer) {
+                const feedData = await feedRes.json();
+                const creatorPosts = (feedData.posts || []).filter(p => String(p.creator_id || p.user_id) === safeUserId);
+                if (creatorPosts.length === 0) {
+                    postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4 bg-black/40 rounded-xl">No hay publicaciones de este usuario.</div>`;
+                } else {
+                    let html = '';
+                    for (let i = 0; i < creatorPosts.length; i++) {
+                        const p = creatorPosts[i];
+                        const isLocked = !!p.is_locked;
+                        const cleanUrl = this.sanitizeUrl(p.media_url);
+                        const isVid = cleanUrl && (cleanUrl.match(/\.(mp4|webm)/i) || cleanUrl.startsWith('data:video'));
+                        const isAud = cleanUrl && (cleanUrl.match(/\.(mp3|wav|ogg)/i) || cleanUrl.startsWith('data:audio'));
+                        const mediaType = isVid ? 'video' : (isAud ? 'audio' : 'image');
+                        
+                        let mediaContent = '';
+                        if (cleanUrl) {
+                            if (isLocked) {
+                                mediaContent = `
+                                    <div class="relative w-full">
+                                        <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover blur-md grayscale opacity-50 pointer-events-none select-none mx-auto block" />
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg z-10 text-center pointer-events-none">
+                                            <i class="fa-solid fa-lock text-3xl text-amber-400 mb-1 drop-shadow-md"></i>
+                                            <span class="bg-black/80 px-2 py-0.5 rounded text-[9px] font-black text-white border border-amber-500/50 uppercase tracking-widest">Protegido</span>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                if (isVid) {
+                                    mediaContent = `<div class="relative cursor-pointer group mb-2 flex justify-center w-full"><video src="${cleanUrl}" class="rounded-xl w-full max-h-48 object-cover mx-auto block" controls playsinline></video></div>`;
+                                } else if (isAud) {
+                                    mediaContent = `<div class="relative mb-2 flex justify-center w-full"><audio src="${cleanUrl}" controls class="w-full h-10 rounded-full border border-neutral-700 bg-neutral-900"></audio></div>`;
+                                } else {
+                                    mediaContent = `
+                                        <div class="relative w-full cursor-pointer group flex justify-center" onclick="app.openLightbox('${cleanUrl}', '${mediaType}')">
+                                            <img src="${cleanUrl}" class="rounded-lg max-h-48 object-cover mx-auto block" />
+                                            <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-lg pointer-events-none">
+                                                <i class="fa-solid fa-expand text-white text-2xl drop-shadow-md"></i>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            }
+                        }
+
+                        const textContent = p.content ? `<p class="text-neutral-200 ${isLocked && !cleanUrl ? 'blur-sm opacity-50 select-none' : ''}">${this.escapeHtml(p.content)}</p>` : '';
+                        const priceText = p.price_alpha ? p.price_alpha + ' $ALPHA' : 'Gratis';
+
+                        html += `
+                            <div class="bg-black border border-neutral-800 rounded-xl p-3 text-white text-xs space-y-2 relative">
+                                ${textContent}
+                                ${mediaContent}
+                                <div class="flex justify-between items-center text-[10px] text-neutral-400 pt-1 border-t border-neutral-900 ${isLocked ? 'opacity-40 pointer-events-none select-none' : ''}">
+                                    <span>❤️ ${p.likes_count || 0} likes</span>
+                                    <span class="${isLocked ? 'text-neutral-500' : 'text-[#00f3ff]'}">${priceText}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    postsContainer.innerHTML = html;
+                }
+            }
+        } catch(e) {
+            if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-red-400 text-xs py-4">Error al cargar publicaciones.</div>`;
+        }
+    },
+    registerWithData() {
+        this.haptic('medium');
+        const email = document.getElementById('reg-email-input')?.value.trim(), phone = document.getElementById('reg-phone-input')?.value.trim();
+        if (!phone && !email) { this.showToast('Ingresa teléfono o email'); return; }
+        
+        const existingName = localStorage.getItem('alpha_user_name');
+        ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        
+        this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
+        this.initUserId();
+        const isCreator = this.registerRoleSelected === 'creator';
+        this.userData.role = this.registerRoleSelected; 
+        
+        let finalName = existingName;
+        if (!finalName || finalName === 'USER' || finalName.startsWith('Tel:') || finalName.startsWith('+')) {
+            finalName = email ? email.split('@')[0] : (isCreator ? "mastertom" : "VIP Fan");
+        }
+        
+        this.userData.name = finalName;
+        localStorage.setItem('alpha_user_name', finalName); 
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        localStorage.setItem('alpha_user_role', this.registerRoleSelected);
+        
+        this.switchView('feed'); 
+        this.syncKYCStatus(); 
+        this.updateProfileUI(); 
+        this.updateViewsCounter(); 
+        this.refreshUserData(); 
+        this.renderFeed();
+    },
+
+    async loginWithPhone() {
+        this.haptic('medium'); 
+        const phone = document.getElementById('phone-input')?.value.trim();
+        if (!phone) { this.showToast('Ingresa tu teléfono'); return; }
+        
+        const existingName = localStorage.getItem('alpha_user_name');
+        ['alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        
+        this.userData = { name: existingName || 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
+        this.initUserId();
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        
+        let finalName = existingName;
+        if (!finalName || finalName === 'USER' || finalName.startsWith('Tel:') || finalName.startsWith('+')) {
+            finalName = "VIP Fan";
+        }
+        this.userData.name = finalName;
+        localStorage.setItem('alpha_user_name', finalName);
+        
+        this.switchView('feed'); 
+        await this.syncKYCStatus(); 
+        this.updateProfileUI(); 
+        this.updateViewsCounter(); 
+        this.refreshUserData(); 
+        this.renderFeed();
+    },
+
+    async loginWithTelegram() { 
+        this.haptic('medium'); 
+        this.initUserId(); 
+        localStorage.setItem('alpha_logged_in', 'true'); 
+        const referredBy = localStorage.getItem('alpha_referred_by');
+        try { 
+            const initData = window.Telegram?.WebApp?.initData || "";
+            const res = await fetch(`${this.backendUrl}/users/sync`, { 
+                method: "POST", headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({ 
+                    user_id: this.userId, 
+                    name: localStorage.getItem('alpha_user_name') || 'Agente Búnker', 
+                    bio: 'Operativo', 
+                    avatar: localStorage.getItem('alpha_user_avatar'), 
+                    init_data: initData, 
+                    is_telegram: !!initData,
+                    referred_by: referredBy ? parseInt(referredBy) : null
+                }) 
+            }); 
+            const data = await res.json();
+            if (res.ok && data.user) {
+                if (data.user.avatar_url) localStorage.setItem('alpha_user_avatar', data.user.avatar_url);
+                if (data.user.bio) localStorage.setItem('alpha_user_bio', data.user.bio);
+                if (data.user.name) localStorage.setItem('alpha_user_name', data.user.name);
+            }
+        } catch (e) {}
+        this.switchView('feed'); 
+        this.updateProfileUI(); 
+        this.updateViewsCounter(); 
+        await this.syncKYCStatus(); 
+        this.refreshUserData(); 
+        this.renderFeed();
+    },
+
+    exitApp() { if (window.Telegram?.WebApp) window.Telegram.WebApp.close(); },
+
+    logout() { 
+        this.haptic('medium'); 
+        ['alpha_logged_in', 'alpha_user_name', 'alpha_user_bio', 'alpha_user_avatar', 'alpha_kyc_status', 'alpha_user_role', 'alpha_user_liked_posts'].forEach(k => localStorage.removeItem(k));
+        this.userData = { name: 'USER', access_tier: 0, role: 'fan', warnings: 0 }; 
+        this.userId = null; 
+        this.switchView('consent'); 
+    },
+
+    setupSystemMessageObserver(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container || container.dataset.observed === 'true') return;
+        container.dataset.observed = 'true';
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) {
+                        if (!node.innerHTML.includes('bg-[#00f3ff]/20') && !node.innerHTML.includes('bg-neutral-800')) {
+                            setTimeout(() => { node.style.transition = 'all 0.4s ease'; node.style.opacity = '0'; node.style.height = '0px'; node.style.margin = '0px'; node.style.padding = '0px'; node.style.overflow = 'hidden'; setTimeout(() => node.remove(), 400); }, 1500); 
+                        }
+                    }
+                });
+            });
+        });
+        observer.observe(container, { childList: true });
+    },
+
+    async buyPackageStars(packageSlug, targetLevel = null) {
+        this.haptic('medium'); 
+        this.initUserId();
+        this.showToast(this.getTrans('toast_invoice_gen'));
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/create-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug }) });
+            const data = await res.json();
+            if (res.ok && data.status === 'success' && data.invoice_link) {
+                if (window.Telegram?.WebApp?.openInvoice) {
+                    window.Telegram.WebApp.openInvoice(data.invoice_link, async (status) => {
+                        if (status === 'paid') { 
+                            this.haptic('heavy'); 
+                            this.showToast(this.getTrans('toast_stars_paid')); 
+                            try {
+                                await fetch(`${this.backendUrl}/payments/verify-stars`, {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug })
+                                });
+                            } catch(e) {}
+                            setTimeout(async () => {
+                                await this.syncKYCStatus(); await this.refreshUserData();
+                                let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
+                                this.showLevelUpAnimation(finalLevel);
+                            }, 1500);
+                        }
+                    });
+                } else { window.open(data.invoice_link, '_blank'); }
+            } else { throw new Error(data.detail || 'Error al generar la factura'); }
+        } catch (err) {}
+    },
+
+    async rechargeAlphaCoins(priceTon, alphaTotal, targetLevel = null) {
+        this.haptic('medium'); 
+        this.initUserId();
+        if (!this.tonConnectUI || !this.tonConnectUI.connected) { this.showToast(this.getTrans('toast_connect_ton_req') || '⚠️ Conecta tu billetera TON primero.'); this.openPaymentMethods(); return; }
+        const MASTER_TON_WALLET = "UQAAnX4bGBzI0ujk35-XChap_wZ7x67NeJ85C_M1YIvLbYUF"; 
+        const nanoTonAmount = Math.round(priceTon * 1e9).toString();
+        const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: MASTER_TON_WALLET, amount: nanoTonAmount }] };
+        try {
+            this.showToast('Abriendo pasarela TON... 💎');
+            const result = await this.tonConnectUI.sendTransaction(transaction);
+            if (result && result.boc) {
+                this.showToast('Procesando recarga en el servidor... ⏳');
+                const res = await fetch(`${this.backendUrl}/wallet/recharge`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: this.userId, amount_ton: priceTon, alpha_added: alphaTotal, boc: result.boc })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    this.haptic('heavy'); 
+                    this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
+                    setTimeout(async () => {
+                        await this.syncKYCStatus(); 
+                        await this.refreshUserData();
+                        let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
+                        if (finalLevel > this.userData.access_tier) this.showLevelUpAnimation(finalLevel);
+                    }, 1500);
+                    this.closeModals();
+                } else { throw new Error(data.detail || 'Error validando la recarga en el servidor'); }
+            }
+        } catch (error) { this.showToast('⚠️ Transacción cancelada o fallida.'); }
+    },
+
+    openPaymentMethods() {
+        this.closeModals();
+        let modal = document.getElementById('modal-payment-methods');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-payment-methods" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+                        <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">${this.getTrans('pay_methods_title')}</h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6">${this.getTrans('pay_methods_desc')}</p>
+                        <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> ${this.getTrans('btn_connect_ton')}</button>
+                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">${this.getTrans('btn_cancel')}</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-payment-methods');
+        }
+        modal.classList.remove('hidden');
     },
 
     async loadChatHistory() { 
@@ -1327,10 +1945,10 @@ const app = {
             this.closePeerConnection(data.user_id);
         } else {
             if (chipsChat && !document.getElementById(chipIdChat)) {
-                chipsChat.insertAdjacentHTML('beforeend', `<div id="${chipIdChat}" onclick="app.viewCreatorProfile(${data.user_id}, '${safeName}')" class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${safeName}</div>`);
+                chipsChat.insertAdjacentHTML('beforeend', `<div id="${chipIdChat}" onclick="app.viewCreatorProfile('${data.user_id}', '${safeName}')" class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${safeName}</div>`);
             }
             if (data.status === 'live' && chipsVideo && !document.getElementById(chipIdVideo)) {
-                chipsVideo.insertAdjacentHTML('beforeend', `<div id="${chipIdVideo}" onclick="app.viewCreatorProfile(${data.user_id}, '${safeName}')" class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] text-amber-500 animate-pulse"></i> @${safeName}</div>`);
+                chipsVideo.insertAdjacentHTML('beforeend', `<div id="${chipIdVideo}" onclick="app.viewCreatorProfile('${data.user_id}', '${safeName}')" class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] text-amber-500 animate-pulse"></i> @${safeName}</div>`);
             }
         }
         if (counter && chipsChat) {
@@ -1529,7 +2147,7 @@ const app = {
 
     async deleteChatMessage(msgId, btnElement, realMsgId) {
         this.haptic('medium');
-        if(confirm('¿Eliminar mensaje?')) {
+        if (confirm('¿Eliminar mensaje?')) {
             try {
                 if (realMsgId) {
                     await fetch(`${this.backendUrl}/chat/delete_message`, {
@@ -1538,7 +2156,7 @@ const app = {
                     });
                 }
                 const bubble = btnElement.closest('.flex-col');
-                if(bubble) {
+                if (bubble) {
                     bubble.style.transition = 'all 0.3s ease'; 
                     bubble.style.opacity = '0'; 
                     bubble.style.height = '0px';
@@ -1562,7 +2180,7 @@ const app = {
         const isAdminUser = this.isAdminUser();
         const rankInfo = this.getRankBadge(msg.access_level);
         let contentObj = { text: msg.content, media_url: null };
-        try { const parsed = JSON.parse(msg.content); if(parsed.text !== undefined) contentObj = parsed; } catch(e) {}
+        try { const parsed = JSON.parse(msg.content); if (parsed.text !== undefined) contentObj = parsed; } catch(e) {}
         let safeText = this.escapeHtml(contentObj.text || ''), safeMedia = '';
         
         if (contentObj.media_url) {
@@ -1592,7 +2210,7 @@ const app = {
         } else if (isMe) {
             html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">Tú • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia} <span class="inline-flex items-center">${readStatusHtml}</span></div></div>`;
         } else {
-            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black cursor-pointer hover:underline" onclick="app.viewCreatorProfile(${msg.user_id}, '${safeAuthorName}')">@${safeAuthorName}</span> • ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black cursor-pointer hover:underline" onclick="app.viewCreatorProfile('${msg.user_id}', '${safeAuthorName}')">@${safeAuthorName}</span> • ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]">${safeText}${safeMedia}</div></div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
     },
@@ -1605,11 +2223,11 @@ const app = {
         if (!modal) return; 
         modal.classList.remove('hidden');
         if (type === 'image') { 
-            if(videoEl) { videoEl.classList.add('hidden'); videoEl.pause(); }
-            if(imgEl) { imgEl.src = mediaUrl; imgEl.classList.remove('hidden'); }
+            if (videoEl) { videoEl.classList.add('hidden'); videoEl.pause(); }
+            if (imgEl) { imgEl.src = mediaUrl; imgEl.classList.remove('hidden'); }
         } else { 
-            if(imgEl) imgEl.classList.add('hidden'); 
-            if(videoEl) { videoEl.src = mediaUrl; videoEl.classList.remove('hidden'); videoEl.play(); }
+            if (imgEl) imgEl.classList.add('hidden'); 
+            if (videoEl) { videoEl.src = mediaUrl; videoEl.classList.remove('hidden'); videoEl.play(); }
         }
     },
 
@@ -1653,7 +2271,7 @@ const app = {
         if (!text && !this.tempChatMediaData) return;
         
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
-        if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { 
+        if (!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { 
             BunkerChat.initGlobal(this.userId, this.backendUrl); 
             setTimeout(() => { 
                 if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { 
@@ -1701,10 +2319,10 @@ const app = {
         const isAdminUser = this.isAdminUser(), userTier = this.userData?.access_tier || 0;
         if (userTier < 4 && !isAdminUser) { this.showToast('Requiere Icon Legend'); this.openCatalogPackages(); return; }
         const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
-        if(bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
-        if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
-        if(btnGoLive) btnGoLive.classList.remove('hidden');
-        if(placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
+        if (bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
+        if (badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if (btnGoLive) btnGoLive.classList.remove('hidden');
+        if (placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
         await this.requestAndLoadMedia();
         this.updateOnlineUsersRadar(); 
     },
@@ -1764,7 +2382,7 @@ const app = {
                 else if (device.label) { cleanLabel = device.label; }
                 if (!seen.has(cleanLabel)) { seen.add(cleanLabel); const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = cleanLabel; selectCam.appendChild(opt); }
             });
-            if(!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = `🎥 Forzar OBS`; selectCam.appendChild(optObs); }
+            if (!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = `🎥 Forzar OBS`; selectCam.appendChild(optObs); }
             
             const savedCam = localStorage.getItem('alpha_preferred_cam');
             if (savedCam) selectCam.value = savedCam;
@@ -1798,8 +2416,8 @@ const app = {
 
     updateMediaTogglesUI() {
         const btnMic = document.getElementById('btn-toggle-mic'), btnCam = document.getElementById('btn-toggle-cam');
-        if(btnMic) { btnMic.innerHTML = this.isMicMuted ? '<i class="fa-solid fa-microphone-slash"></i>' : '<i class="fa-solid fa-microphone"></i>'; btnMic.className = this.isMicMuted ? 'w-11 h-11 rounded-full bg-red-600 text-white flex items-center justify-center text-lg' : 'w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg'; }
-        if(btnCam) { btnCam.innerHTML = this.isCamOff ? '<i class="fa-solid fa-video-slash"></i>' : '<i class="fa-solid fa-video"></i>'; btnCam.className = this.isCamOff ? 'w-11 h-11 rounded-full bg-red-600 text-white flex items-center justify-center text-lg' : 'w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg'; }
+        if (btnMic) { btnMic.innerHTML = this.isMicMuted ? '<i class="fa-solid fa-microphone-slash"></i>' : '<i class="fa-solid fa-microphone"></i>'; btnMic.className = this.isMicMuted ? 'w-11 h-11 rounded-full bg-red-600 text-white flex items-center justify-center text-lg' : 'w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg'; }
+        if (btnCam) { btnCam.innerHTML = this.isCamOff ? '<i class="fa-solid fa-video-slash"></i>' : '<i class="fa-solid fa-video"></i>'; btnCam.className = this.isCamOff ? 'w-11 h-11 rounded-full bg-red-600 text-white flex items-center justify-center text-lg' : 'w-11 h-11 rounded-full bg-neutral-800 text-white flex items-center justify-center text-lg'; }
     },
 
     openAVSettings() { 
@@ -1866,18 +2484,18 @@ const app = {
     startLiveTransmission() {
         this.haptic('heavy');
         const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
-        if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-red-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded animate-pulse shadow-md uppercase'; badge.innerText = 'EN VIVO'; }
-        if(btnGoLive) btnGoLive.classList.add('hidden'); 
-        if(btnCancel) btnCancel.classList.remove('hidden');
+        if (badge) { badge.className = 'absolute top-3 left-3 z-20 bg-red-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded animate-pulse shadow-md uppercase'; badge.innerText = 'EN VIVO'; }
+        if (btnGoLive) btnGoLive.classList.add('hidden'); 
+        if (btnCancel) btnCancel.classList.remove('hidden');
         if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: '📡 ¡Transmisión en vivo iniciada en el Búnker!', media_url: null })); }
     },
 
     cancelLiveTransmission() {
         this.haptic('medium');
         const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
-        if(badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
-        if(btnCancel) btnCancel.classList.add('hidden'); 
-        if(btnGoLive) btnGoLive.classList.remove('hidden');
+        if (badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if (btnCancel) btnCancel.classList.add('hidden'); 
+        if (btnGoLive) btnGoLive.classList.remove('hidden');
     },
 
     leaveVideoBunker() {
@@ -1939,7 +2557,7 @@ const app = {
         if (langText) langText.innerText = lang.toUpperCase();
         if (typeof window.applyTranslations === 'function') window.applyTranslations(lang);
         this.updateProfileUI();
-        if(!document.getElementById('modal-catalog')?.classList.contains('hidden')) this.openCatalogPackages();
+        if (!document.getElementById('modal-catalog')?.classList.contains('hidden')) this.openCatalogPackages();
     },
 
     toggleAdminSecret() { 
@@ -2019,7 +2637,7 @@ const app = {
         
         const countEls = [document.getElementById(`like-count-${postId}`), document.getElementById(`like-count-prof-${postId}`)];
         countEls.forEach(el => {
-            if(el) {
+            if (el) {
                 let currentCount = parseInt(el.innerText) || 0;
                 el.innerText = isLiking ? currentCount + 1 : Math.max(0, currentCount - 1);
                 
@@ -2070,7 +2688,7 @@ const app = {
         const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
         const blockedUsers = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
 
-        const visiblePosts = posts.filter(p => !blockedUsers.includes(String(p.creator_id)));
+        const visiblePosts = posts.filter(p => !blockedUsers.includes(String(p.creator_id || p.user_id)));
 
         if (visiblePosts.length === 0) { 
             feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">No hay publicaciones disponibles</div>`; 
@@ -2082,7 +2700,8 @@ const app = {
             const post = visiblePosts[i];
             const isLiked = likedPosts.includes(post.id);
             const isAdminUser = this.isAdminUser();
-            const isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
+            const creatorId = post.creator_id || post.user_id || 0;
+            const isOwnerOrAdmin = (this.userId == creatorId || isAdminUser);
             const safeAuthor = this.escapeHtml(post.author || 'mastertom');
             const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
             const rankInfo = this.getRankBadge(post.levelRequired);
@@ -2132,14 +2751,14 @@ const app = {
                     <button onclick="app.toggleLike(${post.id})" id="btn-like-main-${post.id}" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border transition-all ${isLiked ? 'bg-[#ff00ff]/20 border-[#ff00ff] text-[#ff00ff] shadow-[0_0_10px_#ff00ff]' : 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}">
                         <i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
                     </button>
-                    <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold py-1.5 px-3 rounded-lg text-xs shadow-[0_0_10px_rgba(245,158,11,0.3)] transition active:scale-95">🪙 Tip</button>
+                    <button onclick="app.openFanTipMenu('${creatorId}', ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold py-1.5 px-3 rounded-lg text-xs shadow-[0_0_10px_rgba(245,158,11,0.3)] transition active:scale-95">🪙 Tip</button>
                 </div>
             `;
 
             html += `
                 <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
                     <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.viewCreatorProfile(${post.creator_id || 99999}, '${safeAuthorAttr}')">
+                        <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.viewCreatorProfile('${creatorId}', '${safeAuthorAttr}')">
                             <div class="relative w-10 h-10 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center shadow-md">
                                 ${avatarHtml}
                                 ${onlineDotHtml}
@@ -2158,7 +2777,6 @@ const app = {
                     ${textContent}
                     ${mediaContent}
                     ${footerHtml}
-                    
                 </div>
             `;
         }
