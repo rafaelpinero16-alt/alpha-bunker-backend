@@ -5,9 +5,35 @@ const BunkerChat = {
     reconnectAttemptsGlobal: 0,
     maxReconnectAttempts: 5,
     reconnectDelay: 2000,
+    activeTargetUserId: null,
+    activeTargetName: null,
 
     getWsUrl(baseUrl) {
         return baseUrl.replace('https://', 'wss://').replace('http://', 'ws://');
+    },
+
+    // 🛡️ Centro de Mando: Fijar usuario objetivo para chat directo
+    setTargetUser(targetId, targetName = 'Usuario') {
+        this.activeTargetUserId = targetId ? String(targetId) : null;
+        this.activeTargetName = targetName;
+        console.log(`[CRM] Canal fijado con: @${targetName} (ID: ${targetId || 'Soporte General'})`);
+    },
+
+    // 🛡️ Validar permiso de rango antes de emitir mensaje
+    validateTierAccess(requiredTier = 1) {
+        if (typeof app === 'undefined') return true;
+        const userTier = app.userData?.access_tier || 0;
+        const isAdmin = typeof app.isAdminUser === 'function' ? app.isAdminUser() : false;
+        
+        if (!isAdmin && userTier < requiredTier) {
+            const rankBadge = typeof app.getRankBadge === 'function' ? app.getRankBadge(requiredTier) : { name: `Nivel ${requiredTier}` };
+            app.showToast(`Requiere rango ${rankBadge.name} para este canal`);
+            if (typeof app.openCatalogPackages === 'function') {
+                setTimeout(() => app.openCatalogPackages(), 1200);
+            }
+            return false;
+        }
+        return true;
     },
 
     initCRM(userId, baseUrl) {
@@ -18,14 +44,18 @@ const BunkerChat = {
 
         this.crmSocket.onopen = () => {
             this.reconnectAttemptsCRM = 0;
-            console.log("[CRM] Socket conectado exitosamente.");
+            console.log("[CRM] Centro de mando conectado exitosamente.");
         };
 
         this.crmSocket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                if (data.is_error) {
-                    if (typeof app !== 'undefined') app.showToast(data.message);
+                
+                // Manejo de restricciones de rango emitidas desde el backend
+                if (data.is_error || data.type === 'tier_error') {
+                    if (typeof app !== 'undefined') {
+                        app.showToast(data.message || 'Acceso restringido por rango de suscripción.');
+                    }
                 } else if (data.type === 'delete_msg') {
                     const bubble = document.getElementById(`media-menu-${data.msg_id}`)?.closest('.flex-col');
                     if (bubble) bubble.remove();
@@ -36,17 +66,17 @@ const BunkerChat = {
                     }
                 }
             } catch (e) {
-                console.error("[CRM] Error procesando mensaje:", e);
+                console.error("[CRM] Error procesando mensaje del centro de mando:", e);
             }
         };
 
         this.crmSocket.onclose = () => {
-            console.warn("[CRM] Conexión perdida. Intentando reconectar...");
+            console.warn("[CRM] Conexión cerrada. Reintentando...");
             if (this.reconnectAttemptsCRM < this.maxReconnectAttempts) {
                 this.reconnectAttemptsCRM++;
                 setTimeout(() => this.initCRM(userId, baseUrl), this.reconnectDelay);
             } else {
-                if (typeof app !== 'undefined') app.showToast("⚠️ CRM desconectado. Por favor, recarga la aplicación.");
+                if (typeof app !== 'undefined') app.showToast("⚠️ Centro de mando CRM desconectado. Recarga la app.");
             }
         };
 
@@ -64,7 +94,7 @@ const BunkerChat = {
 
         this.globalSocket.onopen = () => {
             this.reconnectAttemptsGlobal = 0;
-            console.log("[GLOBAL] Socket conectado exitosamente.");
+            console.log("[GLOBAL] Socket global activo.");
         };
 
         this.globalSocket.onmessage = (event) => {
@@ -87,7 +117,7 @@ const BunkerChat = {
                     }
                 }
             } catch (e) {
-                console.error("[GLOBAL] Error procesando mensaje:", e);
+                console.error("[GLOBAL] Error procesando payload:", e);
             }
         };
 
@@ -97,31 +127,50 @@ const BunkerChat = {
                 this.reconnectAttemptsGlobal++;
                 setTimeout(() => this.initGlobal(userId, baseUrl), this.reconnectDelay);
             } else {
-                if (typeof app !== 'undefined') app.showToast("⚠️ Chat Global desconectado. Por favor, recarga la aplicación.");
+                if (typeof app !== 'undefined') app.showToast("⚠️ Chat Global desconectado. Recarga la app.");
             }
         };
 
         this.globalSocket.onerror = (err) => {
-            console.error("[GLOBAL] Error de WebSocket:", err);
+            console.error("[GLOBAL] Error en socket:", err);
             this.globalSocket.close();
         };
     },
 
-    sendCRM(payload) {
+    sendCRM(payload, requiredTier = 0) {
+        // Validación de rango antes del despacho
+        if (!this.validateTierAccess(requiredTier)) return false;
+
         if (this.crmSocket && this.crmSocket.readyState === WebSocket.OPEN) {
-            this.crmSocket.send(payload);
+            let finalPayload = payload;
+
+            // Inyectar datos de enrutamiento y rango del emisor si es un objeto
+            if (typeof payload === 'string') {
+                try {
+                    const parsed = JSON.parse(payload);
+                    parsed.target_id = this.activeTargetUserId || null;
+                    parsed.sender_tier = (typeof app !== 'undefined') ? (app.userData?.access_tier || 0) : 0;
+                    finalPayload = JSON.stringify(parsed);
+                } catch (e) {}
+            } else if (typeof payload === 'object') {
+                payload.target_id = this.activeTargetUserId || null;
+                payload.sender_tier = (typeof app !== 'undefined') ? (app.userData?.access_tier || 0) : 0;
+                finalPayload = JSON.stringify(payload);
+            }
+
+            this.crmSocket.send(finalPayload);
             return true;
         }
-        console.warn("[CRM] No se pudo enviar el mensaje, socket inactivo.");
+        console.warn("[CRM] Socket inactivo.");
         return false;
     },
 
     sendGlobal(payload) {
         if (this.globalSocket && this.globalSocket.readyState === WebSocket.OPEN) {
-            this.globalSocket.send(payload);
+            this.globalSocket.send(typeof payload === 'object' ? JSON.stringify(payload) : payload);
             return true;
         }
-        console.warn("[GLOBAL] No se pudo enviar el mensaje, socket inactivo.");
+        console.warn("[GLOBAL] Socket inactivo.");
         return false;
     },
     
