@@ -782,7 +782,7 @@ const app = {
                         <h2 class="text-xl font-black text-[#00f3ff] mb-4 uppercase tracking-wider text-center">${title}</h2>
                         <p class="text-xs text-neutral-300 text-center mb-6">${desc}</p>
                         <div class="bg-black border border-neutral-700 rounded-xl p-4 space-y-3 text-xs font-mono">
-                            <p class="flex justify-between border-b border-neutral-800 pb-2"><span class="text-neutral-500">Bank:</span><strong class="text-white">Lead Bank</strong></p>
+                            <p class="flex justify-between border-b border-neutral-800 pb-2"><span class="text-neutral-500">Bank:</span><strong class="text-white">Lead Bank (DollarApp)</strong></p>
                             <p class="flex justify-between border-b border-neutral-800 pb-2"><span class="text-neutral-500">Account Name:</span><strong class="text-white text-right max-w-[150px] truncate" title="FELIPE RAFAEL SANCHEZ PIÑEROS">FELIPE R. SANCHEZ P.</strong></p>
                             <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
                                 <span class="text-neutral-500">Account Number:</span>
@@ -1130,6 +1130,7 @@ const app = {
         }
         modal.classList.remove('hidden');
     },
+
     openCommunitiesModal() {
         this.closeModals();
         this.haptic('medium');
@@ -1510,7 +1511,7 @@ const app = {
             await pc.setLocalDescription(offer);
             BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_offer', target_id: targetId, sdp: offer.sdp }));
         } catch(e) {}
-    },
+    }, // Coma corregida aquí
 
     async handleWebRTCMessage(data) {
         const { type, caller_id, sdp, candidate } = data;
@@ -1712,11 +1713,11 @@ const app = {
                 const isOwner = msg.user_id == this.userId;
                 let menuHtml = `<div class="absolute top-2 right-2 z-10" onclick="event.stopPropagation();"><button onclick="document.getElementById('media-menu-${uniqueId}').classList.toggle('hidden')" class="bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-ellipsis-vertical"></i></button><div id="media-menu-${uniqueId}" class="hidden absolute right-0 mt-2 w-36 bg-neutral-900 border border-neutral-700 rounded-xl shadow-lg overflow-hidden flex flex-col z-20">${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this, ${msg.id})" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800">Eliminar</button>` : ''}</div></div>`;
                 if (contentObj.media_url.startsWith('data:video') || contentObj.media_url.includes('.mp4')) { 
-                    safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none" autoplay muted loop playsinline></video>${menuHtml}</div>`; 
+                    safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group flex justify-center" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl max-h-48 object-cover pointer-events-none mx-auto block" autoplay muted loop playsinline></video>${menuHtml}</div>`; 
                 } else if (contentObj.media_url.startsWith('data:audio')) {
                     safeMedia = `<div class="relative mt-2 mb-1"><audio src="${encodedUrl}" controls class="w-full h-10 rounded-full" controlsList="nodownload"></audio>${menuHtml}</div>`; 
                 } else { 
-                    safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl w-full max-h-48 object-cover pointer-events-none" />${menuHtml}</div>`; 
+                    safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group flex justify-center" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl max-h-48 object-cover pointer-events-none mx-auto block" />${menuHtml}</div>`; 
                 }
             }
         }
