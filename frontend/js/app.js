@@ -1604,11 +1604,7 @@ const app = {
         const isVideo = file.type.startsWith('video/');
         const isAudio = file.type.startsWith('audio/');
         
-        if (type === 'global' && !isAdminUser && !isCreator) {
-            if (userTier < 2) { this.showToast('Requiere Veteran'); return; }
-            if (isVideo && userTier < 3) { this.showToast('Requiere Legend'); return; }
-        }
-        
+        // 🛡️ ACTUALIZACIÓN CRÍTICA: Remitir bloqueo estricto en Chat Global permitiendo envío multimedia fluido
         this.haptic('light'); 
         const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input');
         const previewContainer = document.getElementById(`${type}-chat-preview-container`);
@@ -1617,7 +1613,7 @@ const app = {
         const previewName = document.getElementById(`${type}-chat-preview-name`);
         
         if (isVideo) {
-            if (file.size > 5 * 1024 * 1024) { this.showToast('Video muy pesado'); this.clearChatMedia(type); return; }
+            if (file.size > 15 * 1024 * 1024) { this.showToast('Video muy pesado (máx 15MB)'); this.clearChatMedia(type); return; }
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 this.tempChatMediaData = e.target.result; 
@@ -1632,7 +1628,7 @@ const app = {
             }; 
             reader.readAsDataURL(file);
         } else if (isAudio) {
-            if (file.size > 2 * 1024 * 1024) { this.showToast('Audio muy pesado'); this.clearChatMedia(type); return; }
+            if (file.size > 8 * 1024 * 1024) { this.showToast('Audio muy pesado (máx 8MB)'); this.clearChatMedia(type); return; }
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 this.tempChatMediaData = e.target.result; 
@@ -1640,14 +1636,14 @@ const app = {
                     previewContainer.classList.remove('hidden'); 
                     if(previewImg) previewImg.classList.add('hidden'); 
                     if(previewVideo) { previewVideo.src = ""; previewVideo.classList.add('hidden'); }
-                    if(previewName) previewName.innerHTML = `Audio adjunto`; 
+                    if(previewName) previewName.innerHTML = `Audio / Nota de voz adjunta`; 
                 } 
                 if (inputEl) inputEl.focus(); 
                 this.showToast('Audio adjunto'); 
             }; 
             reader.readAsDataURL(file);
         } else {
-            this.tempChatMediaData = await this.compressImage(file, 800, 0.7); 
+            this.tempChatMediaData = await this.compressImage(file, 1000, 0.75); 
             if (previewContainer) { 
                 previewContainer.classList.remove('hidden'); 
                 if(previewVideo) { previewVideo.classList.add('hidden'); previewVideo.src = ""; }
@@ -1792,7 +1788,7 @@ const app = {
         const input = document.getElementById('global-chat-input'); 
         const text = input ? input.value.trim() : '';
         if (!text && !this.tempChatMediaData) return;
-        if (userRole === 'creator' && kycStatus !== 'verified' && !isAdminUser) { this.showToast('KYC requerido'); this.openKYCModal(); return; }
+        
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
         if(!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { 
             BunkerChat.initGlobal(this.userId, this.backendUrl); 
@@ -1809,6 +1805,29 @@ const app = {
             if (input) input.value = ''; 
             this.clearChatMedia('global'); 
         }
+    },
+
+    triggerGlobalMediaUpload(acceptType) {
+        document.getElementById('global-media-menu')?.classList.add('hidden');
+        const fileInput = document.getElementById('global-media-upload');
+        if (fileInput) {
+            fileInput.accept = acceptType;
+            fileInput.click();
+        }
+    },
+
+    startGlobalSelfieCam() {
+        document.getElementById('global-media-menu')?.classList.add('hidden');
+        this.showToast('Iniciando cámara frontal para video selfie...');
+        // Activa la cámara en modo video selfie para el chat global
+        navigator.mediaDevices?.getUserMedia({ video: { facingMode: "user" }, audio: true })
+            .then(stream => {
+                this.activeWebcamStream = stream;
+                this.openUploadPanel();
+            })
+            .catch(err => {
+                this.showToast('⚠️ No se pudo acceder a la cámara frontal.');
+            });
     },
 
     handleChatKeyPress(e) { if (e.key === 'Enter') this.sendChatMessage(); },
