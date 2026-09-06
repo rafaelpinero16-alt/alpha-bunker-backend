@@ -1049,6 +1049,15 @@ const app = {
         }
     },
 
+    // 🛡️ ACCESO RÁPIDO A CHAT DIRECTO DESDE PERFIL
+    openDirectChat(targetId, targetName) {
+        this.closeModals();
+        if (typeof BunkerChat !== 'undefined' && typeof BunkerChat.setTargetUser === 'function') {
+            BunkerChat.setTargetUser(targetId, targetName);
+        }
+        this.openSupport();
+    },
+
     async buyPackageStars(packageSlug, targetLevel = null) {
         this.haptic('medium'); 
         this.initUserId();
@@ -1197,6 +1206,9 @@ const app = {
                             <button onclick="app.openFanTipMenu(${userId}, null, '${userName}')" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
                                 <i class="fa-solid fa-coins"></i> Enviar Tip
                             </button>
+                            <button onclick="app.openDirectChat(${userId}, '${userName}')" class="flex-1 bg-[#00f3ff] hover:bg-[#00f3ff]/80 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-comments"></i> Chat Directo
+                            </button>
                         </div>
                         
                         <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2 shrink-0">Publicaciones del Creador</h4>
@@ -1259,8 +1271,9 @@ const app = {
                         const p = creatorPosts[i];
                         const isLocked = !!p.is_locked;
                         const cleanUrl = this.sanitizeUrl(p.media_url);
-                        const isVid = cleanUrl && (cleanUrl.endsWith('.mp4') || cleanUrl.endsWith('.webm') || cleanUrl.startsWith('data:video'));
-                        const mediaType = isVid ? 'video' : 'image';
+                        const isVid = cleanUrl && (cleanUrl.match(/\.(mp4|webm)/i) || cleanUrl.startsWith('data:video'));
+                        const isAud = cleanUrl && (cleanUrl.match(/\.(mp3|wav|ogg)/i) || cleanUrl.startsWith('data:audio'));
+                        const mediaType = isVid ? 'video' : (isAud ? 'audio' : 'image');
                         
                         let mediaContent = '';
                         if (cleanUrl) {
@@ -1275,14 +1288,20 @@ const app = {
                                     </div>
                                 `;
                             } else {
-                                mediaContent = `
-                                    <div class="relative w-full cursor-pointer group flex justify-center" onclick="app.openLightbox('${cleanUrl}', '${mediaType}')">
-                                        <img src="${cleanUrl}" class="rounded-lg max-h-48 object-cover mx-auto block" />
-                                        <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-lg pointer-events-none">
-                                            <i class="fa-solid fa-expand text-white text-2xl drop-shadow-md"></i>
+                                if (isVid) {
+                                    mediaContent = `<div class="relative cursor-pointer group mb-2 flex justify-center w-full"><video src="${cleanUrl}" class="rounded-xl w-full max-h-48 object-cover mx-auto block" controls playsinline></video></div>`;
+                                } else if (isAud) {
+                                    mediaContent = `<div class="relative mb-2 flex justify-center w-full"><audio src="${cleanUrl}" controls class="w-full h-10 rounded-full border border-neutral-700 bg-neutral-900"></audio></div>`;
+                                } else {
+                                    mediaContent = `
+                                        <div class="relative w-full cursor-pointer group flex justify-center" onclick="app.openLightbox('${cleanUrl}', '${mediaType}')">
+                                            <img src="${cleanUrl}" class="rounded-lg max-h-48 object-cover mx-auto block" />
+                                            <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-lg pointer-events-none">
+                                                <i class="fa-solid fa-expand text-white text-2xl drop-shadow-md"></i>
+                                            </div>
                                         </div>
-                                    </div>
-                                `;
+                                    `;
+                                }
                             }
                         }
 
@@ -1604,7 +1623,6 @@ const app = {
         const isVideo = file.type.startsWith('video/');
         const isAudio = file.type.startsWith('audio/');
         
-        // 🛡️ ACTUALIZACIÓN CRÍTICA: Remitir bloqueo estricto en Chat Global permitiendo envío multimedia fluido
         this.haptic('light'); 
         const inputEl = type === 'global' ? document.getElementById('global-chat-input') : document.getElementById('chat-input');
         const previewContainer = document.getElementById(`${type}-chat-preview-container`);
@@ -1819,7 +1837,6 @@ const app = {
     startGlobalSelfieCam() {
         document.getElementById('global-media-menu')?.classList.add('hidden');
         this.showToast('Iniciando cámara frontal para video selfie...');
-        // Activa la cámara en modo video selfie para el chat global
         navigator.mediaDevices?.getUserMedia({ video: { facingMode: "user" }, audio: true })
             .then(stream => {
                 this.activeWebcamStream = stream;
