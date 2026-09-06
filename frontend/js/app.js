@@ -180,7 +180,9 @@ const app = {
             });
         } catch(e) {}
 
-        this.updateProfileUI(); this.showToast(this.getTrans('toast_alias_updated')); this.closeSettingsModal();
+        this.updateProfileUI(); 
+        this.showToast(this.getTrans('toast_alias_updated')); 
+        this.closeSettingsModal();
     },
 
     updatePasswordSettings() {
@@ -189,7 +191,9 @@ const app = {
         const newPassInput = document.getElementById('settings-new-pass');
         const confirmPassInput = document.getElementById('settings-confirm-pass');
         
-        const oldPass = oldPassInput?.value.trim(); const newPass = newPassInput?.value.trim(); const confirmPass = confirmPassInput?.value.trim();
+        const oldPass = oldPassInput?.value.trim(); 
+        const newPass = newPassInput?.value.trim(); 
+        const confirmPass = confirmPassInput?.value.trim();
         const currentSavedPass = localStorage.getItem('alpha_user_pass') || '';
 
         if (!oldPass || !newPass || !confirmPass) { this.showToast(this.getTrans('toast_pwd_empty')); return; }
@@ -199,7 +203,9 @@ const app = {
 
         localStorage.setItem('alpha_user_pass', newPass);
         this.showToast(`🔒 ${this.getTrans('pwd_changed_success')}`);
-        oldPassInput.value = ''; newPassInput.value = ''; if (confirmPassInput) confirmPassInput.value = '';
+        oldPassInput.value = ''; 
+        newPassInput.value = ''; 
+        if (confirmPassInput) confirmPassInput.value = '';
         this.closeSettingsModal();
     },
 
@@ -244,7 +250,6 @@ const app = {
             }, 2500);
             
         } catch (e) {
-            console.error("[SESSION ERROR]:", e);
             this.switchView('consent');
         }
     },
@@ -322,6 +327,7 @@ const app = {
             this.generateCaptcha();
         }
     },
+
     switchView(viewName) {
         ['consent', 'login', 'captcha', 'register', 'lang', 'feed', 'upload', 'splash'].forEach(v => { 
             const el = document.getElementById(`view-${v}`); 
@@ -442,6 +448,7 @@ const app = {
             }
         } catch (err) {}
     },
+
     updateProfileUI() {
         this.initUserId();
         const savedName = localStorage.getItem('alpha_user_name') || this.userData?.name;
@@ -639,8 +646,6 @@ const app = {
     openMenuModal() { 
         this.openCatalogPackages(); 
     },
-
-    // 🛡️ REPARACIÓN: INYECCIÓN DINÁMICA DEL CATÁLOGO 
     async openCatalogPackages() {
         this.closeModals();
         let modal = document.getElementById('modal-catalog');
@@ -808,6 +813,322 @@ const app = {
         this.haptic('light');
         document.getElementById('modal-external-checkout')?.classList.add('hidden');
         document.getElementById('checkoutModal')?.classList.add('hidden');
+    },
+
+    openFavoritesModal() {
+        this.closeModals(); 
+        this.initUserId();
+        let modal = document.getElementById('modal-favorites-edit');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-favorites-edit" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
+                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-star mr-2"></i> ${this.getTrans('favorites_title')}</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        </div>
+                        <div id="favorites-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
+                        <div class="mt-4 pt-4 border-t border-[#00f3ff]/30 flex justify-between gap-2 shrink-0">
+                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-favorites-edit');
+        }
+        modal.classList.remove('hidden');
+        const container = document.getElementById('favorites-slots-form');
+        let favs = JSON.parse(localStorage.getItem('alpha_user_favorites') || '[]');
+        let htmlContent = '';
+        for (let i = 1; i <= 10; i++) {
+            htmlContent += `<div class="bg-black border border-[#00f3ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative shadow-md"><div class="absolute -top-2.5 left-3 bg-[#00f3ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Fav #${i}</div><div class="flex items-center gap-2 mt-1"><span class="text-[#00f3ff] font-bold">@</span><input type="text" id="fav-username-${i}" value="${this.escapeHtml(favs[i-1] || '')}" placeholder="username" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white outline-none" /></div></div>`;
+        }
+        container.innerHTML = htmlContent;
+    },
+
+    saveAllFavorites() {
+        this.haptic('heavy');
+        let favs = [];
+        for (let i = 1; i <= 10; i++) {
+            const input = document.getElementById(`fav-username-${i}`);
+            if (input && input.value.trim() !== '') favs.push(input.value.trim().replace('@', ''));
+        }
+        localStorage.setItem('alpha_user_favorites', JSON.stringify(favs));
+        this.showToast(this.getTrans('toast_favs_saved'));
+        this.closeModals();
+    },
+
+    async loadTipMenu(creatorId) {
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/creators/${creatorId || this.userId}/tip-menu`);
+            if (res.ok) { const data = await res.json(); return data.slots || []; }
+        } catch (err) {}
+        return [];
+    },
+
+    async openTipMenuManagementModal() {
+        this.closeModals(); 
+        this.initUserId();
+        let modal = document.getElementById('modal-tip-menu-edit');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-tip-menu-edit" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#ff00ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_20px_rgba(255,0,255,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ff00ff]/30">
+                            <h3 class="text-xl font-black text-[#ff00ff] uppercase tracking-wider"><i class="fa-solid fa-list-ul mr-2"></i> ${this.getTrans('b2b_edit_tips')}</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        </div>
+                        <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
+                        <div class="mt-4 pt-4 border-t border-[#ff00ff]/30 flex justify-between gap-2 shrink-0">
+                            <button onclick="app.closeModals()" class="bg-neutral-800 text-white px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2">${this.getTrans('btn_back')}</button>
+                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-tip-menu-edit');
+        }
+        modal.classList.remove('hidden');
+        const container = document.getElementById('tip-menu-slots-form');
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('msg_loading')}</div>`;
+        const slots = await this.loadTipMenu(this.userId);
+        let htmlContent = '';
+        for (let i = 1; i <= 10; i++) {
+            const existing = slots.find(s => s.slot_number === i) || { title: '', price_alpha: 10 };
+            htmlContent += `<div class="bg-black border border-[#ff00ff]/50 p-3.5 rounded-2xl flex flex-col gap-2 relative shadow-md"><div class="absolute -top-2.5 left-3 bg-[#ff00ff] text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">Slot #${i}</div><div class="flex items-center gap-2 mt-1"><input type="text" id="tip-title-${i}" value="${this.escapeHtml(existing.title)}" placeholder="Ej: Video exclusivo 3min" class="bg-neutral-900 border border-neutral-700 rounded-xl px-3 py-2.5 text-xs flex-1 text-white outline-none" /><div class="relative w-24 shrink-0"><i class="fa-solid fa-coins absolute left-2.5 top-1/2 transform -translate-y-1/2 text-[#ffb703] text-xs"></i><input type="number" id="tip-price-${i}" value="${existing.price_alpha}" placeholder="Precio" class="bg-neutral-900 border border-neutral-700 rounded-xl pl-7 pr-2 py-2.5 text-xs w-full text-white text-center font-black" /></div></div></div>`;
+        }
+        container.innerHTML = htmlContent;
+    },
+
+    async saveAllTipSlots() {
+        this.haptic('heavy'); 
+        this.initUserId(); 
+        this.showToast(this.getTrans('toast_tip_saving'));
+        let successCount = 0;
+        for (let i = 1; i <= 10; i++) {
+            const title = document.getElementById(`tip-title-${i}`)?.value.trim() || '';
+            const priceAlpha = parseInt(document.getElementById(`tip-price-${i}`)?.value || '0');
+            if (title && !isNaN(priceAlpha) && priceAlpha > 0) {
+                try {
+                    await fetch(`${this.backendUrl}/creators/tip-menu/update`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, slot_number: i, title: title, price_alpha: priceAlpha }) });
+                    successCount++;
+                } catch (err) {}
+            }
+        }
+        this.showToast(this.getTrans('toast_tip_saved').replace('{count}', successCount));
+        if(successCount > 0) this.closeModals();
+    },
+
+    async openFanTipMenu(creatorId, postId, creatorName) {
+        this.closeModals(); 
+        this.initUserId();
+        
+        const targetCreatorId = (creatorId && creatorId !== 'null' && creatorId !== 'undefined') ? creatorId : this.userId;
+        const safeCreatorName = creatorName || 'VIP Creator';
+
+        let modal = document.getElementById('modal-fan-tip-menu');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-fan-tip-menu" class="fixed inset-0 z-[96] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#ffb703] rounded-3xl p-6 w-11/12 max-w-lg max-h-[85vh] flex flex-col shadow-[0_0_20px_rgba(255,183,3,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ffb703]/30">
+                            <h3 class="text-xl font-black text-[#ffb703] uppercase tracking-wider"><i class="fa-solid fa-coins mr-2"></i> TIP MENU</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        </div>
+                        <p class="text-center font-bold text-white mb-4 uppercase tracking-widest text-sm"><span id="fan-tip-support-label">Apoya a</span> <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
+                        
+                        <div id="fan-tip-slots-container" class="overflow-y-auto space-y-3 mb-4 max-h-40"></div>
+                        
+                        <div class="bg-black/50 border border-[#ffb703]/40 rounded-2xl p-4 mb-2 shadow-inner">
+                            <h4 class="text-[10px] text-[#ffb703] font-black uppercase mb-2" id="fan-tip-custom-title">PROPINA Y COMENTARIO</h4>
+                            <textarea id="fan-tip-message" rows="2" class="w-full bg-black border border-neutral-700 rounded-xl px-3 py-2 text-xs text-white focus:border-[#ffb703] outline-none mb-3 resize-none" placeholder="Escribe un mensaje al creador..."></textarea>
+                            <div class="flex gap-2">
+                                <div class="relative flex-1">
+                                    <i class="fa-solid fa-coins absolute left-3 top-1/2 transform -translate-y-1/2 text-[#ffb703]"></i>
+                                    <input type="number" id="fan-tip-amount" placeholder="Cantidad $ALPHA" class="w-full bg-black border border-neutral-700 rounded-xl pl-9 pr-3 py-2.5 text-sm font-black text-white focus:border-[#ffb703] outline-none" min="1">
+                                </div>
+                                <button onclick="app.sendCustomTip(${targetCreatorId}, ${postId || null})" class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-black px-4 py-2.5 rounded-xl uppercase text-xs shadow-md active:scale-95 transition" id="btn-fan-tip-send">ENVIAR</button>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-[#ffb703]/30 flex justify-between gap-2 shrink-0">
+                            <button onclick="app.closeModals()" class="w-full bg-neutral-800 border border-neutral-600 text-white hover:bg-neutral-700 py-3 rounded-xl text-sm font-black transition uppercase" id="btn-fan-tip-back">VOLVER</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-fan-tip-menu');
+        }
+
+        const supportLabelEl = document.getElementById('fan-tip-support-label');
+        if (supportLabelEl) supportLabelEl.innerText = this.getTrans('txt_support_creator') || 'Apoya a';
+        document.getElementById('fan-tip-custom-title').innerText = this.getTrans('tip_custom_title') || "PROPINA Y COMENTARIO";
+        document.getElementById('fan-tip-message').placeholder = this.getTrans('tip_msg_placeholder') || "Escribe un mensaje...";
+        document.getElementById('fan-tip-amount').placeholder = this.getTrans('tip_amount_placeholder') || "Cantidad $ALPHA";
+        document.getElementById('btn-fan-tip-send').innerText = this.getTrans('btn_send_tip') || "ENVIAR";
+        document.getElementById('btn-fan-tip-back').innerText = this.getTrans('btn_back') || "VOLVER";
+
+        document.getElementById('fan-tip-creator-name').innerText = `@${safeCreatorName}`;
+        
+        modal.classList.remove('hidden');
+
+        const container = document.getElementById('fan-tip-slots-container');
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold text-xs">${this.getTrans('msg_loading')}</div>`;
+        
+        const slots = await this.loadTipMenu(targetCreatorId);
+        
+        if (slots.length === 0) {
+            container.innerHTML = ``; 
+        } else {
+            container.innerHTML = slots.map(s => `
+                <button onclick="app.sendTipFromPost(${targetCreatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-3 flex justify-between items-center text-white transition active:scale-95 shadow-md">
+                    <span class="font-bold text-xs text-left truncate pr-2">${this.escapeHtml(s.title)}</span>
+                    <span class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-xs font-black px-2 py-1 rounded-lg shadow-md whitespace-nowrap">${s.price_alpha} $ALPHA</span>
+                </button>
+            `).join('');
+        }
+    },
+
+    async sendCustomTip(creatorId, postId) {
+        this.haptic('heavy');
+        const amountInput = document.getElementById('fan-tip-amount');
+        const messageInput = document.getElementById('fan-tip-message');
+        const amount = parseInt(amountInput.value || '0');
+        const message = messageInput.value.trim();
+
+        if (isNaN(amount) || amount <= 0) {
+            this.showToast('⚠️ Ingresa una cantidad válida de $ALPHA.');
+            return;
+        }
+
+        this.showToast('Enviando propina... ⏳');
+        try {
+            const res = await fetch(`${this.backendUrl}/wallet/transfer`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sender_id: this.userId, receiver_id: creatorId, amount_alpha: amount, post_id: postId, message: message })
+            });
+            if (res.ok) {
+                this.showToast(this.getTrans('toast_tip_sent') || '¡Propina enviada con éxito!');
+                amountInput.value = '';
+                messageInput.value = '';
+                this.closeModals();
+                this.refreshUserData();
+            } else {
+                const data = await res.json();
+                this.showToast(`⚠️ Error: ${data.detail || 'Saldo insuficiente'}`);
+            }
+        } catch(e) {
+            this.showToast('⚠️ Error de red al enviar la propina.');
+        }
+    },
+
+    async sendTipFromPost(creatorId, amount, postId) {
+        this.haptic('heavy');
+        this.showToast('Enviando propina... ⏳');
+        try {
+            const res = await fetch(`${this.backendUrl}/wallet/transfer`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sender_id: this.userId, receiver_id: creatorId, amount_alpha: amount, post_id: postId, message: "Propina de slot" })
+            });
+            if (res.ok) {
+                this.showToast(this.getTrans('toast_tip_sent') || '¡Propina enviada con éxito!');
+                this.closeModals();
+                this.refreshUserData();
+            } else {
+                const data = await res.json();
+                this.showToast(`⚠️ Error: ${data.detail || 'Saldo insuficiente'}`);
+            }
+        } catch(e) {
+            this.showToast('⚠️ Error de red al enviar la propina.');
+        }
+    },
+
+    async buyPackageStars(packageSlug, targetLevel = null) {
+        this.haptic('medium'); 
+        this.initUserId();
+        this.showToast(this.getTrans('toast_invoice_gen'));
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/create-invoice`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug }) });
+            const data = await res.json();
+            if (res.ok && data.status === 'success' && data.invoice_link) {
+                if (window.Telegram?.WebApp?.openInvoice) {
+                    window.Telegram.WebApp.openInvoice(data.invoice_link, async (status) => {
+                        if (status === 'paid') { 
+                            this.haptic('heavy'); 
+                            this.showToast(this.getTrans('toast_stars_paid')); 
+                            try {
+                                await fetch(`${this.backendUrl}/payments/verify-stars`, {
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ user_id: this.userId, package_slug: packageSlug })
+                                });
+                            } catch(e) {}
+                            setTimeout(async () => {
+                                await this.syncKYCStatus(); await this.refreshUserData();
+                                let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
+                                this.showLevelUpAnimation(finalLevel);
+                            }, 1500);
+                        }
+                    });
+                } else { window.open(data.invoice_link, '_blank'); }
+            } else { throw new Error(data.detail || 'Error al generar la factura'); }
+        } catch (err) {}
+    },
+
+    async rechargeAlphaCoins(priceTon, alphaTotal, targetLevel = null) {
+        this.haptic('medium'); 
+        this.initUserId();
+        if (!this.tonConnectUI || !this.tonConnectUI.connected) { this.showToast(this.getTrans('toast_connect_ton_req') || '⚠️ Conecta tu billetera TON primero.'); this.openPaymentMethods(); return; }
+        const MASTER_TON_WALLET = "UQAAnX4bGBzI0ujk35-XChap_wZ7x67NeJ85C_M1YIvLbYUF"; 
+        const nanoTonAmount = Math.round(priceTon * 1e9).toString();
+        const transaction = { validUntil: Math.floor(Date.now() / 1000) + 360, messages: [{ address: MASTER_TON_WALLET, amount: nanoTonAmount }] };
+        try {
+            this.showToast('Abriendo pasarela TON... 💎');
+            const result = await this.tonConnectUI.sendTransaction(transaction);
+            if (result && result.boc) {
+                this.showToast('Procesando recarga en el servidor... ⏳');
+                const res = await fetch(`${this.backendUrl}/wallet/recharge`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: this.userId, amount_ton: priceTon, alpha_added: alphaTotal, boc: result.boc })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    this.haptic('heavy'); 
+                    this.showToast(`¡Recarga exitosa! +${alphaTotal} $ALPHA 💎`);
+                    setTimeout(async () => {
+                        await this.syncKYCStatus(); 
+                        await this.refreshUserData();
+                        let finalLevel = targetLevel !== null ? targetLevel : this.userData.access_tier;
+                        if (finalLevel > this.userData.access_tier) this.showLevelUpAnimation(finalLevel);
+                    }, 1500);
+                    this.closeModals();
+                } else { throw new Error(data.detail || 'Error validando la recarga en el servidor'); }
+            }
+        } catch (error) { this.showToast('⚠️ Transacción cancelada o fallida.'); }
+    },
+
+    openPaymentMethods() {
+        this.closeModals();
+        let modal = document.getElementById('modal-payment-methods');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-payment-methods" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+                        <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">${this.getTrans('pay_methods_title')}</h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6">${this.getTrans('pay_methods_desc')}</p>
+                        <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> ${this.getTrans('btn_connect_ton')}</button>
+                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">${this.getTrans('btn_cancel')}</button>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-payment-methods');
+        }
+        modal.classList.remove('hidden');
     },
     openCommunitiesModal() {
         this.closeModals();
@@ -1180,7 +1501,8 @@ const app = {
                 } 
             } 
         } catch (e) {} 
-    }
+    },
+
     async sendWebRTCOffer(targetId) {
         try {
             const pc = this.createPeerConnection(targetId);
@@ -1188,7 +1510,7 @@ const app = {
             await pc.setLocalDescription(offer);
             BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_offer', target_id: targetId, sdp: offer.sdp }));
         } catch(e) {}
-    }, // <-- Aquí estaba el error de sintaxis en el código roto. ¡Ya está corregido!
+    },
 
     async handleWebRTCMessage(data) {
         const { type, caller_id, sdp, candidate } = data;
@@ -1714,20 +2036,28 @@ const app = {
         const file = event.target.files[0]; 
         if (!file) return; 
         
-        // 🛡️ SOPORTE PARA VIDEO Y AUDIO EN POSTS
         if (file.type.startsWith('video/')) {
-            if (file.size > 15 * 1024 * 1024) { this.showToast('El video excede 15MB'); return; }
+            if (file.size > 20 * 1024 * 1024) { this.showToast('El video supera los 20MB'); return; }
             const reader = new FileReader();
-            reader.onload = (e) => { this.tempPostMedia = e.target.result; document.getElementById('txt-upload').innerText = `Video cargado: ${file.name}`; };
+            reader.onload = (e) => { 
+                this.tempPostMedia = e.target.result; 
+                const txt = document.getElementById('txt-upload');
+                if (txt) txt.innerText = `Video cargado: ${file.name}`; 
+            };
             reader.readAsDataURL(file);
         } else if (file.type.startsWith('audio/')) {
-            if (file.size > 5 * 1024 * 1024) { this.showToast('El audio excede 5MB'); return; }
+            if (file.size > 5 * 1024 * 1024) { this.showToast('El audio supera los 5MB'); return; }
             const reader = new FileReader();
-            reader.onload = (e) => { this.tempPostMedia = e.target.result; document.getElementById('txt-upload').innerText = `Audio cargado: ${file.name}`; };
+            reader.onload = (e) => { 
+                this.tempPostMedia = e.target.result; 
+                const txt = document.getElementById('txt-upload');
+                if (txt) txt.innerText = `Audio cargado: ${file.name}`; 
+            };
             reader.readAsDataURL(file);
         } else {
             this.tempPostMedia = await this.compressImage(file, 1200, 0.75); 
-            document.getElementById('txt-upload').innerText = `Imagen cargada: ${file.name}`;
+            const txt = document.getElementById('txt-upload');
+            if (txt) txt.innerText = `Imagen cargada: ${file.name}`;
         }
     },
 
@@ -1842,7 +2172,7 @@ const app = {
                         `;
                     } else {
                         if (isVid) {
-                            mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center" onclick="app.openLightbox('${cleanUrl}', 'video')"><video src="${cleanUrl}" class="rounded-xl max-h-80 object-cover mx-auto block" autoplay loop muted playsinline></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
+                            mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center w-full"><video src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover mx-auto block" controls playsinline></video></div>`;
                         } else if (isAud) {
                             mediaContent = `<div class="relative mb-3 flex justify-center w-full"><audio src="${cleanUrl}" controls class="w-full h-12 rounded-full border border-neutral-700 bg-neutral-900"></audio></div>`;
                         } else {
@@ -1883,7 +2213,7 @@ const app = {
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
-                                <span class="text-[10px] text-neutral-400 uppercase font-black">${rankInfo.name}</span>
+                                <span class="text-[10px] font-black uppercase text-neutral-400">${rankInfo.name}</span>
                                 ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
                             </div>
                         </div>
@@ -1910,7 +2240,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
     
-    // 🛡️ Forzar expansión nativa de la app en móviles para evitar recortes
     if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.expand();
         window.Telegram.WebApp.ready();
