@@ -88,6 +88,56 @@ const app = {
         if(themeSwitch) themeSwitch.checked = isLight;
     },
 
+    // 🛡️ INICIALIZADOR DE ANIMACIÓN 3D EN EL SPLASH SCREEN (THREE.JS)
+    initSplash3D() {
+        const canvas = document.getElementById('splash-3d-canvas');
+        if (!canvas || typeof THREE === 'undefined') return;
+        
+        try {
+            const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+            renderer.setSize(canvas.clientWidth || 180, canvas.clientHeight || 180);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+            camera.position.z = 4.5;
+
+            // Geometría 3D: Anillo cibernético y núcleo de partículas
+            const geometry = new THREE.IcosahedronGeometry(1.4, 1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0.35 });
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+
+            const particlesGeo = new THREE.BufferGeometry();
+            const count = 70;
+            const positions = new Float32Array(count * 3);
+            for(let i = 0; i < count * 3; i++) {
+                positions[i] = (Math.random() - 0.5) * 5;
+            }
+            particlesGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const particlesMat = new THREE.PointsMaterial({ color: 0xff00ff, size: 0.06 });
+            const particleSystem = new THREE.Points(particlesGeo, particlesMat);
+            scene.add(particleSystem);
+
+            let animationId;
+            const animate = () => {
+                animationId = requestAnimationFrame(animate);
+                sphere.rotation.x += 0.008;
+                sphere.rotation.y += 0.012;
+                particleSystem.rotation.y -= 0.005;
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            // Limpiar animación al cerrar splash
+            setTimeout(() => {
+                cancelAnimationFrame(animationId);
+            }, 3000);
+        } catch(e) {
+            console.warn("[3D Splash] No se pudo inicializar WebGL:", e);
+        }
+    },
+
     toggleOnlineStatus() {
         this.haptic('medium');
         if (this.userData.access_tier === 0 && !this.isAdminUser()) {
@@ -214,6 +264,7 @@ const app = {
             this.initUserId(); 
             this.initTonConnect().catch(e => console.warn('[TON] Esperando interacción de wallet:', e));
             this.initTheme();
+            this.initSplash3D(); // 🛡️ Lanzar animación 3D del logo
             
             const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
             this.currentLang = savedLang;
@@ -1059,7 +1110,6 @@ const app = {
         }
     },
 
-    // 🛡️ ACCESO RÁPIDO A CHAT DIRECTO DESDE PERFIL Y ACTUALIZACIÓN DE TÍTULO CRM
     openDirectChat(targetId, targetName) {
         this.closeModals();
         if (typeof BunkerChat !== 'undefined' && typeof BunkerChat.setTargetUser === 'function') {
@@ -1072,7 +1122,6 @@ const app = {
         this.openSupport();
     },
 
-    // 🛡️ GESTIÓN DE SEGUIR / MUTUAL FOLLOW (CONECTADO AL BACKEND)
     async toggleFollow(targetId, targetName) {
         this.haptic('medium');
         this.initUserId();
@@ -1086,7 +1135,6 @@ const app = {
                 const data = await res.json();
                 this.showToast(data.message);
                 
-                // Actualizar estado local en cache
                 let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
                 if (data.following) {
                     if (!following.includes(targetId)) following.push(targetId);
@@ -1540,15 +1588,35 @@ const app = {
         BunkerChat.initCRM(this.userId, this.backendUrl); 
     },
 
+    // 🛡️ CARGAR HISTORIAL DE CHAT CON FILTRO LOCAL DE 24 HORAS (OFFLINE-FIRST)
     async loadChatHistory() { 
         const container = document.getElementById('chat-messages'); 
         if (container) container.innerHTML = ''; 
+
+        // 1. Carga instantánea desde caché local si existe
+        const cachedChats = localStorage.getItem('alpha_cached_chats');
+        if (cachedChats) {
+            try {
+                const messages = JSON.parse(cachedChats);
+                const now = Date.now();
+                const validMessages = messages.filter(msg => (now - new Date(msg.created_at).getTime()) < 24 * 60 * 60 * 1000);
+                validMessages.forEach(msg => this.appendChatMessage(msg, 'chat-messages'));
+                this.scrollToBottom('chat-messages');
+            } catch(e) {}
+        }
+
+        // 2. Sincronización en segundo plano con el servidor
         try { 
             const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); 
             if (res.ok) { 
                 const data = await res.json(); 
-                if (data.messages && data.messages.length > 0) { 
-                    data.messages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); 
+                if (data.messages) { 
+                    const now = Date.now();
+                    const freshMessages = data.messages.filter(msg => (now - new Date(msg.created_at).getTime()) < 24 * 60 * 60 * 1000);
+                    localStorage.setItem('alpha_cached_chats', JSON.stringify(freshMessages));
+                    
+                    if (container) container.innerHTML = '';
+                    freshMessages.forEach(msg => this.appendChatMessage(msg, 'chat-messages')); 
                     this.scrollToBottom('chat-messages'); 
                 } 
             } 
@@ -1611,7 +1679,9 @@ const app = {
             if (res.ok) { 
                 const data = await res.json(); 
                 if (data.messages && data.messages.length > 0) { 
-                    data.messages.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); 
+                    const now = Date.now();
+                    const freshGlobal = data.messages.filter(msg => (now - new Date(msg.created_at).getTime()) < 24 * 60 * 60 * 1000);
+                    freshGlobal.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); 
                     this.scrollToBottom('global-chat-messages'); 
                 } 
             } 
@@ -1713,7 +1783,6 @@ const app = {
         const file = event.target.files[0]; 
         if (!file) return;
         this.initUserId();
-        const isAdminUser = this.isAdminUser(), isCreator = this.userData?.role === 'creator', userTier = this.userData?.access_tier || 0;
         const isVideo = file.type.startsWith('video/');
         const isAudio = file.type.startsWith('audio/');
         
@@ -1898,7 +1967,6 @@ const app = {
     sendGlobalChatMessage() {
         this.haptic('light'); 
         this.initUserId();
-        const userRole = this.userData?.role || 'fan', kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified', isAdminUser = this.isAdminUser();
         const input = document.getElementById('global-chat-input'); 
         const text = input ? input.value.trim() : '';
         if (!text && !this.tempChatMediaData) return;
@@ -2282,111 +2350,130 @@ const app = {
         } catch(e) {}
     },
 
+    // 🛡️ RENDERIZAR FEED CON CACHÉ LOCAL INSTANTÁNEA (OFFLINE-FIRST)
     async renderFeed() {
         const feedContainer = document.getElementById('feed-container'); 
         if (!feedContainer) return;
         this.initUserId();
+
+        // 1. Carga inmediata desde almacenamiento local si existe
+        const cachedFeed = localStorage.getItem('alpha_cached_feed');
+        if (cachedFeed) {
+            try {
+                const posts = JSON.parse(cachedFeed);
+                this.buildFeedHTML(posts, feedContainer);
+            } catch(e) {}
+        }
+
+        // 2. Sincronización silenciosa en segundo plano
         try {
             const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
-            const data = res.ok ? await res.json() : {}; 
-            const posts = data.posts || [];
-            const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
-            const blockedUsers = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
-
-            const visiblePosts = posts.filter(p => !blockedUsers.includes(String(p.creator_id)));
-
-            if (visiblePosts.length === 0) { 
-                feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">No hay publicaciones disponibles</div>`; 
-                return; 
+            if (res.ok) {
+                const data = await res.json();
+                const posts = data.posts || [];
+                localStorage.setItem('alpha_cached_feed', JSON.stringify(posts));
+                this.buildFeedHTML(posts, feedContainer);
             }
+        } catch (e) {}
+    },
+
+    buildFeedHTML(posts, feedContainer) {
+        const likedPosts = JSON.parse(localStorage.getItem('alpha_user_liked_posts') || '[]');
+        const blockedUsers = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
+
+        const visiblePosts = posts.filter(p => !blockedUsers.includes(String(p.creator_id)));
+
+        if (visiblePosts.length === 0) { 
+            feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">No hay publicaciones disponibles</div>`; 
+            return; 
+        }
+        
+        let html = '';
+        for (let i = 0; i < visiblePosts.length; i++) {
+            const post = visiblePosts[i];
+            const isLiked = likedPosts.includes(post.id);
+            const isAdminUser = this.isAdminUser();
+            const isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
+            const safeAuthor = this.escapeHtml(post.author || 'mastertom');
+            const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
+            const rankInfo = this.getRankBadge(post.levelRequired);
             
-            let html = '';
-            for (let i = 0; i < visiblePosts.length; i++) {
-                const post = visiblePosts[i];
-                const isLiked = likedPosts.includes(post.id);
-                const isAdminUser = this.isAdminUser();
-                const isOwnerOrAdmin = (this.userId == post.creator_id || isAdminUser);
-                const safeAuthor = this.escapeHtml(post.author || 'mastertom');
-                const safeAuthorAttr = this.escapeHtml(post.author || 'Creador').replace(/"/g, '&quot;');
-                const rankInfo = this.getRankBadge(post.levelRequired);
+            let avatarHtml = post.author_avatar ? `<img src="${this.sanitizeUrl(post.author_avatar)}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-user text-xs text-[#00f3ff]"></i>`;
+            let onlineDotHtml = post.is_online ? `<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black animate-pulse" title="Online"></div>` : '';
+
+            let mediaContent = '';
+            if (post.media_url) {
+                const cleanUrl = this.sanitizeUrl(post.media_url);
+                const isVid = cleanUrl && (cleanUrl.match(/\.(mp4|webm)/i) || cleanUrl.startsWith('data:video'));
+                const isAud = cleanUrl && (cleanUrl.match(/\.(mp3|wav|ogg)/i) || cleanUrl.startsWith('data:audio'));
                 
-                let avatarHtml = post.author_avatar ? `<img src="${this.sanitizeUrl(post.author_avatar)}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-user text-xs text-[#00f3ff]"></i>`;
-                let onlineDotHtml = post.is_online ? `<div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-black animate-pulse" title="Online"></div>` : '';
-
-                let mediaContent = '';
-                if (post.media_url) {
-                    const cleanUrl = this.sanitizeUrl(post.media_url);
-                    const isVid = cleanUrl && (cleanUrl.match(/\.(mp4|webm)/i) || cleanUrl.startsWith('data:video'));
-                    const isAud = cleanUrl && (cleanUrl.match(/\.(mp3|wav|ogg)/i) || cleanUrl.startsWith('data:audio'));
-                    
-                    if (post.is_locked) {
-                        mediaContent = `
-                            <div class="relative w-full flex justify-center">
-                                <img src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover blur-xl grayscale opacity-50 pointer-events-none select-none mx-auto block" />
-                                <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/30 rounded-xl z-10 p-4 text-center pointer-events-none">
-                                    <i class="fa-solid fa-lock text-5xl text-amber-400 mb-3 drop-shadow-md"></i>
-                                    <span class="text-[10px] font-black text-white bg-black/80 px-3 py-1.5 rounded-full mb-3 border border-amber-500/50 uppercase tracking-widest">Nivel Requerido: ${rankInfo.name}</span>
-                                    <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2.5 px-5 rounded-xl text-xs shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95 transition uppercase tracking-wider pointer-events-auto"><i class="fa-solid fa-key mr-1"></i> Desbloquear (${post.price_alpha || 20} $ALPHA)</button>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        if (isVid) {
-                            mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center w-full"><video src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover mx-auto block" controls playsinline></video></div>`;
-                        } else if (isAud) {
-                            mediaContent = `<div class="relative mb-3 flex justify-center w-full"><audio src="${cleanUrl}" controls class="w-full h-12 rounded-full border border-neutral-700 bg-neutral-900"></audio></div>`;
-                        } else {
-                            mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center" onclick="app.openLightbox('${cleanUrl}', 'image')"><img src="${cleanUrl}" class="rounded-xl max-h-80 object-cover mx-auto block" alt="Media"/><div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
-                        }
-                    }
-                } else if (post.is_locked) {
-                    mediaContent = `<div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3 relative"><i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i><span class="block text-xs font-bold text-neutral-400 mb-3 uppercase">Contenido protegido</span><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2 px-4 rounded-xl text-xs uppercase shadow-md transition active:scale-95"><i class="fa-solid fa-key mr-1"></i> Desbloquear (${post.price_alpha || 20} $ALPHA)</button></div>`;
-                }
-
-                let textContent = post.content ? `<p class="text-sm ${post.is_locked && !post.media_url ? 'blur-md select-none opacity-50' : 'text-neutral-200'} mb-3">${this.escapeHtml(post.content)}</p>` : '';
-
-                let footerHtml = post.is_locked ? `
-                    <div class="flex items-center justify-between pt-2 border-t border-neutral-800 opacity-40 pointer-events-none select-none">
-                        <button class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border border-neutral-700 text-neutral-400"><i class="fa-solid fa-heart"></i> <span>${post.likes_count || 0}</span></button>
-                        <button class="bg-neutral-800 border border-neutral-700 text-neutral-500 font-bold py-1.5 px-3 rounded-lg text-xs"><i class="fa-solid fa-lock"></i> Tip</button>
-                    </div>
-                ` : `
-                    <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
-                        <button onclick="app.toggleLike(${post.id})" id="btn-like-main-${post.id}" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border transition-all ${isLiked ? 'bg-[#ff00ff]/20 border-[#ff00ff] text-[#ff00ff] shadow-[0_0_10px_#ff00ff]' : 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}">
-                            <i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
-                        </button>
-                        <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold py-1.5 px-3 rounded-lg text-xs shadow-[0_0_10px_rgba(245,158,11,0.3)] transition active:scale-95">🪙 Tip</button>
-                    </div>
-                `;
-
-                html += `
-                    <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.viewCreatorProfile(${post.creator_id || 99999}, '${safeAuthorAttr}')">
-                                <div class="relative w-10 h-10 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center shadow-md">
-                                    ${avatarHtml}
-                                    ${onlineDotHtml}
-                                </div>
-                                <div class="flex flex-col">
-                                    <span class="font-bold text-amber-400 text-sm hover:underline">@${safeAuthor}</span>
-                                    <span class="text-[9px] ${post.is_online ? 'text-emerald-400 font-bold' : 'text-neutral-500'}">${post.is_online ? '● ONLINE' : '○ OFFLINE'}</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
-                                <span class="text-[10px] font-black uppercase text-neutral-400">${rankInfo.name}</span>
-                                ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
+                if (post.is_locked) {
+                    mediaContent = `
+                        <div class="relative w-full flex justify-center">
+                            <img src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover blur-xl grayscale opacity-50 pointer-events-none select-none mx-auto block" />
+                            <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/30 rounded-xl z-10 p-4 text-center pointer-events-none">
+                                <i class="fa-solid fa-lock text-5xl text-amber-400 mb-3 drop-shadow-md"></i>
+                                <span class="text-[10px] font-black text-white bg-black/80 px-3 py-1.5 rounded-full mb-3 border border-amber-500/50 uppercase tracking-widest">Nivel Requerido: ${rankInfo.name}</span>
+                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2.5 px-5 rounded-xl text-xs shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95 transition uppercase tracking-wider pointer-events-auto"><i class="fa-solid fa-key mr-1"></i> Desbloquear (${post.price_alpha || 20} $ALPHA)</button>
                             </div>
                         </div>
-                        
-                        ${textContent}
-                        ${mediaContent}
-                        ${footerHtml}
-                        
-                    </div>
-                `;
+                    `;
+                } else {
+                    if (isVid) {
+                        mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center w-full"><video src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover mx-auto block" controls playsinline></video></div>`;
+                    } else if (isAud) {
+                        mediaContent = `<div class="relative mb-3 flex justify-center w-full"><audio src="${cleanUrl}" controls class="w-full h-12 rounded-full border border-neutral-700 bg-neutral-900"></audio></div>`;
+                    } else {
+                        mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center" onclick="app.openLightbox('${cleanUrl}', 'image')"><img src="${cleanUrl}" class="rounded-xl max-h-80 object-cover mx-auto block" alt="Media"/><div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
+                    }
+                }
+            } else if (post.is_locked) {
+                mediaContent = `<div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3 relative"><i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i><span class="block text-xs font-bold text-neutral-400 mb-3 uppercase">Contenido protegido</span><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2 px-4 rounded-xl text-xs uppercase shadow-md transition active:scale-95"><i class="fa-solid fa-key mr-1"></i> Desbloquear (${post.price_alpha || 20} $ALPHA)</button></div>`;
             }
-            feedContainer.innerHTML = html;
-        } catch (e) {}
+
+            let textContent = post.content ? `<p class="text-sm ${post.is_locked && !post.media_url ? 'blur-md select-none opacity-50' : 'text-neutral-200'} mb-3">${this.escapeHtml(post.content)}</p>` : '';
+
+            let footerHtml = post.is_locked ? `
+                <div class="flex items-center justify-between pt-2 border-t border-neutral-800 opacity-40 pointer-events-none select-none">
+                    <button class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border border-neutral-700 text-neutral-400"><i class="fa-solid fa-heart"></i> <span>${post.likes_count || 0}</span></button>
+                    <button class="bg-neutral-800 border border-neutral-700 text-neutral-500 font-bold py-1.5 px-3 rounded-lg text-xs"><i class="fa-solid fa-lock"></i> Tip</button>
+                </div>
+            ` : `
+                <div class="flex items-center justify-between pt-2 border-t border-neutral-800">
+                    <button onclick="app.toggleLike(${post.id})" id="btn-like-main-${post.id}" class="flex items-center gap-1 text-xs font-semibold py-1 px-2.5 rounded-lg border transition-all ${isLiked ? 'bg-[#ff00ff]/20 border-[#ff00ff] text-[#ff00ff] shadow-[0_0_10px_#ff00ff]' : 'border-neutral-700 text-neutral-400 hover:border-neutral-500'}">
+                        <i class="fa-solid fa-heart"></i> <span id="like-count-${post.id}">${post.likes_count || 0}</span>
+                    </button>
+                    <button onclick="app.openFanTipMenu(${post.creator_id || 99999}, ${post.id}, '${safeAuthorAttr}')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold py-1.5 px-3 rounded-lg text-xs shadow-[0_0_10px_rgba(245,158,11,0.3)] transition active:scale-95">🪙 Tip</button>
+                </div>
+            `;
+
+            html += `
+                <div class="post-card bg-neutral-900 border border-neutral-800 rounded-2xl p-4 mb-4 shadow-lg text-white" id="post-${post.id}">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.viewCreatorProfile(${post.creator_id || 99999}, '${safeAuthorAttr}')">
+                            <div class="relative w-10 h-10 rounded-full border border-[#00f3ff] overflow-hidden bg-black flex items-center justify-center shadow-md">
+                                ${avatarHtml}
+                                ${onlineDotHtml}
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="font-bold text-amber-400 text-sm hover:underline">@${safeAuthor}</span>
+                                <span class="text-[9px] ${post.is_online ? 'text-emerald-400 font-bold' : 'text-neutral-500'}">${post.is_online ? '● ONLINE' : '○ OFFLINE'}</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 bg-black/50 px-2 py-1 rounded-lg">
+                            <span class="text-[10px] font-black uppercase text-neutral-400">${rankInfo.name}</span>
+                            ${isOwnerOrAdmin ? `<button onclick="app.deletePost(${post.id})" class="text-neutral-500 hover:text-red-400 p-1 ml-2"><i class="fa-solid fa-trash-can text-sm"></i></button>` : ''}
+                        </div>
+                    </div>
+                    
+                    ${textContent}
+                    ${mediaContent}
+                    ${footerHtml}
+                    
+                </div>
+            `;
+        }
+        feedContainer.innerHTML = html;
     },
 
     selectCreatorRole() { this.closeModals(); },
