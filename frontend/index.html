@@ -242,6 +242,10 @@
                 </div>
             </div>
             <div class="flex gap-2 items-center">
+                <!-- ⚙️ BOTÓN DE AJUSTES GENERALES (TUERCA) -->
+                <button onclick="app.openSettingsModal()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full w-9 h-9 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-xs shadow-[0_0_8px_#00f3ff]" title="Ajustes Generales">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
                 <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center hover:bg-[rgba(0,243,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
                     <i class="fa-solid fa-wallet mr-1.5 text-xs"></i> <span id="btn-wallet-hdr">WALLET</span>
                 </button>
@@ -290,8 +294,9 @@
             <button onclick="app.openProfile()" class="flex flex-col items-center text-[#ffb703] levitate hover:scale-110 transition w-14 pb-1">
                 <i class="fa-solid fa-user-astronaut text-2xl mb-1 drop-shadow-[0_0_5px_#ffb703]"></i><span class="text-[9px] font-black tracking-wide" id="nav-profile">MI PERFIL</span>
             </button>
+            <!-- 🛡️ DMs (MENSAJES DIRECTOS) -->
             <button onclick="app.openSupport()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
-                <i class="fa-solid fa-envelope text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-support">MENSAJES</span>
+                <i class="fa-solid fa-envelope text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-support">DMs</span>
             </button>
         </div>
     </div>
@@ -327,7 +332,7 @@
                 <textarea id="admin-text-es" rows="3" class="cyber-input border-[#ffb703] focus:border-[#ffb703] text-sm" placeholder="Escribe algo increíble..."></textarea>
             </div>
             <button onclick="app.publishPost()" class="w-full btn-neon-cyan py-3.5 rounded-xl font-black text-sm uppercase tracking-wider mt-2">
-                <i class="fa-solid fa-paper-plane mr-2"></i> <span id="btn-pub-text">PUBLICAR AL MURO</span>
+                <i class="fa-solid fa-paperplane mr-2"></i> <span id="btn-pub-text">PUBLICAR AL MURO</span>
             </button>
         </div>
     </div>
@@ -413,32 +418,45 @@
         </div>
     </div>
 
-    <!-- MODAL: MENSAJES CRM (CENTRO DE MANDO DE CHATS) -->
+    <!-- MODAL: DMs (BANDEJA DE ENTRADA Y CHATS INDIVIDUALES ESTILO TELEGRAM) -->
     <div id="modal-chat" class="hidden fixed inset-0 z-[82] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
         <div class="glass-panel w-full max-w-lg h-[88vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(0,243,255,0.2)]">
+            
+            <!-- Cabecera Dinámica de DMs -->
             <div class="bg-black bg-opacity-80 p-3.5 flex items-center justify-between border-b border-[#00f3ff]/60 shadow-[0_0_15px_rgba(0,243,255,0.1)]">
                 <div class="flex items-center gap-2">
-                    <h3 id="crm-chat-title" class="font-bold text-white text-xs uppercase tracking-wider">CENTRO DE MANDO CRM</h3>
+                    <button id="dm-back-btn" onclick="app.backToInbox()" class="hidden text-[#00f3ff] text-base px-2 py-1"><i class="fa-solid fa-arrow-left"></i></button>
+                    <h3 id="crm-chat-title" class="font-bold text-white text-xs uppercase tracking-wider">DMs (MENSAJES DIRECTOS)</h3>
                 </div>
                 <button onclick="app.closeModals()" class="bg-red-600 rounded-full inline-flex items-center justify-center px-3 py-1.5 text-white font-bold border border-white shadow-[0_0_10px_red] transition hover:scale-105 active:scale-95 text-xs">
                     <i class="fa-solid fa-arrow-left mr-1 text-xs"></i> <span class="btn-back-text">VOLVER</span>
                 </button>
             </div>
-            <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3 bg-gradient-to-b from-transparent to-black/50"></div>
-            <div id="crm-chat-preview-container" class="hidden px-3 py-2 bg-neutral-900/90 border-t border-neutral-800 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <img id="crm-chat-preview-img" class="w-10 h-10 object-cover rounded-lg hidden" alt="Preview"/>
-                    <video id="crm-chat-preview-video" class="w-10 h-10 object-cover rounded-lg hidden" muted></video>
-                    <span id="crm-chat-preview-name" class="text-[10px] text-[#00f3ff] font-bold truncate max-w-[200px]">Archivo adjunto</span>
+
+            <!-- 1. Vista de Bandeja de Entrada (Lista de Chats estilo Telegram) -->
+            <div id="dm-inbox-view" class="flex-1 overflow-y-auto p-3 space-y-2 bg-gradient-to-b from-transparent to-black/50">
+                <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando conversaciones... ⏳</div>
+            </div>
+
+            <!-- 2. Vista de Chat Personalizado con un Usuario -->
+            <div id="dm-chat-view" class="hidden flex-1 flex flex-col overflow-hidden">
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3 bg-gradient-to-b from-transparent to-black/50"></div>
+                <div id="crm-chat-preview-container" class="hidden px-3 py-2 bg-neutral-900/90 border-t border-neutral-800 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <img id="crm-chat-preview-img" class="w-10 h-10 object-cover rounded-lg hidden" alt="Preview"/>
+                        <video id="crm-chat-preview-video" class="w-10 h-10 object-cover rounded-lg hidden" muted></video>
+                        <span id="crm-chat-preview-name" class="text-[10px] text-[#00f3ff] font-bold truncate max-w-[200px]">Archivo adjunto</span>
+                    </div>
+                    <button onclick="app.clearChatMedia('crm')" class="text-red-400 hover:text-white text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
-                <button onclick="app.clearChatMedia('crm')" class="text-red-400 hover:text-white text-xs px-2 py-1"><i class="fa-solid fa-trash-can"></i></button>
+                <div class="p-2.5 bg-[#050505] border-t border-neutral-800 flex items-center gap-2 pb-4 relative">
+                    <input type="file" id="crm-media-upload" class="hidden" onchange="app.handleChatMediaPreview(event, 'crm')">
+                    <button onclick="document.getElementById('crm-media-upload').click()" class="w-10 h-10 shrink-0 rounded-full bg-neutral-900 border border-[#00f3ff]/50 text-[#00f3ff] flex items-center justify-center text-sm"><i class="fa-solid fa-paperclip"></i></button>
+                    <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-xs py-2.5 px-3 border-[#00f3ff] focus:border-[#00f3ff]" placeholder="Escribe un mensaje..." onkeypress="app.handleChatKeyPress(event)">
+                    <button onclick="app.sendChatMessage()" class="w-10 h-10 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center text-sm"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
             </div>
-            <div class="p-2.5 bg-[#050505] border-t border-neutral-800 flex items-center gap-2 pb-4 relative">
-                <input type="file" id="crm-media-upload" class="hidden" onchange="app.handleChatMediaPreview(event, 'crm')">
-                <button onclick="document.getElementById('crm-media-upload').click()" class="w-10 h-10 shrink-0 rounded-full bg-neutral-900 border border-[#00f3ff]/50 text-[#00f3ff] flex items-center justify-center text-sm"><i class="fa-solid fa-paperclip"></i></button>
-                <input type="text" id="chat-input" class="flex-1 cyber-input rounded-full text-xs py-2.5 px-3 border-[#00f3ff] focus:border-[#00f3ff]" placeholder="Escribe un mensaje..." onkeypress="app.handleChatKeyPress(event)">
-                <button onclick="app.sendChatMessage()" class="w-10 h-10 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center text-sm"><i class="fa-solid fa-paper-plane"></i></button>
-            </div>
+
         </div>
     </div>
 
@@ -662,11 +680,11 @@
     <!-- CANVAS PARA FUEGOS ARTIFICIALES -->
     <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
     
-    <script src="js/security.js?v=36"></script>
-    <script src="js/translations.js?v=36"></script>
-    <script src="js/api.js?v=36"></script>
-    <script src="js/chat.js?v=36"></script>
-    <script src="js/app.js?v=36" defer></script>
+    <script src="js/security.js?v=37"></script>
+    <script src="js/translations.js?v=37"></script>
+    <script src="js/api.js?v=37"></script>
+    <script src="js/chat.js?v=37"></script>
+    <script src="js/app.js?v=37" defer></script>
 
     <!-- 🛡️ SCRIPT NATIVO: CONTROL DE ARRASTRE PiP -->
     <script>
