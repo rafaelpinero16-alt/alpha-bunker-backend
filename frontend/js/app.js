@@ -259,6 +259,15 @@ const app = {
 
     async checkSession() {
         try {
+            // Capturar código de referido si viene en la URL o Telegram WebApp
+            const urlParams = new URLSearchParams(window.location.search);
+            const refFromUrl = urlParams.get('ref') || urlParams.get('startapp');
+            const refFromTg = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+            const refCode = refFromUrl || refFromTg;
+            if (refCode && !localStorage.getItem('alpha_referred_by')) {
+                localStorage.setItem('alpha_referred_by', refCode.replace('ref_', ''));
+            }
+
             this.initUserId(); 
             this.initTonConnect().catch(e => console.warn('[TON] Esperando interacción de wallet:', e));
             this.initTheme();
@@ -314,11 +323,20 @@ const app = {
 
     async executeAutoLogin() {
         const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        const referredBy = localStorage.getItem('alpha_referred_by');
         try { 
             const initData = window.Telegram?.WebApp?.initData || "";
             const res = await fetch(`${this.backendUrl}/users/sync`, { 
                 method: "POST", headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), bio: localStorage.getItem('alpha_user_bio') || this.getTrans('default_bio_sync'), avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
+                body: JSON.stringify({ 
+                    user_id: this.userId, 
+                    name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), 
+                    bio: localStorage.getItem('alpha_user_bio') || this.getTrans('default_bio_sync'), 
+                    avatar: localStorage.getItem('alpha_user_avatar'), 
+                    init_data: initData, 
+                    is_telegram: !!initData,
+                    referred_by: referredBy ? parseInt(referredBy) : null
+                }) 
             }); 
             const data = await res.json();
             if(res.ok && data.user) {
@@ -534,6 +552,37 @@ const app = {
         if (rankDisplay) rankDisplay.innerHTML = rankHTML;
         if (rankFeed) rankFeed.innerHTML = `<div class="relative inline-block w-4 h-4 align-middle mr-1"><div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[6px] opacity-80"></div><img src="${rankInfo.img}" class="relative w-full h-full object-contain rank-badge" onerror="this.src='./assets/badge_0.png'"></div> <span class="align-middle text-xs font-black">${rankInfo.name}</span>`;
 
+        // 🛡️ INYECCIÓN DINÁMICA DE LA SECCIÓN DE REFERIDOS EN EL PERFIL
+        let refSection = document.getElementById('profile-referral-section');
+        if (!refSection) {
+            const profileModalContent = document.querySelector('#modal-profile .glass-panel');
+            if (profileModalContent) {
+                const refHTML = `
+                    <div class="w-full bg-neutral-900 border border-[#ff00ff]/30 rounded-2xl p-4 mb-5 shadow-inner mt-3" id="profile-referral-section">
+                        <h4 class="text-[10px] text-[#ff00ff] font-black uppercase tracking-widest mb-1"><i class="fa-solid fa-users-rectangle mr-1"></i> SISTEMA DE REFERIDOS</h4>
+                        <p class="text-[9px] text-neutral-300 mb-2">Invita amigos: Obtienen un <strong>10% de descuento</strong> en su primera compra y tú ganas <strong>100 $ALPHA</strong>.</p>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="referral-link-input" readonly class="cyber-input text-xs bg-black py-2 px-3 text-cyan-400" value="">
+                            <button onclick="app.copyReferralLink()" class="bg-[#ff00ff] text-black font-black px-3 py-2 rounded-xl text-xs uppercase shrink-0 shadow-[0_0_10px_rgba(255,0,255,0.4)]">Copiar</button>
+                        </div>
+                    </div>
+                `;
+                const creatorTools = document.getElementById('prof-creator-tools');
+                if (creatorTools) {
+                    creatorTools.insertAdjacentHTML('beforebegin', refHTML);
+                } else {
+                    profileModalContent.insertAdjacentHTML('beforeend', refHTML);
+                }
+            }
+        }
+
+        const refInput = document.getElementById('referral-link-input');
+        if (refInput && this.userId) {
+            const botUsername = "AlphaBunkerBot";
+            const refLink = `https://t.me/${botUsername}?start=ref_${this.userId}`;
+            refInput.value = refLink;
+        }
+
         const kycStatus = localStorage.getItem('alpha_kyc_status') || 'unverified';
         const kycStatusEl = document.getElementById('prof-kyc-status'), kycDescEl = document.getElementById('prof-kyc-desc'), kycBtn = document.getElementById('btn-verify-kyc');
         const isAdminUser = this.isAdminUser();
@@ -607,6 +656,15 @@ const app = {
             }
         }
         this.updateOnlineStatusUI();
+    },
+
+    copyReferralLink() {
+        this.haptic('medium');
+        const refInput = document.getElementById('referral-link-input');
+        if (refInput) {
+            this.copyText(refInput.value);
+            this.showToast('¡Enlace de referido copiado al portapapeles! 🔗');
+        }
     },
 
     updateViewsCounter() {
@@ -1528,11 +1586,20 @@ const app = {
         this.haptic('medium'); 
         this.initUserId(); 
         localStorage.setItem('alpha_logged_in', 'true'); 
+        const referredBy = localStorage.getItem('alpha_referred_by');
         try { 
             const initData = window.Telegram?.WebApp?.initData || "";
             const res = await fetch(`${this.backendUrl}/users/sync`, { 
                 method: "POST", headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ user_id: this.userId, name: localStorage.getItem('alpha_user_name') || 'Agente Búnker', bio: 'Operativo', avatar: localStorage.getItem('alpha_user_avatar'), init_data: initData, is_telegram: !!initData }) 
+                body: JSON.stringify({ 
+                    user_id: this.userId, 
+                    name: localStorage.getItem('alpha_user_name') || 'Agente Búnker', 
+                    bio: 'Operativo', 
+                    avatar: localStorage.getItem('alpha_user_avatar'), 
+                    init_data: initData, 
+                    is_telegram: !!initData,
+                    referred_by: referredBy ? parseInt(referredBy) : null
+                }) 
             }); 
             const data = await res.json();
             if(res.ok && data.user) {
@@ -1895,7 +1962,7 @@ const app = {
         }
 
         const safeAuthorName = this.escapeHtml(msg.author_name);
-        let readStatusHtml = isMe ? (msg.is_read ? '<span class="text-[9px] text-cyan-400 font-bold ml-1.5" title="Leído">R</span>' : '<span class="text-[9px] text-neutral-400 ml-1.5" title="Enviado">✓</span>') : '';
+        let readStatusHtml = isMe ? (msg.is_read ? '<span class="text-[9px] text-cyan-400 font-bold ml-1.5 msg-status-indicator" title="Leído">R</span>' : '<span class="text-[9px] text-neutral-400 ml-1.5 msg-status-indicator" title="Enviado">✓</span>') : '';
         
         let html = '';
         if (msg.is_system) {
