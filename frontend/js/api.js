@@ -156,3 +156,48 @@ async function buyStarsInvoice(userId, packageSlug) {
         throw err;
     }
 }
+
+// 9. Alternar seguimiento de usuario (Follow / Unfollow)
+async function toggleUserFollow(followerId, followingId) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/users/follow`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                follower_id: parseInt(followerId),
+                following_id: parseInt(followingId)
+            })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Error al actualizar seguimiento");
+        return data;
+    } catch (err) {
+        throw err;
+    }
+}
+
+// 10. Consultar estado de seguimiento
+async function checkFollowStatus(followerId, followingId) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/users/follow/status?follower_id=${followerId}&following_id=${followingId}`);
+        if (!res.ok) return false;
+        const data = await res.json();
+        return data.following || false;
+    } catch (err) {
+        return false;
+    }
+}
+
+// 11. Incrementar contador diario de visitas del Búnker
+async function incrementDailyVisit() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/users/visit/increment`, {
+            method: "POST"
+        });
+        if (!res.ok) return { daily_visits: 0 };
+        const data = await res.json();
+        return data;
+    } catch (err) {
+        return { daily_visits: 0 };
+    }
+}
