@@ -102,7 +102,6 @@ const app = {
             const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
             camera.position.z = 4.5;
 
-            // Geometría 3D: Anillo cibernético y núcleo de partículas
             const geometry = new THREE.IcosahedronGeometry(1.4, 1);
             const material = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true, transparent: true, opacity: 0.35 });
             const sphere = new THREE.Mesh(geometry, material);
@@ -129,7 +128,6 @@ const app = {
             };
             animate();
 
-            // Limpiar animación al cerrar splash
             setTimeout(() => {
                 cancelAnimationFrame(animationId);
             }, 3000);
@@ -264,7 +262,7 @@ const app = {
             this.initUserId(); 
             this.initTonConnect().catch(e => console.warn('[TON] Esperando interacción de wallet:', e));
             this.initTheme();
-            this.initSplash3D(); // 🛡️ Lanzar animación 3D del logo
+            this.initSplash3D();
             
             const savedLang = localStorage.getItem('alpha_lang') || 'es'; 
             this.currentLang = savedLang;
@@ -272,7 +270,6 @@ const app = {
             if (langText) langText.innerText = savedLang.toUpperCase();
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
-            // Registrar y actualizar el contador de visitas diarias en el servidor
             try {
                 const visitRes = await fetch(`${this.backendUrl}/users/visit/increment`, { method: 'POST' });
                 if (visitRes.ok) {
@@ -1588,12 +1585,10 @@ const app = {
         BunkerChat.initCRM(this.userId, this.backendUrl); 
     },
 
-    // 🛡️ CARGAR HISTORIAL DE CHAT CON FILTRO LOCAL DE 24 HORAS (OFFLINE-FIRST)
     async loadChatHistory() { 
         const container = document.getElementById('chat-messages'); 
         if (container) container.innerHTML = ''; 
 
-        // 1. Carga instantánea desde caché local si existe
         const cachedChats = localStorage.getItem('alpha_cached_chats');
         if (cachedChats) {
             try {
@@ -1605,7 +1600,6 @@ const app = {
             } catch(e) {}
         }
 
-        // 2. Sincronización en segundo plano con el servidor
         try { 
             const res = await fetch(`${this.backendUrl}/chat/history?limit=50`); 
             if (res.ok) { 
@@ -2350,13 +2344,11 @@ const app = {
         } catch(e) {}
     },
 
-    // 🛡️ RENDERIZAR FEED CON CACHÉ LOCAL INSTANTÁNEA (OFFLINE-FIRST)
     async renderFeed() {
         const feedContainer = document.getElementById('feed-container'); 
         if (!feedContainer) return;
         this.initUserId();
 
-        // 1. Carga inmediata desde almacenamiento local si existe
         const cachedFeed = localStorage.getItem('alpha_cached_feed');
         if (cachedFeed) {
             try {
@@ -2365,7 +2357,6 @@ const app = {
             } catch(e) {}
         }
 
-        // 2. Sincronización silenciosa en segundo plano
         try {
             const res = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
             if (res.ok) {
