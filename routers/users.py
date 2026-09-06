@@ -6,8 +6,9 @@ from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from datetime import date
 from database.db import get_db
-from database.models import User
+from database.models import User, Follow
 from core.config import bot 
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -26,7 +27,11 @@ class ProfileUpdate(BaseModel):
     bio: Optional[str] = None
     avatar_url: Optional[str] = None
 
-# 🛡️ Función para forzar la estructura de la tabla de usuarios en la BD
+class FollowRequest(BaseModel):
+    follower_id: int
+    following_id: int
+
+# 🛡️ Función para forzar la estructura de la tabla de usuarios y tablas sociales en la BD
 def ensure_user_schema(db: Session):
     try:
         db.execute(text("SELECT avatar_url FROM users LIMIT 1"))
@@ -39,6 +44,26 @@ def ensure_user_schema(db: Session):
             db.commit()
         except Exception:
             db.rollback()
+            
+    try:
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS follows (
+                id SERIAL PRIMARY KEY,
+                follower_id BIGINT NOT NULL,
+                following_id BIGINT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS daily_visits (
+                id SERIAL PRIMARY KEY,
+                visit_date DATE UNIQUE NOT NULL,
+                visits_count INT DEFAULT 0
+            )
+        """))
+        db.commit()
+    except Exception:
+        db.rollback()
 
 def verify_telegram_auth(init_data: str) -> bool:
     try:
@@ -61,7 +86,6 @@ def verify_telegram_auth(init_data: str) -> bool:
 async def sync_user(data: UserSyncSchema, db: Session = Depends(get_db)):
     ensure_user_schema(db)
     
-    # 🔒 Seguridad inyectada: Validación HMAC de Telegram
     if data.is_telegram and data.init_data:
         if not verify_telegram_auth(data.init_data):
             raise HTTPException(status_code=403, detail="Firma de Telegram inválida o alterada.")
@@ -78,7 +102,6 @@ async def sync_user(data: UserSyncSchema, db: Session = Depends(get_db)):
         )
         db.add(user)
     else:
-        # 🛡️ Persistencia garantizada: Todo lo que se edite se guarda incondicionalmente
         if data.name and data.name not in ["USER", "Agente Búnker", "VIP Fan"]:
             user.name = data.name
         if data.bio:
@@ -94,6 +117,56 @@ async def sync_user(data: UserSyncSchema, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="Error interno al sincronizar el usuario.")
         
     return {"status": "success", "message": "Usuario sincronizado correctamente", "user": user}
+
+# 🛡️ Endpoints de Seguimiento Social (Follow / Unfollow)
+@router.post("/follow")
+async def toggle_follow(data: FollowRequest, db: Session = Depends(get_db)):
+    ensure_user_schema(db)
+    if data.follower_id == data.following_id:
+        raise HTTPException(status_code=400, detail="No puedes seguirte a ti mismo.")
+    
+    existing = db.query(Follow).filter(
+        Follow.follower_id == data.follower_id,
+        Follow.following_id == data.following_id
+    ).first()
+
+    if existing:
+        db.delete(existing)
+        db.commit()
+        return {"status": "success", "following": False, "message": "Has dejado de seguir al usuario."}
+    else:
+        new_follow = Follow(follower_id=data.follower_id, following_id=data.following_id)
+        db.add(new_follow)
+        db.commit()
+        return {"status": "success", "following": True, "message": "Ahora sigues al usuario."}
+
+@router.get("/follow/status")
+async def check_follow_status(follower_id: int, following_id: int, db: Session = Depends(get_db)):
+    ensure_user_schema(db)
+    existing = db.query(Follow).filter(
+        Follow.follower_id == follower_id,
+        Follow.following_id == following_id
+    ).first()
+    return {"following": bool(existing)}
+
+# 🛡️ Endpoint para contador real de visitas diarias
+@router.post("/visit/increment")
+async def increment_daily_visit(db: Session = Depends(get_db)):
+    ensure_user_schema(db)
+    today = date.today()
+    try:
+        row = db.execute(text("SELECT visits_count FROM daily_visits WHERE visit_date = :today"), {"today": today}).fetchone()
+        if row:
+            db.execute(text("UPDATE daily_visits SET visits_count = visits_count + 1 WHERE visit_date = :today"), {"today": today})
+        else:
+            db.execute(text("INSERT INTO daily_visits (visit_date, visits_count) VALUES (:today, 1)"), {"today": today})
+        db.commit()
+        
+        total_row = db.execute(text("SELECT visits_count FROM daily_visits WHERE visit_date = :today"), {"today": today}).fetchone()
+        return {"status": "success", "daily_visits": total_row[0] if total_row else 1}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "daily_visits": 0}
 
 @router.get("/profile/{user_id}")
 async def get_user_profile_alias(user_id: int, db: Session = Depends(get_db)):
