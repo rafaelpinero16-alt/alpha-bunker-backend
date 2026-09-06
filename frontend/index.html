@@ -54,6 +54,13 @@
         .pip-mode #video-drag-handle { display: flex !important; }
         .pip-mode aside { display: none !important; }
         .pip-mode #pip-controls { display: flex !important; }
+
+        /* Estilo de pestañas de Ajustes */
+        .settings-tab-active {
+            border-color: #00f3ff !important;
+            color: #00f3ff !important;
+            background: rgba(0, 243, 255, 0.15) !important;
+        }
     </style>
 </head>
 <body class="gpu-accelerated">
@@ -221,20 +228,16 @@
             <div class="flex items-center gap-3 cursor-pointer" onclick="app.openProfile()">
                 <div class="relative w-12 h-12 rounded-full border-2 border-[#00f3ff] overflow-visible shadow-[0_0_10px_#00f3ff] flex items-center justify-center bg-black">
                     <img id="avatar-feed" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover rounded-full">
-                    <!-- Punto Neón Header -->
                     <span id="feed-neon-dot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full neon-green-dot border-2 border-black animate-pulse"></span>
                 </div>
                 <div class="flex flex-col justify-center">
                     <h3 class="font-bold text-base text-white leading-tight" id="name-feed">USER</h3>
                     <div class="flex flex-wrap items-center gap-2 mt-1">
                         <p class="text-[10px] font-black text-[#ffb703] tracking-wider bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/50"><span id="rank-feed">ESPÍA 🕵️</span></p>
-                        <!-- Badge Estado -->
                         <span id="user-status-badge" class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">● ONLINE</span>
-                        <!-- 🛡️ CONTADOR GLOBAL DE USUARIOS ACTIVOS -->
                         <span class="text-[9px] font-bold text-[#00f3ff] bg-[#00f3ff]/10 px-2 py-0.5 rounded-full border border-[#00f3ff]/30 shadow-[0_0_5px_#00f3ff]" title="Usuarios Activos">
                             <i class="fa-solid fa-earth-americas mr-1"></i><span id="views-counter">0</span>
                         </span>
-                        <!-- 🛡️ CONTADOR DIARIO DE VISITAS -->
                         <span class="text-[9px] font-bold text-[#ffb703] bg-[#ffb703]/10 px-2 py-0.5 rounded-full border border-[#ffb703]/30 shadow-[0_0_5px_#ffb703]" title="Visitas Diarias del Búnker">
                             <i class="fa-solid fa-fire mr-1"></i>Visitas: <span id="daily-visits-counter">0</span>
                         </span>
@@ -242,8 +245,8 @@
                 </div>
             </div>
             <div class="flex gap-2 items-center">
-                <!-- ⚙️ BOTÓN DE AJUSTES GENERALES (TUERCA) -->
-                <button onclick="app.openSettingsModal()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full w-9 h-9 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-xs shadow-[0_0_8px_#00f3ff]" title="Ajustes Generales">
+                <!-- ⚙️ BOTÓN DE AJUSTES GENERALES (TUERCA EN CABECERA) -->
+                <button onclick="app.openSettingsModal()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-full w-9 h-9 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-sm shadow-[0_0_10px_#00f3ff] active:scale-95" title="Centro de Ajustes">
                     <i class="fa-solid fa-gear"></i>
                 </button>
                 <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center hover:bg-[rgba(0,243,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
@@ -294,7 +297,6 @@
             <button onclick="app.openProfile()" class="flex flex-col items-center text-[#ffb703] levitate hover:scale-110 transition w-14 pb-1">
                 <i class="fa-solid fa-user-astronaut text-2xl mb-1 drop-shadow-[0_0_5px_#ffb703]"></i><span class="text-[9px] font-black tracking-wide" id="nav-profile">MI PERFIL</span>
             </button>
-            <!-- 🛡️ DMs (MENSAJES DIRECTOS) -->
             <button onclick="app.openSupport()" class="flex flex-col items-center text-[#ff00ff] hover:scale-110 transition w-14 pb-1">
                 <i class="fa-solid fa-envelope text-2xl mb-1 drop-shadow-[0_0_5px_#ff00ff]"></i><span class="text-[9px] font-black tracking-wide" id="nav-support">DMs</span>
             </button>
@@ -332,7 +334,7 @@
                 <textarea id="admin-text-es" rows="3" class="cyber-input border-[#ffb703] focus:border-[#ffb703] text-sm" placeholder="Escribe algo increíble..."></textarea>
             </div>
             <button onclick="app.publishPost()" class="w-full btn-neon-cyan py-3.5 rounded-xl font-black text-sm uppercase tracking-wider mt-2">
-                <i class="fa-solid fa-paperplane mr-2"></i> <span id="btn-pub-text">PUBLICAR AL MURO</span>
+                <i class="fa-solid fa-paper-plane mr-2"></i> <span id="btn-pub-text">PUBLICAR AL MURO</span>
             </button>
         </div>
     </div>
@@ -354,7 +356,6 @@
             <div class="flex flex-col items-center mb-6">
                 <div onclick="app.triggerAvatarInput()" class="relative w-28 h-28 rounded-full border-4 border-[#ff00ff] shadow-[0_0_20px_#ff00ff] overflow-visible mb-3 cursor-pointer group flex items-center justify-center bg-black">
                     <img id="prof-avatar-img" src="" class="hidden w-full h-full object-cover rounded-full" alt="User Avatar">
-                    <!-- 🟢 PUNTO VERDE NEÓN DE CONEXIÓN ACTIVA -->
                     <span id="profile-neon-dot" class="absolute bottom-1 right-1 w-5 h-5 rounded-full neon-green-dot border-2 border-black animate-pulse z-20"></span>
                     <div class="absolute inset-0 bg-black/50 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition z-10">
                         <i class="fa-solid fa-camera text-white text-xl mb-1"></i>
@@ -421,8 +422,6 @@
     <!-- MODAL: DMs (BANDEJA DE ENTRADA Y CHATS INDIVIDUALES ESTILO TELEGRAM) -->
     <div id="modal-chat" class="hidden fixed inset-0 z-[82] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
         <div class="glass-panel w-full max-w-lg h-[88vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(0,243,255,0.2)]">
-            
-            <!-- Cabecera Dinámica de DMs -->
             <div class="bg-black bg-opacity-80 p-3.5 flex items-center justify-between border-b border-[#00f3ff]/60 shadow-[0_0_15px_rgba(0,243,255,0.1)]">
                 <div class="flex items-center gap-2">
                     <button id="dm-back-btn" onclick="app.backToInbox()" class="hidden text-[#00f3ff] text-base px-2 py-1"><i class="fa-solid fa-arrow-left"></i></button>
@@ -433,12 +432,12 @@
                 </button>
             </div>
 
-            <!-- 1. Vista de Bandeja de Entrada (Lista de Chats estilo Telegram) -->
+            <!-- 1. Vista de Bandeja de Entrada -->
             <div id="dm-inbox-view" class="flex-1 overflow-y-auto p-3 space-y-2 bg-gradient-to-b from-transparent to-black/50">
                 <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando conversaciones... ⏳</div>
             </div>
 
-            <!-- 2. Vista de Chat Personalizado con un Usuario -->
+            <!-- 2. Vista de Chat Personalizado -->
             <div id="dm-chat-view" class="hidden flex-1 flex flex-col overflow-hidden">
                 <div id="chat-messages" class="flex-1 overflow-y-auto p-3 space-y-3 bg-gradient-to-b from-transparent to-black/50"></div>
                 <div id="crm-chat-preview-container" class="hidden px-3 py-2 bg-neutral-900/90 border-t border-neutral-800 flex items-center justify-between">
@@ -456,56 +455,181 @@
                     <button onclick="app.sendChatMessage()" class="w-10 h-10 shrink-0 rounded-full bg-gradient-to-tr from-[#00f3ff] to-[#ff00ff] text-white flex items-center justify-center text-sm"><i class="fa-solid fa-paper-plane"></i></button>
                 </div>
             </div>
-
         </div>
     </div>
 
-    <!-- MODAL DE SETTINGS (AJUSTES AVANZADOS DEL BÚNKER) -->
-    <div id="modal-settings" class="hidden fixed inset-0 z-[85] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
-        <div class="glass-panel w-11/12 max-w-md rounded-3xl p-6 relative flex flex-col border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] max-h-[85vh] overflow-y-auto">
-            <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider" id="txt-settings-title"><i class="fa-solid fa-gear mr-2"></i> AJUSTES DEL BÚNKER</h3>
+    <!-- 🛠️ MODAL: CENTRO DE AJUSTES GENERAL (MODULAR Y COMPLETO) -->
+    <div id="modal-settings" class="hidden fixed inset-0 z-[120] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="glass-panel w-11/12 max-w-lg rounded-3xl p-6 relative flex flex-col border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] max-h-[90vh] overflow-hidden">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-[#00f3ff]/30 shrink-0">
+                <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-sliders"></i> AJUSTES GENERALES
+                </h3>
                 <button onclick="app.closeSettingsModal()" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition"><i class="fa-solid fa-times"></i></button>
             </div>
+
+            <!-- Navegación por pestañas del panel de ajustes -->
+            <div class="flex overflow-x-auto gap-2 pb-2 mb-3 shrink-0 border-b border-neutral-800 scrollbar-none" id="settings-tabs-bar">
+                <button onclick="app.switchSettingsTab('account')" id="tab-btn-account" class="px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-white font-bold text-xs uppercase tracking-wider shrink-0 transition settings-tab-active">
+                    <i class="fa-solid fa-user-gear mr-1"></i> Cuenta
+                </button>
+                <button onclick="app.switchSettingsTab('av')" id="tab-btn-av" class="px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-xs uppercase tracking-wider shrink-0 transition">
+                    <i class="fa-solid fa-video mr-1"></i> Hardware A/V
+                </button>
+                <button onclick="app.switchSettingsTab('wallet')" id="tab-btn-wallet" class="px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-xs uppercase tracking-wider shrink-0 transition">
+                    <i class="fa-solid fa-wallet mr-1"></i> Wallet
+                </button>
+                <button onclick="app.switchSettingsTab('contacts')" id="tab-btn-contacts" class="px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-xs uppercase tracking-wider shrink-0 transition">
+                    <i class="fa-solid fa-address-book mr-1"></i> Contactos
+                </button>
+                <button onclick="app.switchSettingsTab('alphacoins')" id="tab-btn-alphacoins" class="px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-xs uppercase tracking-wider shrink-0 transition">
+                    <i class="fa-solid fa-coins mr-1"></i> AlphaCoins
+                </button>
+                <button onclick="app.switchSettingsTab('chats')" id="tab-btn-chats" class="px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-xs uppercase tracking-wider shrink-0 transition">
+                    <i class="fa-solid fa-comments mr-1"></i> Chats
+                </button>
+            </div>
             
-            <div class="space-y-5 text-sm">
-                <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
-                    <label class="block text-xs text-[#00f3ff] font-bold uppercase tracking-wider mb-1" id="lbl-settings-username"><i class="fa-solid fa-user-pen mr-1"></i> Cambiar Alias</label>
-                    <input type="text" id="settings-username-input" class="cyber-input text-sm mb-2" placeholder="Nuevo alias VIP">
-                    <p id="name-change-warning" class="text-[10px] text-amber-400 mb-2 font-semibold">⚠️ Primer cambio libre. Modificaciones posteriores limitadas a 1 vez cada 30 días (Ilimitado para Administradores).</p>
-                    <button onclick="app.updateUsernameSettings()" id="btn-settings-update-name" class="w-full bg-[#00f3ff] text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(0,243,255,0.4)]">Actualizar Alias</button>
-                </div>
-
-                <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
-                    <label class="block text-xs text-[#ff00ff] font-bold uppercase tracking-wider mb-1" id="lbl-settings-pwd"><i class="fa-solid fa-lock mr-1"></i> Cambiar Contraseña</label>
-                    <input type="password" id="settings-old-pass" placeholder="Contraseña actual" class="cyber-input text-sm mb-2">
-                    <input type="password" id="settings-new-pass" placeholder="Nueva contraseña (mín. 6 caracteres)" class="cyber-input text-sm mb-2">
-                    <input type="password" id="settings-confirm-pass" placeholder="Repetir nueva contraseña" class="cyber-input text-sm mb-2">
-                    <p id="txt-settings-pwd-note" class="text-[10px] text-neutral-400 mb-2">Recibirás confirmación directa en tu cuenta al actualizar.</p>
-                    <button onclick="app.updatePasswordSettings()" id="btn-settings-update-pwd" class="w-full bg-[#ff00ff] text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(255,0,255,0.4)]">Actualizar Contraseña</button>
-                </div>
-
-                <!-- 🛡️ MODO VISUAL LUNA/SOL (Settings) -->
-                <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs text-neutral-200 font-bold uppercase" id="lbl-settings-theme"><i class="fa-solid fa-moon text-[#ffb703] mr-1"></i> Tema Claro / Oscuro</span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="theme-switch" class="sr-only peer" onchange="app.toggleTheme()">
-                            <div class="w-12 h-6 bg-neutral-800 border border-neutral-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f3ff] peer-checked:border-[#00f3ff] shadow-inner"></div>
-                        </label>
+            <!-- Contenedor con scroll para los paneles -->
+            <div class="flex-1 overflow-y-auto pr-1 space-y-4 text-sm" id="settings-tab-content">
+                
+                <!-- 1. PESTAÑA: CUENTA & PERFIL -->
+                <div id="settings-panel-account" class="space-y-4">
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
+                        <label class="block text-xs text-[#00f3ff] font-bold uppercase tracking-wider mb-1"><i class="fa-solid fa-user-pen mr-1"></i> Cambiar Alias</label>
+                        <input type="text" id="settings-username-input" class="cyber-input text-sm mb-2" placeholder="Nuevo alias VIP">
+                        <p id="name-change-warning" class="text-[10px] text-amber-400 mb-2 font-semibold">⚠️ Primer cambio libre. Modificaciones posteriores limitadas a 1 vez cada 30 días.</p>
+                        <button onclick="app.updateUsernameSettings()" class="w-full bg-[#00f3ff] text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(0,243,255,0.4)]">Actualizar Alias</button>
                     </div>
 
-                    <div class="border-t border-neutral-800 pt-3">
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
+                        <label class="block text-xs text-[#ff00ff] font-bold uppercase tracking-wider mb-1"><i class="fa-solid fa-lock mr-1"></i> Cambiar Contraseña</label>
+                        <input type="password" id="settings-old-pass" placeholder="Contraseña actual" class="cyber-input text-sm mb-2">
+                        <input type="password" id="settings-new-pass" placeholder="Nueva contraseña (mín. 6 caracteres)" class="cyber-input text-sm mb-2">
+                        <input type="password" id="settings-confirm-pass" placeholder="Repetir nueva contraseña" class="cyber-input text-sm mb-2">
+                        <button onclick="app.updatePasswordSettings()" class="w-full bg-[#ff00ff] text-black font-black py-2.5 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_10px_rgba(255,0,255,0.4)]">Actualizar Contraseña</button>
+                    </div>
+
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-xs text-neutral-200 font-bold uppercase" id="lbl-settings-status"><i class="fa-solid fa-signal mr-1"></i> Estado Operativo</span>
+                            <span class="text-xs text-neutral-200 font-bold uppercase"><i class="fa-solid fa-moon text-[#ffb703] mr-1"></i> Tema Claro / Oscuro</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="theme-switch" class="sr-only peer" onchange="app.toggleTheme()">
+                                <div class="w-12 h-6 bg-neutral-800 border border-neutral-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f3ff] peer-checked:border-[#00f3ff] shadow-inner"></div>
+                            </label>
+                        </div>
+                        <div class="border-t border-neutral-800 pt-3 flex items-center justify-between">
+                            <span class="text-xs text-neutral-200 font-bold uppercase"><i class="fa-solid fa-signal mr-1"></i> Estado Operativo</span>
                             <button onclick="app.toggleOnlineStatus()" id="settings-status-btn" class="bg-emerald-600/20 border border-emerald-500 text-emerald-400 px-3 py-1.5 rounded-xl text-xs font-black uppercase flex items-center gap-1.5">
                                 <span id="settings-status-indicator" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> 
                                 <span id="settings-status-text">ONLINE</span>
                             </button>
                         </div>
-                        <p id="txt-settings-status-lock" class="text-[10px] text-amber-400 mt-2 font-semibold">⚠️ Requiere rango Soldier o superior para activar modo oculto (OFFLINE). Los agentes Espía (SPY) siempre permanecen visibles.</p>
                     </div>
                 </div>
+
+                <!-- 2. PESTAÑA: HARDWARE A/V (CÁMARAS Y AUDIO EN CALIENTE) -->
+                <div id="settings-panel-av" class="hidden space-y-4">
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-camera mr-1"></i> Selector de Cámara</h4>
+                            <button onclick="app.refreshMediaDevicesList()" class="text-[10px] text-[#00f3ff] hover:underline flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i> Detectar</button>
+                        </div>
+                        <p class="text-[10px] text-neutral-400">Compatible con cámaras físicas (Frontal/Trasera) y virtuales (OBS VirtualCam, Lovense Connect).</p>
+                        <select id="settings-av-cam-source" class="cyber-input text-xs w-full bg-neutral-900"></select>
+                    </div>
+
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-microphone mr-1"></i> Selector de Micrófono</h4>
+                        <select id="settings-av-mic-source" class="cyber-input text-xs w-full bg-neutral-900"></select>
+                    </div>
+
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                        <h4 class="text-xs font-black text-[#ffb703] uppercase tracking-wider"><i class="fa-solid fa-volume-high mr-1"></i> Salida de Audio / Altavoces</h4>
+                        <select id="settings-av-speaker-source" class="cyber-input text-xs w-full bg-neutral-900">
+                            <option value="default">🔊 Altavoz Predeterminado del Sistema</option>
+                        </select>
+                    </div>
+
+                    <button onclick="app.applyGeneralAVSettings()" class="w-full bg-[#00f3ff] text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_12px_rgba(0,243,255,0.4)]">
+                        <i class="fa-solid fa-check mr-1"></i> Aplicar y Guardar Hardware
+                    </button>
+                </div>
+
+                <!-- 3. PESTAÑA: GESTIÓN DE LA WALLET -->
+                <div id="settings-panel-wallet" class="hidden space-y-4">
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-wallet mr-1"></i> Estado TON Connect</h4>
+                        <div class="p-3 bg-neutral-900 rounded-xl border border-neutral-800 flex justify-between items-center">
+                            <span class="text-xs text-neutral-300">Billetera Vinculada:</span>
+                            <span id="settings-wallet-address" class="text-xs font-mono text-[#00f3ff] font-bold">No conectada</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="app.connectWallet()" class="flex-1 bg-blue-600 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-md hover:bg-blue-500 transition">Conectar / Cambiar</button>
+                            <button onclick="app.openCatalogPackages()" class="flex-1 bg-[#ffb703] text-black font-black py-2.5 rounded-xl text-xs uppercase shadow-md hover:bg-amber-400 transition">Recargar Saldo</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. PESTAÑA: CONTACTOS & DIRECTORIO -->
+                <div id="settings-panel-contacts" class="hidden space-y-4">
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-user-plus mr-1"></i> Agregar Contacto</h4>
+                        <div class="flex gap-2">
+                            <input type="text" id="settings-contact-input" placeholder="ID o Telegram Username..." class="cyber-input text-xs flex-1">
+                            <button onclick="app.addContactFromSettings()" class="bg-[#00f3ff] text-black font-black px-4 rounded-xl text-xs uppercase">Agregar</button>
+                        </div>
+                    </div>
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl">
+                        <h4 class="text-xs font-black text-white uppercase tracking-wider mb-2"><i class="fa-solid fa-address-book mr-1"></i> Directorio Rápido</h4>
+                        <div id="settings-contacts-list" class="space-y-2 max-h-48 overflow-y-auto">
+                            <div class="text-center text-neutral-500 text-xs py-3">Cargando directorio...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. PESTAÑA: REGISTRO DE ALPHACOINS -->
+                <div id="settings-panel-alphacoins" class="hidden space-y-4">
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] text-neutral-400 font-bold uppercase tracking-widest">Balance Actual</span>
+                            <h3 class="text-2xl font-black text-[#ffb703] wallet-balance-val">0 $ALPHA</h3>
+                        </div>
+                        <button onclick="app.openCatalogPackages()" class="bg-[#ffb703]/20 border border-[#ffb703] text-[#ffb703] px-3 py-1.5 rounded-xl text-xs font-black uppercase hover:bg-[#ffb703]/30">Adquirir Más</button>
+                    </div>
+
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-2">
+                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-wider mb-1"><i class="fa-solid fa-clock-rotate-left mr-1"></i> Historial de Movimientos</h4>
+                        <div id="settings-alphacoins-history" class="space-y-2 max-h-56 overflow-y-auto">
+                            <div class="text-center text-neutral-500 text-xs py-4">No hay transacciones recientes registradas.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. PESTAÑA: AJUSTES DE CHATS & NOTIFICACIONES -->
+                <div id="settings-panel-chats" class="hidden space-y-4">
+                    <div class="bg-black/60 border border-neutral-800 p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-neutral-200 font-bold uppercase"><i class="fa-solid fa-bell text-[#00f3ff] mr-1"></i> Sonido en Mensajes</span>
+                            <input type="checkbox" id="settings-chat-sound" class="w-4 h-4 accent-[#00f3ff]" checked>
+                        </div>
+                        <div class="border-t border-neutral-800 pt-3 flex items-center justify-between">
+                            <span class="text-xs text-neutral-200 font-bold uppercase"><i class="fa-solid fa-mobile mr-1"></i> Vibración Háptica</span>
+                            <input type="checkbox" id="settings-chat-haptic" class="w-4 h-4 accent-[#ff00ff]" checked>
+                        </div>
+                        <div class="border-t border-neutral-800 pt-3">
+                            <button onclick="app.openDirectChat(null, 'Mensajes Guardados')" class="w-full bg-neutral-900 border border-neutral-700 hover:border-[#00f3ff] text-white py-2.5 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-bookmark text-[#00f3ff]"></i> Abrir Mensajes Guardados
+                            </button>
+                        </div>
+                        <div class="border-t border-neutral-800 pt-3">
+                            <button onclick="app.clearChatCache()" class="w-full bg-red-950/40 border border-red-800 hover:bg-red-900/40 text-red-300 py-2.5 rounded-xl text-xs font-black uppercase flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-trash-can"></i> Limpiar Caché Local de Mensajes
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -517,8 +641,80 @@
                 <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider" id="cat-title"><i class="fa-solid fa-store mr-2"></i> UPGRADE PLAN</h3>
                 <button onclick="app.closeModals()" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
             </div>
-            <div class="flex-1 overflow-y-auto p-4" id="catalog-packages-list">
-                <!-- Se llena dinámicamente -->
+            <div class="flex-1 overflow-y-auto p-4" id="catalog-packages-list"></div>
+        </div>
+    </div>
+
+    <!-- 🌐 MODAL: COMUNIDADES OFICIALES (PRE-RENDERIZADO ESTABLE) -->
+    <div id="modal-communities-links" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
+            <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title">ECOSISTEMA</span></h3>
+            <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc">Únete a nuestros canales y grupos oficiales.</p>
+            
+            <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
+                <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-globe text-lg"></i> 🔱♨️Alpha World♨️🔱
+                </button>
+                <button onclick="app.openLink('https://t.me/+7NhKBpvAE_dkODgx')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-ff00ff/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-champagne-glasses text-lg"></i> PIG'BROS 🚀PartyN'Play🚀VIP • 💬CHAT & VC📽
+                </button>
+                <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-lock text-lg"></i> ⚜️🔐The Bunker CHat 🔐⚜️
+                </button>
+                <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-masks-theater text-lg"></i> BETA HOUSE
+                </button>
+                <button onclick="app.openLink('https://t.me/+N0BuW-guPM42OGNh')" class="w-full bg-black border border-red-500 text-red-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
+                    <i class="fa-solid fa-fire-flame-curved text-lg"></i> EUPHORIA
+                </button>
+            </div>
+            <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition" id="btn-eco-close">CERRAR</button>
+        </div>
+    </div>
+
+    <!-- 👤 MODAL: PERFIL PÚBLICO DEL CREADOR (PRE-RENDERIZADO PARA APERTURA INSTANTÁNEA DESDE RADAR) -->
+    <div id="modal-creator-profile" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
+            <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
+            
+            <div class="absolute top-4 left-4 z-20">
+                <button onclick="document.getElementById('creator-options-menu').classList.toggle('hidden')" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-ellipsis-vertical text-xl"></i></button>
+                <div id="creator-options-menu" class="hidden absolute left-0 mt-2 w-36 bg-black border border-neutral-700 rounded-xl shadow-xl z-30 flex flex-col overflow-hidden">
+                    <button id="btn-block-creator-action" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-900 text-left w-full"><i class="fa-solid fa-ban mr-1"></i> Bloquear</button>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center text-center mb-3 shrink-0 mt-2">
+                <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden bg-black mb-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.4)]">
+                    <img id="creator-prof-avatar" src="" class="w-full h-full object-cover hidden" onerror="this.style.display='none'">
+                    <i id="creator-prof-default-icon" class="fa-solid fa-user text-2xl text-[#00f3ff]"></i>
+                    <div id="creator-prof-dot" class="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-black hidden"></div>
+                </div>
+                <h3 id="creator-prof-name" class="text-xl font-black text-white uppercase tracking-wider truncate w-full px-4">@CREATOR</h3>
+                <span id="creator-prof-status" class="text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border">OFFLINE</span>
+                <span class="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-widest">Operativo en el Ecosistema Alfa</span>
+            </div>
+            
+            <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-3 text-center shrink-0">Cargando biografía...</div>
+            
+            <div class="flex gap-2 mb-3 shrink-0">
+                <button id="btn-creator-tip-action" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-coins"></i> Enviar Tip
+                </button>
+                <button id="btn-creator-chat-action" class="flex-1 bg-[#00f3ff] hover:bg-[#00f3ff]/80 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-comments"></i> Chat
+                </button>
+            </div>
+
+            <div class="flex gap-2 mb-3 shrink-0">
+                <button id="btn-profile-follow" class="flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-user-plus"></i> Seguir
+                </button>
+            </div>
+            
+            <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2 shrink-0">Publicaciones del Creador</h4>
+            <div id="creator-prof-posts" class="flex-1 overflow-y-auto space-y-3 pr-2 pb-6">
+                <div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>
             </div>
         </div>
     </div>
@@ -526,7 +722,6 @@
     <!-- MODAL 2: CHAT GLOBAL & RADAR LATERAL DERECHO -->
     <div id="modal-global-chat" class="hidden fixed inset-0 z-[82] flex items-end justify-center bg-black bg-opacity-80 backdrop-blur-sm transition-opacity duration-300">
         <div class="glass-panel w-full max-w-lg h-[88vh] rounded-t-3xl flex flex-col relative border-b-0 overflow-hidden shadow-[0_-5px_20px_rgba(255,0,255,0.2)]">
-            
             <div class="bg-black bg-opacity-80 p-3.5 flex items-center justify-between border-b border-[#ff00ff]/60 shadow-[0_0_15px_rgba(255,0,255,0.1)]">
                 <div class="flex items-center gap-2">
                     <button onclick="app.openSupport()" class="w-8 h-8 rounded-xl bg-[#ff00ff]/20 border border-[#ff00ff] flex items-center justify-center text-[#ff00ff] hover:scale-110 transition shadow-[0_0_10px_#ff00ff]" title="Soporte Admin">
@@ -617,7 +812,6 @@
 
     <!-- 🎥 CONTENEDOR FLOTANTE VIDEO BÚNKER (ARRASTRABLE EN MODO PiP) -->
     <div id="floating-video-bunker" class="hidden fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-transform duration-300">
-        
         <div id="video-drag-handle" class="hidden w-full h-8 bg-neutral-900 border-b border-[#00f3ff]/50 flex items-center justify-center cursor-move touch-none relative z-50 shadow-md">
             <div class="w-10 h-1.5 bg-[#00f3ff]/50 rounded-full"></div>
             <button onclick="app.leaveVideoBunker()" class="absolute right-2 text-red-500 hover:text-red-400 text-xs font-bold p-1"><i class="fa-solid fa-times"></i></button>
@@ -658,7 +852,7 @@
         </div>
     </div>
 
-    <!-- MODAL AJUSTES A/V VIDEO BÚNKER -->
+    <!-- MODAL AJUSTES A/V RÁPIDOS VIDEO BÚNKER -->
     <div id="modal-av-settings" class="hidden fixed inset-0 z-[160] flex items-center justify-center bg-black/90 backdrop-blur-sm">
         <div class="bg-neutral-900 border border-[#00f3ff] rounded-2xl p-5 w-11/12 max-w-sm space-y-4">
             <h4 class="text-sm font-black text-[#00f3ff] uppercase tracking-wider text-center">Configuración de Cámara y Audio</h4>
@@ -680,11 +874,11 @@
     <!-- CANVAS PARA FUEGOS ARTIFICIALES -->
     <canvas id="fireworks-canvas" class="fixed inset-0 pointer-events-none z-[200] hidden"></canvas>
     
-    <script src="js/security.js?v=37"></script>
-    <script src="js/translations.js?v=37"></script>
-    <script src="js/api.js?v=37"></script>
-    <script src="js/chat.js?v=37"></script>
-    <script src="js/app.js?v=37" defer></script>
+    <script src="js/security.js?v=38"></script>
+    <script src="js/translations.js?v=38"></script>
+    <script src="js/api.js?v=38"></script>
+    <script src="js/chat.js?v=38"></script>
+    <script src="js/app.js?v=38" defer></script>
 
     <!-- 🛡️ SCRIPT NATIVO: CONTROL DE ARRASTRE PiP -->
     <script>
