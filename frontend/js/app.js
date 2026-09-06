@@ -711,6 +711,105 @@ const app = {
         } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`; }
     },
 
+    openExternalCheckout(packageSlug) {
+        this.closeModals();
+        if (!packageSlug || typeof packageSlug !== 'string') return;
+        const safeSlug = encodeURIComponent(packageSlug.replace(/[^a-zA-Z0-9_-]/g, ''));
+        this.currentCheckoutPackage = safeSlug;
+        
+        let modal = document.getElementById('modal-external-checkout');
+        if (!modal) {
+            const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const tTitle   = esc(this.getTrans('tactical_recharge'));
+            const lSkrill  = esc(this.getTrans('btn_pay_skrill'));
+            const lBinance = esc(this.getTrans('btn_pay_binance'));
+            const lPayoneer= esc(this.getTrans('btn_pay_payoneer'));
+            const lManual  = esc(this.getTrans('btn_pay_manual'));
+
+            const modalHTML = `
+                <div id="modal-external-checkout" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
+                    <div class="glass-panel border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative max-h-[90vh] overflow-y-auto">
+                        <button onclick="app.closeCheckout()" class="absolute top-4 right-4 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition shadow-[0_0_10px_red]"><i class="fa-solid fa-times"></i></button>
+                        <h2 class="text-2xl font-black text-center mb-2 text-[#00f3ff] uppercase tracking-wider">${tTitle}</h2>
+                        <div class="space-y-3 mt-4">
+                            <button onclick="app.processOneClickPay('skrill')" class="w-full bg-black border-2 border-[#ff00ff] text-[#ff00ff] font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(255,0,255,0.6)] transition hover:bg-[#ff00ff]/20 active:scale-95"><i class="fa-solid fa-wallet text-xl"></i> ${lSkrill}</button>
+                            <button onclick="app.processOneClickPay('binance')" class="w-full bg-black border-2 border-[#f3ba2f] text-[#f3ba2f] font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(243,186,47,0.6)] transition hover:bg-[#f3ba2f]/20 active:scale-95"><i class="fa-brands fa-bitcoin text-xl"></i> ${lBinance}</button>
+                            <button onclick="app.processOneClickPay('payoneer')" class="w-full bg-black border-2 border-[#ff4800] text-[#ff4800] font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(255,72,0,0.6)] transition hover:bg-[#ff4800]/20 active:scale-95"><i class="fa-brands fa-paypal text-xl"></i> ${lPayoneer}</button>
+                            <div class="w-full mt-2 pt-2 border-t border-[#00f3ff]/30">
+                                <button onclick="app.openManualPayment()" class="w-full bg-black border-2 border-[#00f3ff] text-[#00f3ff] font-black py-3.5 rounded-xl uppercase flex justify-center items-center gap-2 shadow-[0_0_15px_rgba(0,243,255,0.6)] transition hover:bg-[#00f3ff]/20 active:scale-95"><i class="fa-solid fa-building-columns text-xl"></i> ${lManual}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-external-checkout');
+        }
+        modal.classList.remove('hidden');
+    },
+
+    processOneClickPay(gateway) {
+        if (!this.currentCheckoutPackage) { this.showToast('⚠️ Selecciona un plan primero.'); return; }
+        const paymentLinks = {
+            skrill: { 'soldier': 'https://skrill.me/rq/Felipe%20Rafael/4.99/USD?key=7AR7OlqodIdbV_WU4hSXJ435Na1', 'veteran': 'https://skrill.me/rq/Felipe%20Rafael/10.99/USD?key=Z06Cz-iVWCYDSILhZWO6R_qkLk_', 'legend': 'https://skrill.me/rq/Felipe%20Rafael/25/USD?key=6bBEAZr3PQhwTGbf_jW6yhRLknf', 'icon-legend': 'https://skrill.me/rq/Felipe%20Rafael/53/USD?key=hzBmtkvlrYlvYcH3MTpcQXQ_HG-' },
+            binance: { 'soldier': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405181270605824&billType=request_a_payment', 'veteran': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405438875680768&billType=request_a_payment', 'legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452405771899920384&billType=request_a_payment', 'icon-legend': 'https://app.binance.com/uni-qr/request-to-pay?billOrderId=452406167061315584&billType=request_a_payment' },
+            payoneer: { 'legend': 'https://link.payoneer.com/Token?t=569B904EC3D94618B6563B0574CF479F&src=mobile', 'icon-legend': 'https://link.payoneer.com/Token?t=FA9D867359624921B264A059D1ADA74F&src=mobile' }
+        };
+        const targetUrl = paymentLinks[gateway] ? paymentLinks[gateway][this.currentCheckoutPackage] : null;
+        if (!targetUrl) { this.showToast(this.getTrans('toast_gateway_unsupported')); return; }
+        this.haptic('heavy');
+        this.showToast('Redirigiendo a pasarela...');
+        setTimeout(() => { window.open(targetUrl, '_blank', 'noopener,noreferrer'); this.closeCheckout(); }, 1500);
+    },
+
+    openManualPayment() {
+        this.closeModals();
+        let modal = document.getElementById('modal-manual-payment');
+        if (!modal) {
+            const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            const title   = esc(this.getTrans('manual_payment_title'));
+            const desc    = esc(this.getTrans('manual_payment_desc'));
+            const btnBack = esc(this.getTrans('btn_cancel'));
+            
+            const modalHTML = `
+                <div id="modal-manual-payment" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] shadow-[0_0_25px_rgba(0,243,255,0.3)] rounded-3xl p-6 w-full max-w-md text-white relative">
+                        <button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                        <h2 class="text-xl font-black text-[#00f3ff] mb-4 uppercase tracking-wider text-center">${title}</h2>
+                        <p class="text-xs text-neutral-300 text-center mb-6">${desc}</p>
+                        <div class="bg-black border border-neutral-700 rounded-xl p-4 space-y-3 text-xs font-mono">
+                            <p class="flex justify-between border-b border-neutral-800 pb-2"><span class="text-neutral-500">Bank:</span><strong class="text-white">Lead Bank</strong></p>
+                            <p class="flex justify-between border-b border-neutral-800 pb-2"><span class="text-neutral-500">Account Name:</span><strong class="text-white text-right max-w-[150px] truncate" title="FELIPE RAFAEL SANCHEZ PIÑEROS">FELIPE R. SANCHEZ P.</strong></p>
+                            <div class="flex justify-between items-center border-b border-neutral-800 pb-2">
+                                <span class="text-neutral-500">Account Number:</span>
+                                <div class="flex items-center gap-3">
+                                    <strong class="text-[#ffb703] text-sm tracking-widest">215069784455</strong>
+                                    <button onclick="app.copyText('215069784455')" class="text-[#00f3ff] text-lg hover:scale-110 transition active:scale-95 p-1"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-neutral-500">Routing Number:</span>
+                                <div class="flex items-center gap-3">
+                                    <strong class="text-[#ffb703] text-sm tracking-widest">101019644</strong>
+                                    <button onclick="app.copyText('101019644')" class="text-[#00f3ff] text-lg hover:scale-110 transition active:scale-95 p-1"><i class="fa-regular fa-copy"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6"><button onclick="document.getElementById('modal-manual-payment').classList.add('hidden')" class="w-full bg-neutral-800 hover:bg-neutral-700 text-white font-black py-3 rounded-xl uppercase transition">${btnBack}</button></div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-manual-payment');
+        }
+        modal.classList.remove('hidden');
+    },
+
+    closeCheckout() {
+        this.haptic('light');
+        document.getElementById('modal-external-checkout')?.classList.add('hidden');
+        document.getElementById('checkoutModal')?.classList.add('hidden');
+    },
     openCommunitiesModal() {
         this.closeModals();
         this.haptic('medium');
@@ -846,7 +945,7 @@ const app = {
                             if (isLocked) {
                                 mediaContent = `
                                     <div class="relative w-full">
-                                        <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover blur-md grayscale opacity-50 pointer-events-none select-none" />
+                                        <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover blur-md grayscale opacity-50 pointer-events-none select-none mx-auto block" />
                                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg z-10 text-center pointer-events-none">
                                             <i class="fa-solid fa-lock text-3xl text-amber-400 mb-1 drop-shadow-md"></i>
                                             <span class="bg-black/80 px-2 py-0.5 rounded text-[9px] font-black text-white border border-amber-500/50 uppercase tracking-widest">Protegido</span>
@@ -855,8 +954,8 @@ const app = {
                                 `;
                             } else {
                                 mediaContent = `
-                                    <div class="relative w-full cursor-pointer group" onclick="app.openLightbox('${cleanUrl}', '${mediaType}')">
-                                        <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover" />
+                                    <div class="relative w-full cursor-pointer group flex justify-center" onclick="app.openLightbox('${cleanUrl}', '${mediaType}')">
+                                        <img src="${cleanUrl}" class="rounded-lg max-h-48 object-cover mx-auto block" />
                                         <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-lg pointer-events-none">
                                             <i class="fa-solid fa-expand text-white text-2xl drop-shadow-md"></i>
                                         </div>
@@ -1092,6 +1191,7 @@ const app = {
             BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_offer', target_id: targetId, sdp: offer.sdp }));
         } catch(e) {}
     },
+
     async handleWebRTCMessage(data) {
         const { type, caller_id, sdp, candidate } = data;
         if (!this.activeWebcamStream) return; 
@@ -1718,8 +1818,8 @@ const app = {
                     
                     if (post.is_locked) {
                         mediaContent = `
-                            <div class="relative w-full">
-                                <img src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover blur-xl grayscale opacity-50 pointer-events-none select-none" />
+                            <div class="relative w-full flex justify-center">
+                                <img src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover blur-xl grayscale opacity-50 pointer-events-none select-none mx-auto block" />
                                 <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/30 rounded-xl z-10 p-4 text-center pointer-events-none">
                                     <i class="fa-solid fa-lock text-5xl text-amber-400 mb-3 drop-shadow-md"></i>
                                     <span class="text-[10px] font-black text-white bg-black/80 px-3 py-1.5 rounded-full mb-3 border border-amber-500/50 uppercase tracking-widest">Nivel Requerido: ${rankInfo.name}</span>
@@ -1729,9 +1829,9 @@ const app = {
                         `;
                     } else {
                         if (isVid) {
-                            mediaContent = `<div class="relative cursor-pointer group mb-3" onclick="app.openLightbox('${cleanUrl}', 'video')"><video src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover" autoplay loop muted playsinline></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
+                            mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center" onclick="app.openLightbox('${cleanUrl}', 'video')"><video src="${cleanUrl}" class="rounded-xl max-h-80 object-cover mx-auto block" autoplay loop muted playsinline></video><div class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition"><i class="fa-solid fa-expand text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
                         } else {
-                            mediaContent = `<div class="relative cursor-pointer group mb-3" onclick="app.openLightbox('${cleanUrl}', 'image')"><img src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover" alt="Media"/><div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
+                            mediaContent = `<div class="relative cursor-pointer group mb-3 flex justify-center" onclick="app.openLightbox('${cleanUrl}', 'image')"><img src="${cleanUrl}" class="rounded-xl max-h-80 object-cover mx-auto block" alt="Media"/><div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-xl pointer-events-none"><i class="fa-solid fa-magnifying-glass-plus text-white text-3xl drop-shadow-[0_0_8px_black]"></i></div></div>`;
                         }
                     }
                 } else if (post.is_locked) {
@@ -1795,7 +1895,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
     
-    // 🛡️ Forzar expansión nativa de la app en móviles para evitar recortes
     if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.expand();
         window.Telegram.WebApp.ready();
