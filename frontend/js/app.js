@@ -2767,7 +2767,61 @@ const app = {
     },
 
     selectCreatorRole() { this.closeModals(); },
-    selectFanRole() { this.closeModals(); }
+    selectFanRole() { this.closeModals(); },
+
+    // 📱 Control del Menú Lateral Deslizable (Sidebar Drawer)
+    openSidebar() {
+        const sidebar = document.getElementById('telegram-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar) sidebar.classList.add('sidebar-open');
+        if (backdrop) backdrop.classList.add('backdrop-open');
+    },
+
+    closeSidebar() {
+        const sidebar = document.getElementById('telegram-sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (sidebar) sidebar.classList.remove('sidebar-open');
+        if (backdrop) backdrop.classList.remove('backdrop-open');
+    },
+
+    // 🌟 Gestión de los 10 Slots Persistentes
+    openSlotsModal() {
+        const modal = document.getElementById('modal-slots');
+        if (modal) modal.classList.remove('hidden');
+        this.renderSlotsList();
+    },
+
+    closeSlotsModal() {
+        const modal = document.getElementById('modal-slots');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    renderSlotsList() {
+        const container = document.getElementById('slots-container-list');
+        if (!container) return;
+        let html = '';
+        for (let i = 1; i <= 10; i++) {
+            let savedVal = localStorage.getItem(`alpha_slot_${i}`) || '';
+            html += `
+                <div class="bg-black/60 border border-neutral-800 p-3 rounded-xl space-y-1">
+                    <label class="text-[10px] text-[#ffb703] font-bold uppercase">Slot ${i}</label>
+                    <input type="text" id="slot-input-${i}" value="${savedVal}" class="cyber-input text-xs" placeholder="Configuración o enlace del slot ${i}...">
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    },
+
+    saveAllSlots() {
+        for (let i = 1; i <= 10; i++) {
+            const input = document.getElementById(`slot-input-${i}`);
+            if (input) {
+                localStorage.setItem(`alpha_slot_${i}`, input.value.trim());
+            }
+        }
+        this.showToast('¡Los 10 slots se guardaron con éxito en tu perfil!');
+        this.closeSlotsModal();
+    }
 };
 
 window.app = app;
