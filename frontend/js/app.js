@@ -1629,13 +1629,17 @@ const app = {
                     container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">No hay salas disponibles en esta categoría.</div>`;
                 } else {
                     container.innerHTML = this.activeRooms.map(r => `
-                        <div class="bg-black border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex items-center justify-between transition shadow-md">
-                            <div>
-                                <span class="text-xs font-black text-[#00f3ff] uppercase tracking-wider block mb-1">${this.escapeHtml(r.name)}</span>
-                                <p class="text-[10px] text-neutral-400 mb-1">${this.escapeHtml(r.description || 'Sala temática interactiva')}</p>
-                                <span class="text-[9px] bg-neutral-800 text-amber-400 px-2 py-0.5 rounded-full border border-neutral-700 font-bold">Min Nivel: ${r.min_access_level}</span>
+                        <div class="bg-black/80 border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex flex-col gap-3 transition shadow-md">
+                            <div class="flex items-start justify-between gap-2">
+                                <div>
+                                    <span class="text-sm font-black text-[#00f3ff] uppercase tracking-wider block mb-1">${this.escapeHtml(r.name)}</span>
+                                    <p class="text-[11px] text-neutral-300">${this.escapeHtml(r.description || 'Sala temática interactiva')}</p>
+                                </div>
+                                <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">Nivel ${r.min_access_level}</span>
                             </div>
-                            <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level})" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black px-4 py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition">Entrar</button>
+                            <div class="pt-2 border-t border-neutral-800 flex justify-end">
+                                <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level})" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center">Entrar a la sala</button>
+                            </div>
                         </div>
                     `).join('');
                 }
