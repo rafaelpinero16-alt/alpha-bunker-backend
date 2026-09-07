@@ -76,6 +76,52 @@
         <span class="text-[11px] font-black text-[#00f3ff]" id="fab-lang-text">ES</span>
     </button>
 
+    <!-- 📱 TELEGRAM-STYLE SLIDING SIDEBAR DRAWER (MENÚ LATERAL VERTICAL) -->
+    <div id="sidebar-backdrop" onclick="app.closeSidebar()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[130] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+    <aside id="telegram-sidebar" class="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-[#08080c] border-r-2 border-[#00f3ff] z-[135] transform -translate-x-full transition-transform duration-300 flex flex-col shadow-[0_0_35px_rgba(0,243,255,0.4)] overflow-y-auto">
+        <!-- Cabecera del Sidebar (Perfil de Usuario) -->
+        <div class="p-5 bg-gradient-to-b from-[#0a0a12] to-black border-b border-[#00f3ff]/30 flex flex-col items-center relative">
+            <button onclick="app.closeSidebar()" class="absolute top-4 right-4 text-neutral-400 hover:text-white text-base"><i class="fa-solid fa-times"></i></button>
+            <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden mb-3 shadow-[0_0_15px_#00f3ff] bg-black">
+                <img id="sidebar-avatar-img" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover">
+                <span class="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full neon-green-dot border-2 border-black"></span>
+            </div>
+            <h3 id="sidebar-name" class="font-black text-white text-base tracking-wider uppercase">USER</h3>
+            <span id="sidebar-rank" class="text-[10px] font-bold text-[#ffb703] bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/40 mt-1">ESPÍA 🕵️</span>
+        </div>
+
+        <!-- Opciones de Navegación Vertical Estilo Telegram -->
+        <div class="flex-1 p-3 space-y-2">
+            <button onclick="app.openProfile(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-user-gear text-[#00f3ff] text-base w-6"></i> <span data-i18n="sb-profile">Mi Perfil y Cuenta</span>
+            </button>
+            <button onclick="app.openSettingsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-sliders text-[#ff00ff] text-base w-6"></i> <span data-i18n="sb-settings">Ajustes Generales</span>
+            </button>
+            <button onclick="app.openSlotsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ffb703] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-layer-group text-[#ffb703] text-base w-6"></i> <span data-i18n="sb-slots">Gestionar 10 Slots</span>
+            </button>
+            <button onclick="app.connectWallet(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-blue-400 text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-wallet text-blue-400 text-base w-6"></i> <span data-i18n="sb-wallet">Billetera TON / Alpha</span>
+            </button>
+            <button onclick="app.openAVSettings(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-emerald-400 text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-video text-emerald-400 text-base w-6"></i> <span data-i18n="sb-hardware">Hardware A/V</span>
+            </button>
+            <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ff00ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-address-book text-[#ff00ff] text-base w-6"></i> <span data-i18n="sb-contacts">Contactos y DMs</span>
+            </button>
+            <button onclick="app.openGlobalChat(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-comments text-[#00f3ff] text-base w-6"></i> <span data-i18n="sb-chats">Chat Global y Búnker</span>
+            </button>
+        </div>
+
+        <div class="p-4 border-t border-neutral-800 bg-black/40">
+            <button onclick="app.logout(); app.closeSidebar();" class="w-full bg-red-950/40 border border-red-800 text-red-300 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-red-900/40 transition">
+                <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="sb-logout">Cerrar Sesión</span>
+            </button>
+        </div>
+    </aside>
+
     <!-- 🛡️ 1. VIEW 0: SPLASH SCREEN 3D ("Alpha App") -->
     <div id="view-splash" class="fixed inset-0 z-[9999] bg-black flex flex-col items-center justify-center transition-opacity duration-1000 gpu-accelerated">
         <div id="splash-3d-container" class="relative w-44 h-44 mb-6 flex items-center justify-center">
@@ -225,7 +271,7 @@
     <!-- VIEW 2: FEED -->
     <div id="view-feed" class="hidden h-screen flex flex-col relative z-10 gpu-accelerated">
         <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="app.openProfile()">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="app.openSidebar()">
                 <div class="relative w-12 h-12 rounded-full border-2 border-[#00f3ff] overflow-visible shadow-[0_0_10px_#00f3ff] flex items-center justify-center bg-black">
                     <img id="avatar-feed" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover rounded-full">
                     <span id="feed-neon-dot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full neon-green-dot border-2 border-black animate-pulse"></span>
@@ -245,9 +291,9 @@
                 </div>
             </div>
             <div class="flex gap-2 items-center">
-                <!-- ⚙️ BOTÓN DE AJUSTES GENERALES (TUERCA EN CABECERA) -->
-                <button onclick="app.openSettingsModal()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-full w-9 h-9 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-sm shadow-[0_0_10px_#00f3ff] active:scale-95" title="Centro de Ajustes">
-                    <i class="fa-solid fa-gear"></i>
+                <!-- ≡ BOTÓN MENÚ LATERAL (SIDEBAR DRAWER) -->
+                <button onclick="app.openSidebar()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-full w-9 h-9 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-sm shadow-[0_0_10px_#00f3ff] active:scale-95" title="Menú Lateral">
+                    <i class="fa-solid fa-bars"></i>
                 </button>
                 <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center hover:bg-[rgba(0,243,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
                     <i class="fa-solid fa-wallet mr-1.5 text-xs"></i> <span id="btn-wallet-hdr">WALLET</span>
@@ -390,6 +436,17 @@
                 </div>
             </div>
 
+            <!-- 🌟 GESTIÓN DE LOS 10 SLOTS (CONFIGURACIÓN Y GUARDADO COMPLETO) -->
+            <div class="w-full bg-neutral-900 border border-[#ffb703]/30 rounded-2xl p-4 mb-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h4 class="text-xs font-black text-[#ffb703] uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group"></i> Gestión de los 10 Slots
+                    </h4>
+                    <button onclick="app.openSlotsModal()" class="bg-[#ffb703]/20 border border-[#ffb703] text-[#ffb703] px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase">Editar Slots</button>
+                </div>
+                <p class="text-[10px] text-neutral-400">Tus 10 slots personalizados quedan guardados en tu perfil de manera persistente.</p>
+            </div>
+
             <!-- 🌟 HERRAMIENTAS DE CREADOR / FAVORITOS -->
             <div id="prof-creator-tools" class="w-full mb-5">
                 <button onclick="app.openFavoritesModal()" class="w-full bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 font-black py-3 rounded-xl text-xs shadow-[0_0_15px_rgba(0,243,255,0.4)] transition uppercase tracking-wider flex items-center justify-center gap-2">
@@ -416,6 +473,29 @@
                 <button onclick="app.saveProfile()" class="mt-3 w-full border-2 border-[#ff00ff] text-[#ff00ff] py-3 rounded-xl font-bold text-sm hover:bg-[#ff00ff]/20 transition uppercase tracking-wider" id="btn-save-bio">GUARDAR PERFIL</button>
             </div>
             <div class="pb-10"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: GESTIÓN DE LOS 10 SLOTS (EDITOR COMPLETO Y GUARDADO EN PERFIL) -->
+    <div id="modal-slots" class="hidden fixed inset-0 z-[125] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+        <div class="glass-panel w-11/12 max-w-lg rounded-3xl p-6 relative flex flex-col border-2 border-[#ffb703] shadow-[0_0_25px_rgba(255,183,3,0.3)] max-h-[90vh] overflow-hidden">
+            <div class="flex items-center justify-between mb-3 pb-3 border-b border-[#ffb703]/30 shrink-0">
+                <h3 class="text-xl font-black text-[#ffb703] uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-layer-group"></i> Configurar 10 Slots
+                </h3>
+                <button onclick="app.closeSlotsModal()" class="bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold hover:scale-110 transition"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <p class="text-xs text-neutral-300 mb-3 shrink-0">Personaliza tus 10 slots activos. Al pulsar guardar, se grabarán directamente en los ajustes de tu perfil.</p>
+            
+            <div class="flex-1 overflow-y-auto pr-1 space-y-3" id="slots-container-list">
+                <!-- Se generan dinámicamente o se precargan 10 slots -->
+            </div>
+
+            <div class="pt-3 border-t border-neutral-800 shrink-0 mt-3">
+                <button onclick="app.saveAllSlots()" class="w-full bg-[#ffb703] text-black font-black py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(255,183,3,0.5)]">
+                    <i class="fa-solid fa-floppy-disk mr-1"></i> Guardar los 10 Slots en Perfil
+                </button>
+            </div>
         </div>
     </div>
 
@@ -672,7 +752,7 @@
         </div>
     </div>
 
-    <!-- 👤 MODAL: PERFIL PÚBLICO DEL CREADOR (PRE-RENDERIZADO PARA APERTURA INSTANTÁNEA DESDE RADAR) -->
+    <!-- 👤 MODAL: PERFIL PÚBLICO DEL CREADOR -->
     <div id="modal-creator-profile" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
         <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
             <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
@@ -880,7 +960,7 @@
     <script src="js/chat.js?v=38"></script>
     <script src="js/app.js?v=38" defer></script>
 
-    <!-- 🛡️ SCRIPT NATIVO: CONTROL DE ARRASTRE PiP -->
+    <!-- 🛡️ SCRIPT NATIVO: CONTROL DE ARRASTRE PiP Y SIDEBAR DRAWER -->
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const bunker = document.getElementById('floating-video-bunker');

@@ -8,7 +8,7 @@
 }
 
 html {
-    background-color: #000; /* Fondo negro exterior para cuando se abra en PC */
+    background-color: #000;
     width: 100%;
     height: 100%;
 }
@@ -20,7 +20,6 @@ body {
     font-size: 1.15rem;
     overflow-x: hidden;
     
-    /* 🛡️ Vista vertical móvil por defecto (APK / Móvil) */
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
@@ -41,6 +40,18 @@ body {
     transform: translate3d(0, 0, 0);
     will-change: transform, opacity;
     backface-visibility: hidden;
+}
+
+/* 📱 ESTILOS PARA EL MENÚ LATERAL DESLIZABLE (SIDEBAR DRAWER ESTILO TELEGRAM) */
+#telegram-sidebar {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#telegram-sidebar.sidebar-open {
+    transform: translateX(0) !important;
+}
+#sidebar-backdrop.backdrop-open {
+    opacity: 1 !important;
+    pointer-events: auto !important;
 }
 
 /* ☀️ MODO CLARO COMPLETO Y CONTRASTADO */
@@ -99,7 +110,6 @@ body.light-theme .text-neutral-300 {
     border-radius: 4px;
 }
 
-/* 🛡️ REGLA PARA MANTENER LA CABECERA DEL CHAT FIJA Y EVITAR DESPLAZAMIENTOS */
 #modal-global-chat .glass-panel {
     max-height: 100vh;
     display: flex;
@@ -116,7 +126,6 @@ body.light-theme .text-neutral-300 {
     background-image: none !important;
 }
 
-/* 🛡️ Ajuste de Ancho para los fondos fijos en PC */
 .tron-grid {
     position: fixed;
     top: 0; left: 0; right: 0; margin: 0 auto;
@@ -275,7 +284,6 @@ body.light-theme .text-neutral-300 {
     object-fit: cover;
 }
 
-/* 📹 PESTAÑA LATERAL DE VIDEOCHAT MINIMIZADO */
 .video-hidden {
     display: none !important;
 }
