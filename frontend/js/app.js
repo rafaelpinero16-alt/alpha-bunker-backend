@@ -1683,6 +1683,7 @@ async openRoomChat(roomId, roomName, minAccessLevel) {
         return;
     }
 
+    // 🛡️ Aislamiento total del Room
     this.currentRoomId = roomId;
     this.closeModals();
 
@@ -1690,11 +1691,48 @@ async openRoomChat(roomId, roomName, minAccessLevel) {
     if (titleEl) titleEl.innerText = `SALA: ${roomName.toUpperCase()}`;
 
     const container = document.getElementById('global-chat-messages');
-    if (container) container.innerHTML = '';
+    if (container) container.innerHTML = ''; // Vaciar pantalla
 
     document.getElementById('modal-global-chat')?.classList.remove('hidden');
     this.setupSystemMessageObserver('global-chat-messages');
 
+    // Cargar SOLO el historial de este roomId
+    await this.loadGlobalChatHistory();
+
+    if (typeof BunkerChat !== 'undefined') {
+        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
+    }
+},
+
+async joinVideoRoom(roomId, minAccessLevel, roomName) {
+    this.haptic('medium');
+    const userTier = this.userData?.access_tier || 0;
+    const isAdmin = this.isAdminUser();
+
+    if (!isAdmin && userTier < minAccessLevel) {
+        this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
+        this.openCatalogPackages();
+        return;
+    }
+
+    this.currentRoomId = roomId;
+    this.closeModals();
+    
+    // Limpiar WebRTC y DOM para no mezclar transmisiones
+    Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
+
+    const badge = document.getElementById('video-badge');
+    if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • PREVIEW`;
+    
+    const titleEl = document.getElementById('global-chat-title');
+    if (titleEl) titleEl.innerText = `SALA: ${(roomName || roomId).toUpperCase()}`;
+
+    const container = document.getElementById('global-chat-messages');
+    if (container) container.innerHTML = ''; // Vaciar pantalla
+
+    await this.joinVideoBunker();
+    await this.loadGlobalChatHistory();
+    
     if (typeof BunkerChat !== 'undefined') {
         BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
     }
@@ -1941,11 +1979,23 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
 
     async openGlobalChat() { 
         this.closeModals(); 
+        
+        // 🛡️ Forzar sala global
+        this.currentRoomId = 'bunker_main';
+        const titleEl = document.getElementById('global-chat-title');
+        if (titleEl) titleEl.innerText = `CHAT GLOBAL & VIDEO BÚNKER`;
+
+        const msgContainer = document.getElementById('global-chat-messages');
+        if (msgContainer) msgContainer.innerHTML = '';
+
         document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
         this.updateOnlineUsersRadar();
         this.setupSystemMessageObserver('global-chat-messages'); 
+        
         await this.loadGlobalChatHistory(); 
-        BunkerChat.initGlobal(this.userId, this.backendUrl); 
+        if (typeof BunkerChat !== 'undefined') {
+            BunkerChat.initGlobal(this.userId, this.backendUrl, 'bunker_main'); 
+        }
     },
 
     handleRadarUpdate(data) {
@@ -1991,12 +2041,31 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         const container = document.getElementById('global-chat-messages'); 
         if (container) container.innerHTML = ''; 
         try { 
-            const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); 
+            // 🛡️ Solicitar historial filtrado por room_id
+            const roomId = this.currentRoomId || 'bunker_main';
+            const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50&room_id=${roomId}`); 
             if (res.ok) { 
                 const data = await res.json(); 
                 if (data.messages && data.messages.length > 0) { 
                     const now = Date.now();
-                    const freshGlobal = data.messages.filter(msg => (now - new Date(msg.created_at).getTime()) < 24 * 60 * 60 * 1000);
+                    const freshGlobal = data.messages.filter(msg => {
+                        // 1. Descartar mensajes de más de 24h
+                        if ((now - new Date(msg.created_at).getTime()) >= 24 * 60 * 60 * 1000) return false;
+                        
+                        // 2. Filtro estricto: Mostrar SOLO los mensajes correspondientes a esta sala
+                        if (msg.room_id && msg.room_id !== roomId) return false;
+
+                        // 3. Destruir JSONs técnicos residuales atrapados en la Base de Datos
+                        if (typeof msg.content === 'string') {
+                            const trim = msg.content.trim();
+                            if ((trim.startsWith('{') || trim.startsWith('[')) && 
+                                (trim.includes('"type"') || trim.includes('"radar_update"') || trim.includes('"leave_video"'))) {
+                                return false; 
+                            }
+                        }
+                        return true;
+                    });
+                    
                     freshGlobal.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); 
                     this.scrollToBottom('global-chat-messages'); 
                 } 
@@ -2194,20 +2263,17 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         const container = document.getElementById(containerId); 
         if (!container || !msg) return;
 
-        // 🛡️ Filtro de seguridad: Descartar paquetes técnicos de red (radar, WebRTC, eventos de video)
+        // 🛡️ FILTRO ABSOLUTO ANTI-JSON: Bloquear cualquier cadena que parezca un payload técnico
+        if (typeof msg.content === 'string') {
+            const trimmed = msg.content.trim();
+            if ((trimmed.startsWith('{') || trimmed.startsWith('[')) && 
+                (trimmed.includes('"type"') || trimmed.includes('"radar_update"') || trimmed.includes('"leave_video"') || trimmed.includes('"join_video"') || trimmed.includes('"webrtc'))) {
+                return; // Descartar silenciosamente y no renderizar
+            }
+        }
         if (msg.type && (msg.type.startsWith('webrtc_') || msg.type === 'radar_update' || msg.type === 'leave_video' || msg.type === 'join_video' || msg.type === 'online_count_update')) {
             return;
         }
-        try {
-            if (typeof msg.content === 'string' && (msg.content.trim().startsWith('{') || msg.content.trim().startsWith('['))) {
-                const parsedCheck = JSON.parse(msg.content);
-                if (parsedCheck && typeof parsedCheck === 'object' && parsedCheck.type) {
-                    if (parsedCheck.type.startsWith('webrtc_') || parsedCheck.type === 'radar_update' || parsedCheck.type === 'leave_video' || parsedCheck.type === 'join_video' || parsedCheck.type === 'online_count_update') {
-                        return;
-                    }
-                }
-            }
-        } catch (e) {}
 
         const isMe = msg.user_id == this.userId;
         const isAdminUser = this.isAdminUser();
@@ -2239,7 +2305,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         if (msg.is_system) {
             const msgId = `sys-msg-${msg.id || Date.now()}`;
             html = `<div id="${msgId}" class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] px-4 py-1.5 rounded-full font-black text-center shadow-[0_0_10px_rgba(245,158,11,0.3)]"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
-            setTimeout(() => { const el = document.getElementById(msgId); if(el) el.remove(); }, 4000);
+            setTimeout(() => { const el = document.getElementById(msgId); if(el) el.remove(); }, 5000);
         } else if (isMe) {
             html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">Tú • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia} <span class="inline-flex items-center">${readStatusHtml}</span></div></div>`;
         } else {
