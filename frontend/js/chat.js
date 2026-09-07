@@ -8,6 +8,7 @@ const BunkerChat = {
     activeTargetUserId: null,
     activeTargetName: null,
     currentUserId: null,
+    currentRoomId: 'bunker_main',
 
     getWsUrl(baseUrl) {
         if (!baseUrl) return '';
@@ -15,7 +16,6 @@ const BunkerChat = {
     },
 
     setTargetUser(targetId, targetName = 'Usuario') {
-        // 🛡️ Sanitización estricta: Evitar strings "null" o "undefined" que rompen el backend
         if (targetId && targetId !== 'null' && targetId !== 'undefined' && !isNaN(targetId)) {
             this.activeTargetUserId = String(targetId);
         } else {
@@ -28,7 +28,6 @@ const BunkerChat = {
             headerTitle.innerText = this.activeTargetUserId ? `CHAT CON @${targetName}` : "DMs (MENSAJES DIRECTOS)";
         }
 
-        // Notificar lectura instantánea ('R') al abrir o cambiar de chat privado
         if (this.activeTargetUserId && this.crmSocket && this.crmSocket.readyState === WebSocket.OPEN) {
             this.crmSocket.send(JSON.stringify({ type: 'mark_read', target_id: parseInt(this.activeTargetUserId) }));
         }
@@ -54,7 +53,6 @@ const BunkerChat = {
         if (!userId) return;
         this.currentUserId = String(userId);
         
-        // Si ya está activo y abierto, reutilizar la conexión
         if (this.crmSocket && (this.crmSocket.readyState === WebSocket.OPEN || this.crmSocket.readyState === WebSocket.CONNECTING)) {
             if (this.activeTargetUserId && this.crmSocket.readyState === WebSocket.OPEN) {
                 this.crmSocket.send(JSON.stringify({ type: 'mark_read', target_id: parseInt(this.activeTargetUserId) }));
@@ -77,11 +75,8 @@ const BunkerChat = {
             this.crmSocket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    
                     if (data.is_error || data.type === 'tier_error') {
-                        if (typeof app !== 'undefined') {
-                            app.showToast(data.message || 'Acceso restringido.');
-                        }
+                        if (typeof app !== 'undefined') app.showToast(data.message || 'Acceso restringido.');
                     } else if (data.type === 'delete_msg') {
                         const bubble = document.getElementById(`media-menu-${data.msg_id}`)?.closest('.flex-col');
                         if (bubble) bubble.remove();
@@ -98,7 +93,6 @@ const BunkerChat = {
                             const myId = String(this.currentUserId || app.userId);
                             const activeTarget = this.activeTargetUserId ? String(this.activeTargetUserId) : null;
 
-                            // Verificar si el mensaje pertenece estrictamente al chat abierto
                             const isCurrentConversation = activeTarget && (
                                 (senderId === activeTarget && recipientId === myId) ||
                                 (senderId === myId && recipientId === activeTarget)
@@ -132,7 +126,7 @@ const BunkerChat = {
                 }
             };
 
-            this.crmSocket.onerror = (err) => {
+            this.crmSocket.onerror = () => {
                 if (this.crmSocket) this.crmSocket.close();
             };
         } catch(e) {
@@ -140,23 +134,54 @@ const BunkerChat = {
         }
     },
 
-    initGlobal(userId, baseUrl) {
+    initGlobal(userId, baseUrl, roomId = 'bunker_main') {
         if (!userId) return;
-        if (this.globalSocket && (this.globalSocket.readyState === WebSocket.OPEN || this.globalSocket.readyState === WebSocket.CONNECTING)) return;
+        this.currentRoomId = roomId;
         
-        const wsUrl = `${this.getWsUrl(baseUrl)}/chat/global/ws/${userId}`;
+        // Si ya hay un socket abierto, lo cerramos para aislar la nueva sala limpiamente
+        if (this.globalSocket) {
+            this.globalSocket.close();
+            this.globalSocket = null;
+        }
+        
+        const wsUrl = `${this.getWsUrl(baseUrl)}/chat/global/ws/${userId}?room_id=${roomId}`;
         try {
             this.globalSocket = new WebSocket(wsUrl);
 
             this.globalSocket.onopen = () => {
                 this.reconnectAttemptsGlobal = 0;
-                console.log("[GLOBAL] Socket global activo.");
+                console.log(`[GLOBAL] Conectado a la sala aislada: ${roomId}`);
+                
+                // 🤖 Mensaje de bienvenida automático del sistema al entrar a la categoría
+                setTimeout(() => {
+                    if (typeof app !== 'undefined') {
+                        const roomNames = {
+                            'letter_and_gear': 'Letter and gear',
+                            'alpha_clothes': 'Alpha clothes',
+                            'sweat_and_thongs': 'Sweat and thongs',
+                            'slam': 'Slam',
+                            'party_time': 'Party time',
+                            'bunker_main': 'Búnker Principal'
+                        };
+                        const prettyName = roomNames[roomId] || roomId;
+                        const welcomeMsg = {
+                            is_system: true,
+                            content: `¡Bienvenido a la sala oficial de ${prettyName}! Conexión segura establecida.`,
+                            created_at: new Date().toISOString()
+                        };
+                        app.appendChatMessage(welcomeMsg, 'global-chat-messages');
+                        app.scrollToBottom('global-chat-messages');
+                    }
+                }, 500);
             };
 
             this.globalSocket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     
+                    // Filtrar estrictamente mensajes de la sala actual
+                    if (data.room_id && data.room_id !== this.currentRoomId) return;
+
                     if (data.is_error) {
                         if (typeof app !== 'undefined') app.showToast(data.message);
                     } else if (data.type && data.type.startsWith('webrtc_')) {
@@ -185,11 +210,11 @@ const BunkerChat = {
             this.globalSocket.onclose = () => {
                 if (this.reconnectAttemptsGlobal < this.maxReconnectAttempts) {
                     this.reconnectAttemptsGlobal++;
-                    setTimeout(() => this.initGlobal(userId, baseUrl), this.reconnectDelay);
+                    setTimeout(() => this.initGlobal(userId, baseUrl, roomId), this.reconnectDelay);
                 }
             };
 
-            this.globalSocket.onerror = (err) => {
+            this.globalSocket.onerror = () => {
                 if (this.globalSocket) this.globalSocket.close();
             };
         } catch(e) {
@@ -236,7 +261,9 @@ const BunkerChat = {
 
     sendGlobal(payload) {
         if (this.globalSocket && this.globalSocket.readyState === WebSocket.OPEN) {
-            const finalPayload = typeof payload === 'object' ? JSON.stringify(payload) : payload;
+            let objPayload = typeof payload === 'object' ? payload : { text: payload };
+            objPayload.room_id = this.currentRoomId;
+            const finalPayload = JSON.stringify(objPayload);
             try {
                 this.globalSocket.send(finalPayload);
                 return true;
