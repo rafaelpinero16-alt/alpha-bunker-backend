@@ -76,7 +76,7 @@
         <span class="text-[11px] font-black text-[#00f3ff]" id="fab-lang-text">ES</span>
     </button>
 
-    <!-- 📱 TELEGRAM-STYLE SLIDING SIDEBAR DRAWER (MENÚ LATERAL VERTICAL) -->
+    <!-- 📱 TELEGRAM-STYLE SLIDING SIDEBAR DRAWER (MENÚ LATERAL VERTICAL REORGANIZADO) -->
     <div id="sidebar-backdrop" onclick="app.closeSidebar()" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[130] opacity-0 pointer-events-none transition-opacity duration-300"></div>
     <aside id="telegram-sidebar" class="fixed inset-y-0 left-0 w-80 max-w-[85vw] bg-[#08080c] border-r-2 border-[#00f3ff] z-[135] transform -translate-x-full transition-transform duration-300 flex flex-col shadow-[0_0_35px_rgba(0,243,255,0.4)] overflow-y-auto">
         <!-- Cabecera del Sidebar (Perfil de Usuario) -->
@@ -90,34 +90,61 @@
             <span id="sidebar-rank" class="text-[10px] font-bold text-[#ffb703] bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/40 mt-1">ESPÍA 🕵️</span>
         </div>
 
-        <!-- Opciones de Navegación Vertical Estilo Telegram -->
+        <!-- Opciones de Navegación Vertical Reorganizadas -->
         <div class="flex-1 p-3 space-y-2">
+            <!-- 1. Mi perfil y cuenta -->
             <button onclick="app.openProfile(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-user-gear text-[#00f3ff] text-base w-6"></i> <span data-i18n="sb-profile">Mi Perfil y Cuenta</span>
+                <i class="fa-solid fa-user-gear text-[#00f3ff] text-base w-6"></i> <span>Mi Perfil y Cuenta</span>
             </button>
+            <!-- 2. Ajustes generales -->
             <button onclick="app.openSettingsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-sliders text-[#ff00ff] text-base w-6"></i> <span data-i18n="sb-settings">Ajustes Generales</span>
+                <i class="fa-solid fa-sliders text-[#ff00ff] text-base w-6"></i> <span>Ajustes Generales</span>
             </button>
+            <!-- 3. Gestionar 10 Slots -->
             <button onclick="app.openSlotsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ffb703] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-layer-group text-[#ffb703] text-base w-6"></i> <span data-i18n="sb-slots">Gestionar 10 Slots</span>
+                <i class="fa-solid fa-layer-group text-[#ffb703] text-base w-6"></i> <span>Gestionar 10 Slots</span>
             </button>
-            <button onclick="app.connectWallet(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-blue-400 text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-wallet text-blue-400 text-base w-6"></i> <span data-i18n="sb-wallet">Billetera TON / Alpha</span>
+            <!-- 4. Videochat Rooms -->
+            <button onclick="app.openVideoRoomsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-amber-400 text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-video text-amber-400 text-base w-6"></i> <span>Videochat Rooms</span>
             </button>
-            <button onclick="app.openAVSettings(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-emerald-400 text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-video text-emerald-400 text-base w-6"></i> <span data-i18n="sb-hardware">Hardware A/V</span>
-            </button>
-            <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ff00ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-address-book text-[#ff00ff] text-base w-6"></i> <span data-i18n="sb-contacts">Contactos y DMs</span>
-            </button>
+            <!-- 5. Global Bunker Chat -->
             <button onclick="app.openGlobalChat(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-comments text-[#00f3ff] text-base w-6"></i> <span data-i18n="sb-chats">Chat Global y Búnker</span>
+                <i class="fa-solid fa-comments text-[#00f3ff] text-base w-6"></i> <span>Global Bunker Chat</span>
+            </button>
+            <!-- 6. Hardware A/V -->
+            <button onclick="app.openAVSettings(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-emerald-400 text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-sliders text-emerald-400 text-base w-6"></i> <span>Hardware A/V</span>
+            </button>
+            <!-- 7. Contactos y DMs -->
+            <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ff00ff] text-white transition text-xs font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-address-book text-[#ff00ff] text-base w-6"></i> <span>Contactos y DMs</span>
+            </button>
+
+            <!-- Separador de secciones -->
+            <div class="border-t border-neutral-800 my-2 pt-2"></div>
+
+            <!-- 8. Hacer una pregunta -->
+            <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-circle-question text-cyan-400 text-sm w-5"></i> <span>Hacer una pregunta</span>
+            </button>
+            <!-- 9. Preguntas frecuentes (FAQ) -->
+            <button onclick="app.openLink('https://t.me/therealonetom'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-file-lines text-cyan-400 text-sm w-5"></i> <span>Preguntas Frecuentes (FAQ)</span>
+            </button>
+            <!-- 10. Aprende sobre Alpha App -->
+            <button onclick="app.openLink('https://t.me/therealonetom'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-graduation-cap text-cyan-400 text-sm w-5"></i> <span>Aprende sobre Alpha App</span>
+            </button>
+            <!-- 11. Política de privacidad -->
+            <button onclick="app.openLink('https://t.me/therealonetom'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
+                <i class="fa-solid fa-shield-cat text-cyan-400 text-sm w-5"></i> <span>Política de Privacidad</span>
             </button>
         </div>
 
         <div class="p-4 border-t border-neutral-800 bg-black/40">
             <button onclick="app.logout(); app.closeSidebar();" class="w-full bg-red-950/40 border border-red-800 text-red-300 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-red-900/40 transition">
-                <i class="fa-solid fa-right-from-bracket"></i> <span data-i18n="sb-logout">Cerrar Sesión</span>
+                <i class="fa-solid fa-right-from-bracket"></i> <span>Cerrar Sesión</span>
             </button>
         </div>
     </aside>
@@ -890,7 +917,7 @@
         </div>
     </div>
 
-    <!-- 🎥 CONTENEDOR FLOTANTE VIDEO BÚNKER (ARRASTRABLE EN MODO PiP) -->
+    <!-- 🎥 CONTENEDOR FLOTANTE VIDEO BÚNKER / MULTIVIDEOCHAT (OPTIMIZADO PARA DESKTOP) -->
     <div id="floating-video-bunker" class="hidden fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-transform duration-300">
         <div id="video-drag-handle" class="hidden w-full h-8 bg-neutral-900 border-b border-[#00f3ff]/50 flex items-center justify-center cursor-move touch-none relative z-50 shadow-md">
             <div class="w-10 h-1.5 bg-[#00f3ff]/50 rounded-full"></div>
