@@ -1268,7 +1268,7 @@ const app = {
                             <h3 class="text-xl font-black text-[#ffb703] uppercase tracking-wider"><i class="fa-solid fa-coins mr-2"></i> TIP MENU</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        <p class="text-center font-bold text-white mb-4 uppercase tracking-widest text-sm"><span id="fan-tip-support-label">Apoya a</span> <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
+                        <p class="text-center font-black text-white mb-4 uppercase tracking-widest text-sm"><span id="fan-tip-support-label">Apoya a</span> <span id="fan-tip-creator-name" class="text-[#00f3ff]"></span></p>
                         
                         <div id="fan-tip-slots-container" class="overflow-y-auto space-y-3 mb-4 max-h-40"></div>
                         
@@ -1305,19 +1305,20 @@ const app = {
         document.getElementById('fan-tip-creator-name').innerText = `@${safeCreatorName}`;
         modal.classList.remove('hidden');
 
-        const container = document.getElementById('fan-tip-slots-container');
-        container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold text-xs">${this.getTrans('msg_loading')}</div>`;
-        
-        const slots = await this.loadTipMenu(targetCreatorId);
-        if (slots.length === 0) {
-            container.innerHTML = ``; 
-        } else {
-            container.innerHTML = slots.map(s => `
-                <button onclick="app.sendTipFromPost(${targetCreatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-3 flex justify-between items-center text-white transition active:scale-95 shadow-md">
-                    <span class="font-bold text-xs text-left truncate pr-2">${this.escapeHtml(s.title)}</span>
-                    <span class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-xs font-black px-2 py-1 rounded-lg shadow-md whitespace-nowrap">${s.price_alpha} $ALPHA</span>
-                </button>
-            `).join('');
+        const container = document.getElementById('fan-temp-slots-container') || document.getElementById('fan-tip-slots-container');
+        if (container) {
+            container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold text-xs">${this.getTrans('msg_loading')}</div>`;
+            const slots = await this.loadTipMenu(targetCreatorId);
+            if (slots.length === 0) {
+                container.innerHTML = ``; 
+            } else {
+                container.innerHTML = slots.map(s => `
+                    <button onclick="app.sendTipFromPost(${targetCreatorId}, ${s.price_alpha}, ${postId || null})" class="w-full bg-black border border-[#ffb703]/50 hover:bg-[#ffb703]/20 rounded-2xl p-3 flex justify-between items-center text-white transition active:scale-95 shadow-md">
+                        <span class="font-bold text-xs text-left truncate pr-2">${this.escapeHtml(s.title)}</span>
+                        <span class="bg-gradient-to-r from-amber-500 to-yellow-600 text-black text-xs font-black px-2 py-1 rounded-lg shadow-md whitespace-nowrap">${s.price_alpha} $ALPHA</span>
+                    </button>
+                `).join('');
+            }
         }
     },
 
@@ -1484,582 +1485,87 @@ const app = {
             BunkerChat.setTargetUser(null, '');
         }
         this.openSupport();
-    }
-},
-async toggleFollow(targetId, targetName) {
-    this.haptic('medium');
-    this.initUserId();
-    try {
-        const res = await fetch(`${this.backendUrl}/users/follow`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ follower_id: parseInt(this.userId), following_id: parseInt(targetId) })
-        });
-        if (res.ok) {
-            const data = await res.json();
-            this.showToast(data.message);
-            
-            let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
-            if (data.following) {
-                if (!following.includes(String(targetId))) following.push(String(targetId));
-            } else {
-                following = following.filter(id => String(id) !== String(targetId));
-            }
-            localStorage.setItem('alpha_user_following', JSON.stringify(following));
+    },
 
-            const btn = document.getElementById('btn-profile-follow');
-            if (btn) {
-                btn.innerHTML = data.following ? '<i class="fa-solid fa-user-check"></i> Siguiendo' : '<i class="fa-solid fa-user-plus"></i> Seguir';
-                btn.className = data.following 
-                    ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
-                    : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
-            }
-        }
-    } catch(e) {
-        this.showToast('⚠️ Error al actualizar seguimiento.');
-    }
-},
-
-blockUser(targetId, targetName) {
-    this.haptic('heavy');
-    if (confirm(`¿Estás seguro de bloquear a @${targetName}? Ya no verás sus publicaciones ni mensajes.`)) {
-        let blocked = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
-        if (!blocked.includes(String(targetId))) {
-            blocked.push(String(targetId));
-            localStorage.setItem('alpha_user_blocked', JSON.stringify(blocked));
-        }
-        this.showToast(`Usuario @${targetName} bloqueado.`);
-        this.closeModals();
-        this.renderFeed();
-    }
-},
-
-openCommunitiesModal() {
-    this.closeModals();
-    this.haptic('medium');
-    let modal = document.getElementById('modal-communities-links');
-    if (!modal) {
-        const modalHTML = `
-            <div id="modal-communities-links" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
-                <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                    <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span>ECOSISTEMA</span></h3>
-                    <p class="text-xs text-neutral-300 text-center mb-6">Únete a nuestros canales y grupos oficiales.</p>
-                    
-                    <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
-                        <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
-                            <i class="fa-solid fa-globe text-lg"></i> 🔱♨️Alpha World♨️🔱
-                        </button>
-                        <button onclick="app.openLink('https://t.me/+7NhKBpvAE_dkODgx')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-ff00ff/20 active:scale-95 text-center leading-tight">
-                            <i class="fa-solid fa-champagne-glasses text-lg"></i> PIG'BROS 🚀PartyN'Play🚀VIP • 💬CHAT & VC📽
-                        </button>
-                        <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20 active:scale-95 text-center leading-tight">
-                            <i class="fa-solid fa-lock text-lg"></i> ⚜️🔐The Bunker CHat 🔐⚜️
-                        </button>
-                        <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
-                            <i class="fa-solid fa-masks-theater text-lg"></i> BETA HOUSE
-                        </button>
-                        <button onclick="app.openLink('https://t.me/+N0BuW-guPM42OGNh')" class="w-full bg-black border border-red-500 text-red-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
-                            <i class="fa-solid fa-fire-flame-curved text-lg"></i> EUPHORIA
-                        </button>
-                    </div>
-                    <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition">CERRAR</button>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        modal = document.getElementById('modal-communities-links');
-    }
-    modal.classList.remove('hidden');
-},
-
-async openVideoRoomsModal() {
-    this.closeModals();
-    this.haptic('medium');
-    
-    const userTier = this.userData?.access_tier || 0;
-    if (userTier < 1 && !this.isAdminUser()) {
-        this.showToast('🚫 Acceso denegado: Rango ESPÍA no autorizado para videollamadas.');
-        this.openCatalogPackages();
-        return;
-    }
-
-    let modal = document.getElementById('modal-video-rooms');
-    if (!modal) {
-        const modalHTML = `
-            <div id="modal-video-rooms" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
-                <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_25px_rgba(0,243,255,0.3)]">
-                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                        <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> SALAS DE VIDEOCHAT</h3>
-                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
-                    </div>
-                    <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0">
-                        <button onclick="app.filterVideoRooms('all')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Todas</button>
-                        <button onclick="app.filterVideoRooms('gaming')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Gaming</button>
-                        <button onclick="app.filterVideoRooms('charlas')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Charlas</button>
-                        <button onclick="app.filterVideoRooms('vip')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">VIP</button>
-                    </div>
-                    <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
-                        <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando salas activas... ⏳</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        modal = document.getElementById('modal-video-rooms');
-    }
-    modal.classList.remove('hidden');
-    await this.loadVideoRooms('all');
-},
-
-async loadVideoRooms(category) {
-    const container = document.getElementById('video-rooms-list');
-    if (!container) return;
-    container.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10">Cargando salas... ⏳</div>`;
-    try {
-        const url = category === 'all' ? `${this.backendUrl}/chat/rooms` : `${this.backendUrl}/chat/rooms?category=${category}`;
-        const res = await fetch(url);
-        if (res.ok) {
-            const data = await res.json();
-            this.activeRooms = data.rooms || [];
-            if (this.activeRooms.length === 0) {
-                container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">No hay salas disponibles en esta categoría.</div>`;
-            } else {
-                container.innerHTML = this.activeRooms.map(r => `
-                    <div class="bg-black border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex items-center justify-between transition shadow-md">
-                        <div>
-                            <span class="text-xs font-black text-[#00f3ff] uppercase tracking-wider block mb-1">${this.escapeHtml(r.name)}</span>
-                            <p class="text-[10px] text-neutral-400 mb-1">${this.escapeHtml(r.description || 'Sala temática interactiva')}</p>
-                            <span class="text-[9px] bg-neutral-800 text-amber-400 px-2 py-0.5 rounded-full border border-neutral-700 font-bold">Min Nivel: ${r.min_access_level}</span>
-                        </div>
-                        <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level})" class="bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black px-4 py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition">Entrar</button>
-                    </div>
-                `).join('');
-            }
-        }
-    } catch (e) {
-        container.innerHTML = `<div class="text-center text-red-400 text-xs py-10">Error al conectar con el servidor de salas.</div>`;
-    }
-},
-
-filterVideoRooms(category) {
-    this.haptic('light');
-    this.loadVideoRooms(category);
-},
-
-async joinVideoRoom(roomId, minAccessLevel) {
-    this.haptic('medium');
-    const userTier = this.userData?.access_tier || 0;
-    const isAdmin = this.isAdminUser();
-
-    if (!isAdmin && userTier < minAccessLevel) {
-        this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
-        this.openCatalogPackages();
-        return;
-    }
-
-    this.currentRoomId = roomId;
-    this.closeModals();
-    await this.joinVideoBunker();
-},
-
-async sendLiveTip(streamerId, amountAlpha) {
-    this.haptic('heavy');
-    if (!streamerId || amountAlpha <= 0) return;
-    this.showToast(`Enviando propina de ${amountAlpha} $ALPHA... ⏳`);
-    try {
-        if (typeof BunkerChat !== 'undefined' && BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) {
-            BunkerChat.globalSocket.send(JSON.stringify({
-                type: "live_tip",
-                target_id: parseInt(streamerId),
-                amount: parseInt(amountAlpha),
-                room_id: this.currentRoomId || "bunker_main"
-            }));
-            this.showToast("¡Propina emitida en directo! 🪙💎");
-        } else {
-            this.showToast("⚠️ Conexión WebSocket inactiva para propinas en vivo.");
-        }
-    } catch (e) {
-        this.showToast("⚠️ Error al procesar la propina en directo.");
-    }
-},
-
-async viewCreatorProfile(userId, userName) {
-    this.closeModals();
-    this.haptic('light');
-    let modal = document.getElementById('modal-creator-profile');
-    const safeUserId = String(userId);
-    const safeUserName = String(userName || 'Usuario');
-    
-    let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
-    const isFollowing = following.includes(safeUserId);
-    const followBtnText = isFollowing ? 'Siguiendo' : 'Seguir';
-    const followBtnClass = isFollowing 
-        ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
-        : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
-    const followIcon = isFollowing ? 'fa-user-check' : 'fa-user-plus';
-
-    if (!modal) {
-        const modalHTML = `
-            <div id="modal-creator-profile" class="hidden fixed inset-0 z-[250] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
-                <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-md h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
-                    <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
-                    
-                    <div class="absolute top-4 left-4 z-20">
-                        <button onclick="document.getElementById('creator-options-menu').classList.toggle('hidden')" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-ellipsis-vertical text-xl"></i></button>
-                        <div id="creator-options-menu" class="hidden absolute left-0 mt-2 w-36 bg-black border border-neutral-700 rounded-xl shadow-xl z-30 flex flex-col overflow-hidden">
-                            <button id="btn-block-creator-action" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-900 text-left w-full"><i class="fa-solid fa-ban mr-1"></i> Bloquear</button>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-col items-center text-center mb-3 shrink-0 mt-2">
-                        <div class="relative w-20 h-20 rounded-full border-2 border-[#00f3ff] overflow-hidden bg-black mb-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,243,255,0.4)]">
-                            <img id="creator-prof-avatar" src="" class="w-full h-full object-cover hidden" onerror="this.style.display='none'">
-                            <i id="creator-prof-default-icon" class="fa-solid fa-user text-2xl text-[#00f3ff]"></i>
-                            <div id="creator-prof-dot" class="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-black hidden"></div>
-                        </div>
-                        <h3 id="creator-prof-name" class="text-xl font-black text-white uppercase tracking-wider truncate w-full px-4">@${safeUserName}</h3>
-                        <span id="creator-prof-status" class="text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border">OFFLINE</span>
-                        <span class="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-widest">Operativo en el Ecosistema Alfa</span>
-                    </div>
-                    
-                    <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-3 text-center shrink-0">Cargando biografía...</div>
-                    
-                    <div class="flex gap-2 mb-3 shrink-0">
-                        <button id="btn-creator-tip-action" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-coins"></i> Enviar Tip
-                        </button>
-                        <button id="btn-creator-chat-action" class="flex-1 bg-[#00f3ff] hover:bg-[#00f3ff]/80 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-comments"></i> Chat
-                        </button>
-                    </div>
-
-                    <div class="flex gap-2 mb-3 shrink-0">
-                        <button id="btn-profile-follow" class="${followBtnClass}">
-                            <i class="fa-solid ${followIcon}"></i> ${followBtnText}
-                        </button>
-                    </div>
-                    
-                    <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2 shrink-0">Publicaciones del Creador</h4>
-                    <div id="creator-prof-posts" class="flex-1 overflow-y-auto space-y-3 pr-2 pb-6">
-                        <div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        modal = document.getElementById('modal-creator-profile');
-    }
-
-    modal.classList.remove('hidden');
-
-    const tipBtn = document.getElementById('btn-creator-tip-action');
-    if (tipBtn) tipBtn.setAttribute('onclick', `app.openFanTipMenu('${safeUserId}', null, '${safeUserName}')`);
-    
-    const chatBtn = document.getElementById('btn-creator-chat-action');
-    if (chatBtn) chatBtn.setAttribute('onclick', `app.openDirectChat('${safeUserId}', '${safeUserName}')`);
-    
-    const followBtn = document.getElementById('btn-profile-follow');
-    if (followBtn) {
-        followBtn.setAttribute('onclick', `app.toggleFollow('${safeUserId}', '${safeUserName}')`);
-        followBtn.className = followBtnClass;
-        followBtn.innerHTML = `<i class="fa-solid ${followIcon}"></i> ${followBtnText}`;
-    }
-    
-    const blockBtn = document.getElementById('btn-block-creator-action');
-    if (blockBtn) blockBtn.setAttribute('onclick', `app.blockUser('${safeUserId}', '${safeUserName}')`);
-
-    const avatarEl = document.getElementById('creator-prof-avatar');
-    const defaultIconEl = document.getElementById('creator-prof-default-icon');
-    const dotEl = document.getElementById('creator-prof-dot');
-    const nameEl = document.getElementById('creator-prof-name');
-    const statusEl = document.getElementById('creator-prof-status');
-    const bioEl = document.getElementById('creator-prof-bio');
-    const postsContainer = document.getElementById('creator-prof-posts');
-
-    if (nameEl) nameEl.innerText = `@${safeUserName}`;
-    if (avatarEl) avatarEl.classList.add('hidden');
-    if (defaultIconEl) defaultIconEl.style.display = 'block';
-    if (dotEl) dotEl.classList.add('hidden');
-    if (statusEl) {
-        statusEl.innerText = 'OFFLINE';
-        statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-neutral-700 text-neutral-400 bg-neutral-800';
-    }
-    if (bioEl) bioEl.innerText = 'Operativo en el Ecosistema Alpha.';
-    if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>`;
-
-    try {
-        const res = await fetch(`${this.backendUrl}/kyc/status/${safeUserId}`);
-        if (res.ok) {
-            const data = await res.json();
-            if (data.avatar_url && avatarEl && defaultIconEl) {
-                avatarEl.src = this.sanitizeUrl(data.avatar_url);
-                avatarEl.classList.remove('hidden');
-                defaultIconEl.style.display = 'none';
-            }
-            if (data.bio && bioEl) { bioEl.innerText = data.bio; }
-            if (data.is_online && dotEl && statusEl) {
-                dotEl.classList.remove('hidden');
-                statusEl.innerText = '● ONLINE';
-                statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
-            }
-        }
-    } catch(e) {}
-
-    try {
-        const feedRes = await fetch(`${this.backendUrl}/posts/feed/${this.userId || 0}`);
-        if (feedRes.ok && postsContainer) {
-            const feedData = await feedRes.json();
-            const creatorPosts = (feedData.posts || []).filter(p => String(p.creator_id || p.user_id) === safeUserId);
-            if (creatorPosts.length === 0) {
-                postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4 bg-black/40 rounded-xl">No hay publicaciones de este usuario.</div>`;
-            } else {
-                let html = '';
-                for (let i = 0; i < creatorPosts.length; i++) {
-                    const p = creatorPosts[i];
-                    const isLocked = !!p.is_locked;
-                    const cleanUrl = this.sanitizeUrl(p.media_url);
-                    const isVid = cleanUrl && (cleanUrl.match(/\.(mp4|webm)/i) || cleanUrl.startsWith('data:video'));
-                    const isAud = cleanUrl && (cleanUrl.match(/\.(mp3|wav|ogg)/i) || cleanUrl.startsWith('data:audio'));
-                    const mediaType = isVid ? 'video' : (isAud ? 'audio' : 'image');
-                    
-                    let mediaContent = '';
-                    if (cleanUrl) {
-                        if (isLocked) {
-                            mediaContent = `
-                                <div class="relative w-full">
-                                    <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover blur-md grayscale opacity-50 pointer-events-none select-none mx-auto block" />
-                                    <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg z-10 text-center pointer-events-none">
-                                        <i class="fa-solid fa-lock text-3xl text-amber-400 mb-1 drop-shadow-md"></i>
-                                        <span class="bg-black/80 px-2 py-0.5 rounded text-[9px] font-black text-white border border-amber-500/50 uppercase tracking-widest">Protegido</span>
-                                    </div>
-                                </div>
-                            `;
-                        } else {
-                            if (isVid) {
-                                mediaContent = `<div class="relative cursor-pointer group mb-2 flex justify-center w-full"><video src="${cleanUrl}" class="rounded-xl w-full max-h-48 object-cover mx-auto block" controls playsinline></video></div>`;
-                            } else if (isAud) {
-                                mediaContent = `<div class="relative mb-2 flex justify-center w-full"><audio src="${cleanUrl}" controls class="w-full h-10 rounded-full border border-neutral-700 bg-neutral-900"></audio></div>`;
-                            } else {
-                                mediaContent = `
-                                    <div class="relative w-full cursor-pointer group flex justify-center" onclick="app.openLightbox('${cleanUrl}', '${mediaType}')">
-                                        <img src="${cleanUrl}" class="rounded-lg max-h-48 object-cover mx-auto block" />
-                                        <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition rounded-lg pointer-events-none">
-                                            <i class="fa-solid fa-expand text-white text-2xl drop-shadow-md"></i>
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                        }
-                    }
-
-                    const textContent = p.content ? `<p class="text-neutral-200 ${isLocked && !cleanUrl ? 'blur-sm opacity-50 select-none' : ''}">${this.escapeHtml(p.content)}</p>` : '';
-                    const priceText = p.price_alpha ? p.price_alpha + ' $ALPHA' : 'Gratis';
-
-                    html += `
-                        <div class="bg-black border border-neutral-800 rounded-xl p-3 text-white text-xs space-y-2 relative">
-                            ${textContent}
-                            ${mediaContent}
-                            <div class="flex justify-between items-center text-[10px] text-neutral-400 pt-1 border-t border-neutral-900 ${isLocked ? 'opacity-40 pointer-events-none select-none' : ''}">
-                                <span>❤️ ${p.likes_count || 0} likes</span>
-                                <span class="${isLocked ? 'text-neutral-500' : 'text-[#00f3ff]'}">${priceText}</span>
-                            </div>
-                        </div>
-                    `;
+    async toggleFollow(targetId, targetName) {
+        this.haptic('medium');
+        this.initUserId();
+        try {
+            const res = await fetch(`${this.backendUrl}/users/follow`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ follower_id: parseInt(this.userId), following_id: parseInt(targetId) })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                this.showToast(data.message);
+                
+                let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
+                if (data.following) {
+                    if (!following.includes(String(targetId))) following.push(String(targetId));
+                } else {
+                    following = following.filter(id => String(id) !== String(targetId));
                 }
-                postsContainer.innerHTML = html;
+                localStorage.setItem('alpha_user_following', JSON.stringify(following));
+
+                const btn = document.getElementById('btn-profile-follow');
+                if (btn) {
+                    btn.innerHTML = data.following ? '<i class="fa-solid fa-user-check"></i> Siguiendo' : '<i class="fa-solid fa-user-plus"></i> Seguir';
+                    btn.className = data.following 
+                        ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
+                        : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
+                }
             }
+        } catch(e) {
+            this.showToast('⚠️ Error al actualizar seguimiento.');
         }
-    } catch(e) {
-        if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-red-400 text-xs py-4">Error al cargar publicaciones.</div>`;
-    }
-},
+    },
 
-async openGlobalChat() { 
-    this.closeModals(); 
-    document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
-    this.updateOnlineUsersRadar();
-    this.setupSystemMessageObserver('global-chat-messages'); 
-    await this.loadGlobalChatHistory(); 
-    BunkerChat.initGlobal(this.userId, this.backendUrl); 
-},
-
-handleRadarUpdate(data) {
-    const chipsChat = document.getElementById('online-users-chips');
-    const chipsVideo = document.getElementById('bunker-video-active-members');
-    const counter = document.getElementById('views-counter');
-    const safeName = this.escapeHtml(data.name);
-    const chipIdChat = `radar-chat-${data.user_id}`;
-    const chipIdVideo = `radar-video-${data.user_id}`;
-    
-    if (data.status === 'offline') {
-        document.getElementById(chipIdChat)?.remove();
-        document.getElementById(chipIdVideo)?.remove();
-        this.closePeerConnection(data.user_id);
-    } else {
-        if (chipsChat && !document.getElementById(chipIdChat)) {
-            chipsChat.insertAdjacentHTML('beforeend', `<div id="${chipIdChat}" onclick="app.viewCreatorProfile('${data.user_id}', '${safeName}')" class="flex items-center gap-1 bg-black px-2 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] neon-green-dot"></i> @${safeName}</div>`);
+    blockUser(targetId, targetName) {
+        this.haptic('heavy');
+        if (confirm(`¿Estás seguro de bloquear a @${targetName}? Ya no verás sus publicaciones ni mensajes.`)) {
+            let blocked = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
+            if (!blocked.includes(String(targetId))) {
+                blocked.push(String(targetId));
+                localStorage.setItem('alpha_user_blocked', JSON.stringify(blocked));
+            }
+            this.showToast(`Usuario @${targetName} bloqueado.`);
+            this.closeModals();
+            this.renderFeed();
         }
-        if (data.status === 'live' && chipsVideo && !document.getElementById(chipIdVideo)) {
-            chipsVideo.insertAdjacentHTML('beforeend', `<div id="${chipIdVideo}" onclick="app.viewCreatorProfile('${data.user_id}', '${safeName}')" class="flex items-center gap-1 bg-neutral-900 px-1.5 py-1 rounded border border-neutral-700 truncate cursor-pointer hover:bg-neutral-800 transition"><i class="fa-solid fa-circle text-[4px] text-amber-500 animate-pulse"></i> @${safeName}</div>`);
-        }
-    }
-    if (counter && chipsChat) {
-        counter.innerText = Math.max(1, chipsChat.children.length).toString();
-    }
+    },
 
-    if (this.activeWebcamStream && data.status === 'live' && data.user_id != this.userId) {
-        if (parseInt(this.userId) < parseInt(data.user_id)) {
-            this.sendWebRTCOffer(data.user_id);
-        }
-    }
-},
-
-updateOnlineUsersRadar() {
-    const userName = localStorage.getItem('alpha_user_name') || 'mastertom';
-    this.handleRadarUpdate({ user_id: this.userId, name: userName, status: 'online' });
-    if (typeof BunkerChat !== 'undefined' && BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) {
-        BunkerChat.sendGlobal(JSON.stringify({ type: "radar_update", user_id: this.userId, name: userName, status: "online" }));
-    }
-},
-
-async loadGlobalChatHistory() { 
-    const container = document.getElementById('global-chat-messages'); 
-    if (container) container.innerHTML = ''; 
-    try { 
-        const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50`); 
-        if (res.ok) { 
-            const data = await res.json(); 
-            if (data.messages && data.messages.length > 0) { 
-                const now = Date.now();
-                const freshGlobal = data.messages.filter(msg => (now - new Date(msg.created_at).getTime()) < 24 * 60 * 60 * 1000);
-                freshGlobal.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); 
-                this.scrollToBottom('global-chat-messages'); 
-            } 
-        } 
-    } catch (e) {} 
-},
-
-async sendWebRTCOffer(targetId) {
-    try {
-        const pc = this.createPeerConnection(targetId);
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_offer', target_id: targetId, sdp: offer.sdp, room_id: this.currentRoomId || 'bunker_main' }));
-    } catch(e) {}
-},
-
-async handleWebRTCMessage(data) {
-    const { type, caller_id, sdp, candidate } = data;
-    if (!this.activeWebcamStream) return; 
-    try {
-        if (type === 'webrtc_offer') {
-            const pc = this.createPeerConnection(caller_id);
-            await pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp }));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_answer', target_id: caller_id, sdp: answer.sdp, room_id: this.currentRoomId || 'bunker_main' }));
-        } else if (type === 'webrtc_answer') {
-            const pc = this.peerConnections[caller_id];
-            if (pc) await pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp }));
-        } else if (type === 'webrtc_ice') {
-            const pc = this.peerConnections[caller_id];
-            if (pc && candidate) await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        }
-    } catch(e) {}
-},
-
-createPeerConnection(targetId) {
-    if (this.peerConnections[targetId]) return this.peerConnections[targetId];
-    const pc = new RTCPeerConnection(this.rtcConfig);
-    this.peerConnections[targetId] = pc;
-    if (this.activeWebcamStream) {
-        this.activeWebcamStream.getTracks().forEach(track => pc.addTrack(track, this.activeWebcamStream));
-    }
-    pc.onicecandidate = (e) => {
-        if (e.candidate) BunkerChat.sendGlobal(JSON.stringify({ type: 'webrtc_ice', target_id: targetId, candidate: e.candidate, room_id: this.currentRoomId || 'bunker_main' }));
-    };
-    pc.ontrack = (e) => {
-        if (!this.remoteStreams[targetId]) {
-            this.remoteStreams[targetId] = new MediaStream();
-            const videoContainer = document.getElementById('bunker-video-grid') || this.createVideoGrid();
-            const vidEl = document.createElement('video');
-            vidEl.id = `remote-video-${targetId}`;
-            vidEl.autoplay = true; 
-            vidEl.playsInline = true;
-            vidEl.className = 'w-full h-full object-cover border-2 border-[#ff00ff] rounded-xl shadow-lg';
-            vidEl.srcObject = this.remoteStreams[targetId];
-            const wrapper = document.createElement('div');
-            wrapper.className = 'relative flex-1 min-w-[45%] max-w-[50%] max-h-full';
-            wrapper.appendChild(vidEl);
-            videoContainer.appendChild(wrapper);
-        }
-        this.remoteStreams[targetId].addTrack(e.track);
-    };
-    return pc;
-},
-
-createVideoGrid() {
-    const feed = document.getElementById('bunker-webcam-feed');
-    if (feed) feed.className = 'w-full h-full object-cover border-2 border-[#00f3ff] rounded-xl shadow-lg absolute inset-0';
-    
-    let grid = document.getElementById('bunker-video-grid');
-    if (!grid && feed) {
-        const container = feed.parentElement;
-        container.classList.remove('justify-center');
-        container.className = 'relative flex-1 w-full h-full overflow-hidden bg-black';
-        
-        grid = document.createElement('div');
-        grid.id = 'bunker-video-grid';
-        grid.className = 'absolute inset-0 flex flex-wrap gap-2 justify-center content-start p-2 overflow-y-auto pb-24';
-        
-        const wrapper = document.createElement('div');
-        wrapper.className = 'relative flex-1 min-w-[45%] max-w-[50%] h-48 md:h-64';
-        wrapper.appendChild(feed);
-        
-        container.appendChild(grid);
-        grid.appendChild(wrapper); 
-    }
-    return grid;
-},
-
-closePeerConnection(targetId) {
-    if (this.peerConnections[targetId]) { this.peerConnections[targetId].close(); delete this.peerConnections[targetId]; }
-    if (this.remoteStreams[targetId]) delete this.remoteStreams[targetId];
-    const vidEl = document.getElementById(`remote-video-${targetId}`);
-    if (vidEl && vidEl.parentElement) vidEl.parentElement.remove();
-},
-
-selectCreatorRole() { this.closeModals(); },
-selectFanRole() { this.closeModals(); }
+    selectCreatorRole() { this.closeModals(); },
+    selectFanRole() { this.closeModals(); }
 };
 
 window.app = app;
 
 document.addEventListener("DOMContentLoaded", () => {
-if (typeof app === 'undefined') return;
+    if (typeof app === 'undefined') return;
+    
+    const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+    
+    if (window.Telegram && window.Telegram.WebApp) {
+        window.Telegram.WebApp.expand();
+        window.Telegram.WebApp.ready();
+    }
 
-const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+    app.checkSession(); 
+    
+    const applyPrivacyBlackout = () => { if (isTelegram) document.body.classList.add('privacy-blur'); };
+    const removePrivacyBlackout = () => { document.body.classList.remove('privacy-blur'); };
 
-if (window.Telegram && window.Telegram.WebApp) {
-    window.Telegram.WebApp.expand();
-    window.Telegram.WebApp.ready();
-}
-
-app.checkSession(); 
-
-const applyPrivacyBlackout = () => { if (isTelegram) document.body.classList.add('privacy-blur'); };
-const removePrivacyBlackout = () => { document.body.classList.remove('privacy-blur'); };
-
-if (isTelegram) {
-    document.addEventListener('visibilitychange', () => { if (document.hidden) applyPrivacyBlackout(); else removePrivacyBlackout(); });
-    window.addEventListener('blur', applyPrivacyBlackout);
-    window.addEventListener('focus', removePrivacyBlackout);
-    document.addEventListener('contextmenu', event => event.preventDefault());
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('Contenido protegido'); app.showToast('Capturas bloqueadas'); }
-        if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
-    });
-} else {
-    removePrivacyBlackout();
-}
+    if (isTelegram) {
+        document.addEventListener('visibilitychange', () => { if (document.hidden) applyPrivacyBlackout(); else removePrivacyBlackout(); });
+        window.addEventListener('blur', applyPrivacyBlackout);
+        window.addEventListener('focus', removePrivacyBlackout);
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('Contenido protegido'); app.showToast('Capturas bloqueadas'); }
+            if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
+        });
+    } else {
+        removePrivacyBlackout();
+    }
 });
