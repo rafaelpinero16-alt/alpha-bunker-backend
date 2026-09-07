@@ -771,7 +771,7 @@ const app = {
 
         const refInput = document.getElementById('referral-link-input');
         if (refInput && this.userId) {
-            const botUsername = "AlphaBunkerBot";
+            const botUsername = "Alpha_store_botbot";
             const refLink = `https://t.me/${botUsername}?start=ref_${this.userId}`;
             refInput.value = refLink;
         }
@@ -2746,6 +2746,24 @@ const app = {
             `;
         }
         feedContainer.innerHTML = html;
+    },
+
+    subscribeCreatorTier(tier) {
+        this.haptic('heavy');
+        const creatorLinks = {
+            'soldier_creator': 'https://skrill.me/rq/Felipe%20Rafael/4.99/USD?key=2AA_IoeSexwlLoCmBj4UL8gB-zw',
+            'icon_creator': 'https://skrill.me/rq/Felipe%20Rafael/7.99/USD?key=QpPBMoaBniLZtq_xW8OJHGzEOPJ'
+        };
+        const targetUrl = creatorLinks[tier];
+        if (!targetUrl) {
+            this.showToast('⚠️ Enlace de pago no disponible.');
+            return;
+        }
+        this.showToast('Redirigiendo a pasarela Skrill... 💳');
+        setTimeout(() => {
+            // Usamos el método nativo de la app para asegurar apertura externa en Telegram
+            this.openLink(targetUrl);
+        }, 1000);
     },
 
     selectCreatorRole() { this.closeModals(); },
