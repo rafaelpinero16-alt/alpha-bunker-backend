@@ -1485,7 +1485,7 @@ const app = {
         }
         this.openSupport();
     }
-};
+},
 async toggleFollow(targetId, targetName) {
     this.haptic('medium');
     this.initUserId();
