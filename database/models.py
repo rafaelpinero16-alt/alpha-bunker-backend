@@ -31,7 +31,6 @@ class User(Base):
     
     created_at = Column(DateTime, default=datetime.utcnow)
 
-# 🛡️ NUEVO MODELO: Gestión de Seguidores (Mutual Follow & Notificaciones)
 class Follow(Base):
     __tablename__ = "follows"
 
@@ -69,6 +68,7 @@ class Transaction(Base):
     amount = Column(Integer, nullable=False)
     tx_type = Column(String(50), nullable=False)        
     reference_id = Column(Integer, nullable=True)
+    room_id = Column(String(50), nullable=True)  # Referencia opcional si la propina ocurrió en sala en vivo
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Post(Base):
@@ -104,7 +104,7 @@ class Package(Base):
     bonus_percentage = Column(Integer, default=0)
     alpha_total = Column(Integer, nullable=False)
     price_stars = Column(Integer, nullable=False)
-    price_ton = Column(Float, nullable=False)                     
+    price_ton = Column(Float, nullable=False)                    
     badge = Column(String(50), nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -114,13 +114,13 @@ class ChatMessage(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     user_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
-    recipient_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=True) # 🛡️ Soporte CRM Directo 1 a 1
+    recipient_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=True)
     author_name = Column(String(100), nullable=False)
     author_role = Column(String(20), default="fan")  
     access_level = Column(Integer, default=0)        
     content = Column(Text, nullable=False)
     is_system = Column(Boolean, default=False)       
-    is_read = Column(Boolean, default=False) # 🛡️ Indicador de Lectura ('R')
+    is_read = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class VideoCallSession(Base):
@@ -133,3 +133,35 @@ class VideoCallSession(Base):
     status = Column(String(20), default="pending")  
     room_url = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+# 🎥 SALAS DE VIDEOCHAT CATEGORIZADAS (Gaming, Charlas, VIP, etc.)
+class VideoRoom(Base):
+    __tablename__ = "video_rooms"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    room_id = Column(String(50), unique=True, index=True, nullable=False)
+    name = Column(String(100), nullable=False)
+    category = Column(String(50), index=True, default="general")
+    description = Column(String(255), nullable=True)
+    host_id = Column(BigInteger, ForeignKey("users.user_id"), nullable=True)
+    min_access_level = Column(Integer, default=0)        # Nivel mínimo para acceder como espectador
+    min_broadcast_level = Column(Integer, default=1)     # Mínimo para emitir video (Nivel 0 / SPY bloqueado estrictamente)
+    is_private = Column(Boolean, default=False)
+    price_alpha = Column(Integer, default=0)             # Costo de entrada si la sala es de cobro inmediato
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# 💸 SOLICITUDES DE RETIRO (CASH-OUT DE ALPHA COINS A DINERO REAL)
+class PayoutRequest(Base):
+    __tablename__ = "payout_requests"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    user_id = Column(BigInteger, ForeignKey("users.user_id"), index=True, nullable=False)
+    amount_alpha = Column(Integer, nullable=False)
+    amount_usd = Column(Float, nullable=False)
+    payout_method = Column(String(50), nullable=False)   # 'dollarapp_ach', 'skrill', 'ton', 'binance'
+    destination_account = Column(String(255), nullable=False)
+    status = Column(String(20), default="pending")       # pending, approved, rejected, completed
+    admin_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    processed_at = Column(DateTime, nullable=True)
