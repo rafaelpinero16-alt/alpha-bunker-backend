@@ -1,21 +1,22 @@
 import json
 import re
+from typing import List, Dict, Optional
+from datetime import datetime, timedelta
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List, Dict
-from datetime import datetime, timedelta
 from pydantic import BaseModel
+
 from database.db import get_db
 from database.models import User, ChatMessage, Wallet, Transaction
 
 router = APIRouter(prefix="/chat", tags=["Chat En Vivo y CRM"])
 
-# 🛡️ ConnectionManager Evolucionado para soportar Videollamadas P2P y CRM Directo
+# 🛡️ ConnectionManager Evolucionado para Videollamadas P2P y CRM Directo
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
-        self.user_connections: Dict[int, List[WebSocket]] = {} 
+        self.user_connections: Dict[int, List[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, user_id: int):
         await websocket.accept()
@@ -34,7 +35,7 @@ class ConnectionManager:
                 del self.user_connections[user_id]
 
     async def broadcast(self, message: dict):
-        for connection in self.active_connections:
+        for connection in list(self.active_connections):
             try:
                 await connection.send_json(message)
             except Exception:
@@ -42,7 +43,7 @@ class ConnectionManager:
 
     async def send_personal_message(self, message: dict, target_user_id: int):
         if target_user_id in self.user_connections:
-            for connection in self.user_connections[target_user_id]:
+            for connection in list(self.user_connections[target_user_id]):
                 try:
                     await connection.send_json(message)
                 except Exception:
@@ -50,6 +51,14 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 global_manager = ConnectionManager()
+
+def safe_int(val) -> Optional[int]:
+    if val is None or val == "" or str(val).lower() in ["null", "undefined", "none"]:
+        return None
+    try:
+        return int(val)
+    except (ValueError, TypeError):
+        return None
 
 def ensure_chat_schema(db: Session):
     try:
@@ -65,9 +74,18 @@ def ensure_chat_schema(db: Session):
         except Exception:
             db.rollback()
 
+    # 🛡️ Garantizar compatibilidad y persistencia de columnas DMs en chat_messages
+    try:
+        db.execute(text("ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS recipient_id BIGINT"))
+        db.execute(text("ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE"))
+        db.execute(text("ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_system BOOLEAN DEFAULT FALSE"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
 def clean_old_messages(db: Session):
     try:
-        time_threshold = datetime.utcnow() - timedelta(hours=24) # 🛡️ Retención estricta de 24 horas en chats
+        time_threshold = datetime.utcnow() - timedelta(hours=24) # Retención estricta de 24 horas
         db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
         db.commit()
     except Exception:
@@ -85,7 +103,7 @@ async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_d
         return {"status": "error", "detail": "Mensaje no encontrado"}
     
     user = db.query(User).filter(User.user_id == req.user_id).first()
-    is_admin = (user and (user.role == "admin" or user.user_id == 8269470905))
+    is_admin = (user and (user.role == "admin" or user.user_id in [8269470905, 123456789]))
     
     if msg.user_id != req.user_id and not is_admin:
         return {"status": "error", "detail": "No tienes permisos para eliminar este mensaje"}
@@ -106,7 +124,14 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
     user = db.query(User).filter(User.user_id == user_id).first()
     
     if not user:
-        user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified", warnings_count=0)
+        user = User(
+            user_id=user_id,
+            name="Agente Búnker",
+            role="fan",
+            access_level=0,
+            kyc_status="unverified",
+            warnings_count=0
+        )
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -117,65 +142,75 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
             
             text_val = ""
             media_val = None
-            target_id = None
+            raw_target_id = None
             msg_type = "chat"
             try:
                 payload = json.loads(data)
                 msg_type = payload.get("type", "chat")
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
-                target_id = payload.get("target_id", None)
+                raw_target_id = payload.get("target_id", None)
             except Exception:
                 text_val = data
 
+            target_int = safe_int(raw_target_id)
+
             # 🛡️ Manejo instantáneo de marcas de lectura 'R'
             if msg_type == "mark_read":
-                target_int = payload.get("target_id")
                 if target_int:
-                    db.query(ChatMessage).filter(
-                        ChatMessage.user_id == int(target_int),
-                        ChatMessage.recipient_id == user_id,
-                        ChatMessage.is_read == False
-                    ).update({"is_read": True})
-                    db.commit()
-                    await manager.send_personal_message({"type": "messages_read", "reader_id": user_id}, int(target_int))
+                    try:
+                        db.query(ChatMessage).filter(
+                            ChatMessage.user_id == target_int,
+                            ChatMessage.recipient_id == user_id,
+                            ChatMessage.is_read == False
+                        ).update({"is_read": True})
+                        db.commit()
+                        await manager.send_personal_message({"type": "messages_read", "reader_id": user_id}, target_int)
+                    except Exception as err:
+                        db.rollback()
+                        print(f"[MARK READ ERROR]: {err}")
                 continue
 
-            db_content = json.dumps({"text": text_val, "media_url": media_val})
-            new_msg = ChatMessage(
-                user_id=user.user_id,
-                recipient_id=int(target_id) if target_id else None,
-                author_name=user.name,
-                author_role=user.role,
-                access_level=user.access_level,
-                content=db_content,
-                is_system=False,
-                is_read=False
-            )
-            db.add(new_msg)
-            db.commit()
-            db.refresh(new_msg)
+            # 🛡️ Guardado seguro del mensaje en PostgreSQL sin tumbar el socket si hay error
+            try:
+                db_content = json.dumps({"text": text_val, "media_url": media_val})
+                new_msg = ChatMessage(
+                    user_id=user.user_id,
+                    recipient_id=target_int,
+                    author_name=user.name,
+                    author_role=user.role,
+                    access_level=getattr(user, "access_level", 0),
+                    content=db_content,
+                    is_system=False,
+                    is_read=False
+                )
+                db.add(new_msg)
+                db.commit()
+                db.refresh(new_msg)
 
-            msg_payload = {
-                "type": "new_msg",
-                "id": new_msg.id,
-                "user_id": new_msg.user_id,
-                "recipient_id": new_msg.recipient_id,
-                "author_name": new_msg.author_name,
-                "author_role": new_msg.author_role,
-                "access_level": new_msg.access_level,
-                "content": new_msg.content,
-                "is_system": new_msg.is_system,
-                "is_read": new_msg.is_read,
-                "created_at": new_msg.created_at.isoformat()
-            }
+                msg_payload = {
+                    "type": "new_msg",
+                    "id": new_msg.id,
+                    "user_id": new_msg.user_id,
+                    "recipient_id": new_msg.recipient_id,
+                    "author_name": new_msg.author_name,
+                    "author_role": new_msg.author_role,
+                    "access_level": new_msg.access_level,
+                    "content": new_msg.content,
+                    "is_system": new_msg.is_system,
+                    "is_read": new_msg.is_read,
+                    "created_at": new_msg.created_at.isoformat()
+                }
 
-            if target_id:
-                target_int = int(target_id)
-                await manager.send_personal_message(msg_payload, target_int)
-                await manager.send_personal_message(msg_payload, user_id)
-            else:
-                await manager.broadcast(msg_payload)
+                if target_int:
+                    await manager.send_personal_message(msg_payload, target_int)
+                    await manager.send_personal_message(msg_payload, user_id)
+                else:
+                    await manager.send_personal_message(msg_payload, user_id)
+                    await manager.broadcast(msg_payload)
+            except Exception as save_err:
+                db.rollback()
+                print(f"[SAVE MSG ERROR]: {save_err}")
 
     except WebSocketDisconnect:
         manager.disconnect(websocket, user_id)
@@ -205,11 +240,12 @@ def get_user_conversations(user_id: int, db: Session = Depends(get_db)):
                         ChatMessage.recipient_id == user_id,
                         ChatMessage.is_read == False
                     ).count()
+                    
                     partners_map[partner_id] = {
                         "user_id": partner_id,
-                        "name": partner_user.name if partner_user else f"Agente {partner_id}",
-                        "avatar_url": partner_user.avatar_url if partner_user else None,
-                        "is_online": getattr(partner_user, 'is_online', False) if partner_user else False,
+                        "name": getattr(partner_user, "name", f"Agente {partner_id}") if partner_user else f"Agente {partner_id}",
+                        "avatar_url": getattr(partner_user, "avatar_url", None) if partner_user else None,
+                        "is_online": getattr(partner_user, "is_online", False) if partner_user else False,
                         "last_message": m.content,
                         "last_time": m.created_at.isoformat(),
                         "unread_count": unread_count
@@ -220,10 +256,28 @@ def get_user_conversations(user_id: int, db: Session = Depends(get_db)):
         return {"status": "success", "conversations": []}
 
 @router.get("/history")
-def get_chat_history(limit: int = 50, db: Session = Depends(get_db)):
+def get_chat_history(
+    limit: int = 50,
+    user_id: Optional[int] = None,
+    target_id: Optional[int] = None,
+    db: Session = Depends(get_db)
+):
+    """Retorna el historial general o el filtrado por conversación privada exclusiva entre dos usuarios."""
     ensure_chat_schema(db)
     clean_old_messages(db)
-    messages = db.query(ChatMessage).filter(ChatMessage.author_name.notlike("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
+    query = db.query(ChatMessage).filter(ChatMessage.author_name.notlike("[Global]%"))
+    
+    if user_id is not None and target_id is not None:
+        query = query.filter(
+            ((ChatMessage.user_id == user_id) & (ChatMessage.recipient_id == target_id)) |
+            ((ChatMessage.user_id == target_id) & (ChatMessage.recipient_id == user_id))
+        )
+    elif user_id is not None:
+        query = query.filter(
+            (ChatMessage.user_id == user_id) | (ChatMessage.recipient_id == user_id)
+        )
+        
+    messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
 @router.get("/global/history")
@@ -239,7 +293,14 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
-        user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified", warnings_count=0)
+        user = User(
+            user_id=user_id,
+            name="Agente Búnker",
+            role="fan",
+            access_level=0,
+            kyc_status="unverified",
+            warnings_count=0
+        )
         db.add(user)
     
     user.is_online = True
@@ -251,7 +312,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
     await global_manager.broadcast({"type": "online_count_update", "count": online_count})
     await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
 
-    is_admin = (user.role == "admin" or user.user_id == 8269470905 or user.user_id == 123456789)
+    is_admin = (user.role == "admin" or user.user_id in [8269470905, 123456789])
 
     if not is_admin and user.role == "creator" and user.kyc_status != "verified":
         await websocket.accept()
@@ -313,12 +374,13 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                 payload = json.loads(data)
                 msg_type = payload.get("type", "chat")
                 
+                # 📡 SEÑALIZACIÓN WEBRTC P2P
                 if msg_type in ["webrtc_offer", "webrtc_answer", "webrtc_ice"]:
-                    target_id = payload.get("target_id")
+                    target_id = safe_int(payload.get("target_id"))
                     if target_id:
                         payload["caller_id"] = user_id 
                         payload["caller_name"] = user.name
-                        await global_manager.send_personal_message(payload, int(target_id))
+                        await global_manager.send_personal_message(payload, target_id)
                     continue
                 
                 if msg_type == "join_video":
@@ -336,8 +398,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
 
-                current_warnings = getattr(user, 'warnings_count', 0)
-                if current_warnings is None: current_warnings = 0
+                current_warnings = getattr(user, 'warnings_count', 0) or 0
 
                 if not is_admin:
                     if link_pattern.search(text_val) or spam_pattern.search(text_val) or emoji_pattern.search(text_val):
@@ -359,7 +420,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             author_role="admin",
                             access_level=5,
                             content=json.dumps({"text": warning_msg, "media_url": None}),
-                            is_system=False 
+                            is_system=True
                         )
                         db.add(sys_msg)
                         db.commit()
@@ -388,7 +449,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                     user_id=user.user_id,
                     author_name=f"[Global] {user.name}",
                     author_role=user.role,
-                    access_level=user.access_level,
+                    access_level=getattr(user, "access_level", 0),
                     content=db_content,
                     is_system=False
                 )
@@ -429,6 +490,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
             db.commit()
             online_count = db.query(User).filter(User.is_online == True).count()
             await global_manager.broadcast({"type": "online_count_update", "count": online_count})
-        except:
+        except Exception:
             pass
         global_manager.disconnect(websocket, user_id)
