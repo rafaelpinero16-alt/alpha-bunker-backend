@@ -1573,115 +1573,124 @@ const app = {
         modal.classList.remove('hidden');
     },
 
-    // 🎥 GESTIÓN DE SALAS DE VIDEOCHAT POR CATEGORÍAS
-    async openVideoRoomsModal() {
-        this.closeModals();
-        this.haptic('medium');
-        
-        const userTier = this.userData?.access_tier || 0;
-        if (userTier < 1 && !this.isAdminUser()) {
-            this.showToast('🚫 Acceso denegado: Rango ESPÍA no autorizado para videollamadas.');
-            this.openCatalogPackages();
-            return;
-        }
+   // 🎥 GESTIÓN DE SALAS DE VIDEOCHAT POR CATEGORÍAS
+   async openVideoRoomsModal() {
+    this.closeModals();
+    this.haptic('medium');
+    
+    const userTier = this.userData?.access_tier || 0;
+    if (userTier < 1 && !this.isAdminUser()) {
+        this.showToast('🚫 Acceso denegado: Rango ESPÍA no autorizado para videollamadas.');
+        this.openCatalogPackages();
+        return;
+    }
 
-        let modal = document.getElementById('modal-video-rooms');
-        if (!modal) {
-            const modalHTML = `
-                <div id="modal-video-rooms" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
-                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_25px_rgba(0,243,255,0.3)]">
-                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> SALAS DE VIDEOCHAT</h3>
-                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
-                        </div>
-                        <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0 scrollbar-none">
-                            <button onclick="app.filterVideoRooms('all')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Todas</button>
-                            <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Letter and gear</button>
-                            <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Alpha clothes</button>
-                            <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Sweat and thongs</button>
-                            <button onclick="app.filterVideoRooms('slam')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Slam</button>
-                            <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Party time</button>
-                        </div>
-                        <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
-                            <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando salas activas... ⏳</div>
-                        </div>
+    let modal = document.getElementById('modal-video-rooms');
+    if (!modal) {
+        const modalHTML = `
+            <div id="modal-video-rooms" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+                <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_25px_rgba(0,243,255,0.3)]">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
+                        <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> SALAS DE VIDEOCHAT</h3>
+                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
+                    </div>
+                    <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0 scrollbar-none">
+                        <button onclick="app.filterVideoRooms('all')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Todas</button>
+                        <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Letter and gear</button>
+                        <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Alpha clothes</button>
+                        <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Sweat and thongs</button>
+                        <button onclick="app.filterVideoRooms('slam')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Slam</button>
+                        <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Party time</button>
+                    </div>
+                    <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                        <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando salas activas... ⏳</div>
                     </div>
                 </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            modal = document.getElementById('modal-video-rooms');
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        modal = document.getElementById('modal-video-rooms');
+    }
+    modal.classList.remove('hidden');
+    await this.loadVideoRooms('all');
+},
+
+async loadVideoRooms(category) {
+    const container = document.getElementById('video-rooms-list');
+    if (!container) return;
+    container.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10">Cargando salas... ⏳</div>`;
+    try {
+        const officialRooms = [
+            { room_id: 'letter_and_gear', name: 'Letter and gear', description: 'Equipamiento y estilo táctico oficial', min_access_level: 0, category: 'letter_and_gear', icon: 'fa-gears text-[#00f3ff]' },
+            { room_id: 'alpha_clothes', name: 'Alpha clothes', description: 'Moda y exclusivas del Ecosistema Alpha', min_access_level: 0, category: 'alpha_clothes', icon: 'fa-shirt text-[#ff00ff]' },
+            { room_id: 'sweat_and_thongs', name: 'Sweat and thongs', description: 'Sala de alto voltaje y contenido exclusivo VIP', min_access_level: 1, category: 'sweat_and_thongs', icon: 'fa-fire text-[#ffb703]' },
+            { room_id: 'slam', name: 'Slam', description: 'Acción extrema sin censura y debates directos', min_access_level: 2, category: 'slam', icon: 'fa-bolt text-red-500' },
+            { room_id: 'party_time', name: 'Party time', description: 'Zona de fiesta, música y transmisiones nocturnas', min_access_level: 3, category: 'party_time', icon: 'fa-champagne-glasses text-purple-400' }
+        ];
+
+        let rooms = officialRooms;
+        if (category && category !== 'all') {
+            rooms = officialRooms.filter(r => r.category === category);
         }
-        modal.classList.remove('hidden');
-        await this.loadVideoRooms('all');
-    },
 
-    async loadVideoRooms(category) {
-        const container = document.getElementById('video-rooms-list');
-        if (!container) return;
-        container.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10">Cargando salas... ⏳</div>`;
-        try {
-            const officialRooms = [
-                { room_id: 'letter_and_gear', name: 'Letter and gear', description: 'Equipamiento y estilo táctico oficial', min_access_level: 0, category: 'letter_and_gear', icon: 'fa-gears text-[#00f3ff]' },
-                { room_id: 'alpha_clothes', name: 'Alpha clothes', description: 'Moda y exclusivas del Ecosistema Alpha', min_access_level: 0, category: 'alpha_clothes', icon: 'fa-shirt text-[#ff00ff]' },
-                { room_id: 'sweat_and_thongs', name: 'Sweat and thongs', description: 'Sala de alto voltaje y contenido exclusivo VIP', min_access_level: 1, category: 'sweat_and_thongs', icon: 'fa-fire text-[#ffb703]' },
-                { room_id: 'slam', name: 'Slam', description: 'Acción extrema sin censura y debates directos', min_access_level: 2, category: 'slam', icon: 'fa-bolt text-red-500' },
-                { room_id: 'party_time', name: 'Party time', description: 'Zona de fiesta, música y transmisiones nocturnas', min_access_level: 3, category: 'party_time', icon: 'fa-champagne-glasses text-purple-400' }
-            ];
-
-            let rooms = officialRooms;
-            if (category && category !== 'all') {
-                rooms = officialRooms.filter(r => r.category === category);
-            }
-
-            this.activeRooms = rooms;
-            if (this.activeRooms.length === 0) {
-                container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">No hay salas disponibles en esta categoría.</div>`;
-            } else {
-                container.innerHTML = this.activeRooms.map(r => `
-                    <div class="bg-black/80 border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex flex-col gap-3 transition shadow-md">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center shrink-0 shadow-inner">
-                                    <i class="fa-solid ${r.icon} text-base"></i>
-                                </div>
-                                <div>
-                                    <span class="text-sm font-black text-white uppercase tracking-wider block mb-0.5">${this.escapeHtml(r.name)}</span>
-                                    <p class="text-[11px] text-neutral-300">${this.escapeHtml(r.description)}</p>
-                                </div>
+        this.activeRooms = rooms;
+        if (this.activeRooms.length === 0) {
+            container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">No hay salas disponibles en esta categoría.</div>`;
+        } else {
+            container.innerHTML = this.activeRooms.map(r => `
+                <div class="bg-black/80 border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex flex-col gap-3 transition shadow-md">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center shrink-0 shadow-inner">
+                                <i class="fa-solid ${r.icon} text-base"></i>
                             </div>
-                            <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">Nivel ${r.min_access_level}</span>
+                            <div>
+                                <span class="text-sm font-black text-white uppercase tracking-wider block mb-0.5">${this.escapeHtml(r.name)}</span>
+                                <p class="text-[11px] text-neutral-300">${this.escapeHtml(r.description)}</p>
+                            </div>
                         </div>
-                        <div class="pt-2 border-t border-neutral-800 flex justify-end">
-                            <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level})" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center">Entrar a la sala</button>
-                        </div>
+                        <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">Nivel ${r.min_access_level}</span>
                     </div>
-                `).join('');
-            }
-        } catch (e) {
-            container.innerHTML = `<div class="text-center text-red-400 text-xs py-10">Error al cargar las salas.</div>`;
+                    <div class="pt-2 border-t border-neutral-800 flex justify-end">
+                        <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level})" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center">Entrar a la sala</button>
+                    </div>
+                </div>
+            `).join('');
         }
-    },
+    } catch (e) {
+        container.innerHTML = `<div class="text-center text-red-400 text-xs py-10">Error al cargar las salas.</div>`;
+    }
+},
 
-    filterVideoRooms(category) {
-        this.haptic('light');
-        this.loadVideoRooms(category);
-    },
+filterVideoRooms(category) {
+    this.haptic('light');
+    this.loadVideoRooms(category);
+},
 
-    async joinVideoRoom(roomId, minAccessLevel) {
-        this.haptic('medium');
-        const userTier = this.userData?.access_tier || 0;
-        const isAdmin = this.isAdminUser();
+async joinVideoRoom(roomId, minAccessLevel) {
+    this.haptic('medium');
+    const userTier = this.userData?.access_tier || 0;
+    const isAdmin = this.isAdminUser();
 
-        if (!isAdmin && userTier < minAccessLevel) {
-            this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
-            this.openCatalogPackages();
-            return;
-        }
+    if (!isAdmin && userTier < minAccessLevel) {
+        this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
+        this.openCatalogPackages();
+        return;
+    }
 
-        this.currentRoomId = roomId;
-        this.closeModals();
-        await this.joinVideoBunker();
-    },
+    // 🛡️ Aislamiento estricto de sala individual y limpieza de WebRTC previo
+    this.currentRoomId = roomId;
+    this.closeModals();
+    
+    Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
+
+    await this.joinVideoBunker();
+    
+    // Inicializar socket de chat con aislamiento estricto por room_id
+    if (typeof BunkerChat !== 'undefined') {
+        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
+    }
+},
 
     // 🪙 LIVE TIPPING EN TRANSMISIONES
     async sendLiveTip(streamerId, amountAlpha) {
