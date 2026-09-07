@@ -2769,6 +2769,17 @@ const app = {
     selectCreatorRole() { this.closeModals(); },
     selectFanRole() { this.closeModals(); },
 
+    // 🛡️ Observer para scroll automático de mensajes
+    setupSystemMessageObserver(containerId) {
+        const container = document.getElementById(containerId);
+        if (!container || container._hasObserver) return;
+        container._hasObserver = true;
+        const observer = new MutationObserver(() => {
+            this.scrollToBottom(containerId);
+        });
+        observer.observe(container, { childList: true, subtree: true });
+    },
+
     // 📱 Control del Menú Lateral Deslizable (Sidebar Drawer)
     openSidebar() {
         const sidebar = document.getElementById('telegram-sidebar');
