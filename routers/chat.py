@@ -111,7 +111,6 @@ def ensure_chat_schema(db: Session):
     except Exception:
         db.rollback()
 
-    # Garantizar la creación de la tabla de salas de video si no existe
     try:
         db.execute(text("""
             CREATE TABLE IF NOT EXISTS video_rooms (
@@ -160,7 +159,6 @@ class CreateRoomRequest(BaseModel):
 
 @router.get("/rooms")
 def get_video_rooms(category: Optional[str] = None, db: Session = Depends(get_db)):
-    """Lista las salas de videochat activas. Si la tabla está vacía, genera salas tácticas por defecto."""
     ensure_chat_schema(db)
     query = db.query(VideoRoom).filter(VideoRoom.is_active == True)
     if category and category != "all":
@@ -168,7 +166,6 @@ def get_video_rooms(category: Optional[str] = None, db: Session = Depends(get_db
     
     rooms = query.all()
     
-    # Auto-poblar salas por defecto si no hay ninguna
     if not rooms:
         default_rooms = [
             VideoRoom(room_id="bunker_main", name="🔱 Búnker Live Principal", category="general", description="Sala global de la comunidad", min_access_level=0, min_broadcast_level=1),
@@ -188,7 +185,6 @@ def get_video_rooms(category: Optional[str] = None, db: Session = Depends(get_db
 
 @router.post("/rooms/create")
 def create_video_room(req: CreateRoomRequest, db: Session = Depends(get_db)):
-    """Permite crear una sala categorizada (Solo creadores verificados o Admins)."""
     ensure_chat_schema(db)
     user = db.query(User).filter(User.user_id == req.user_id).first()
     is_admin = (user and (user.role == "admin" or user.user_id in [8269470905, 123456789]))
@@ -200,7 +196,6 @@ def create_video_room(req: CreateRoomRequest, db: Session = Depends(get_db)):
     if existing:
         return {"status": "error", "detail": "El identificador de sala ya existe."}
         
-    # Restricción: Nivel de transmisión nunca puede ser 0
     broadcast_level = max(1, req.min_broadcast_level)
     
     new_room = VideoRoom(
@@ -394,17 +389,40 @@ def get_chat_history(
     messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
+# 🛡️ OBTENER HISTORIAL DE CHAT FILTRADO ESTRICTAMENTE POR SALA
 @router.get("/global/history")
-def get_global_chat_history(limit: int = 50, db: Session = Depends(get_db)):
+def get_global_chat_history(room_id: str = "bunker_main", limit: int = 50, db: Session = Depends(get_db)):
     ensure_chat_schema(db)
     clean_old_messages(db)
-    messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
-    return {"status": "success", "messages": messages[::-1]}
+    
+    # Extraemos todos los mensajes globales recientes
+    messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(150).all()
+    
+    filtered_messages = []
+    for msg in messages:
+        try:
+            content_data = json.loads(msg.content)
+            # Filtro 1: Aislar por room_id
+            msg_room = content_data.get("room_id", "bunker_main")
+            if msg_room == room_id:
+                # Filtro 2: Eliminar paquetes de telemetría basura incrustados
+                if "radar_update" in msg.content or "leave_video" in msg.content or "webrtc_" in msg.content:
+                    continue
+                filtered_messages.append(msg)
+        except:
+            # Mensajes antiguos sin formato JSON se asumen al bunker principal
+            if room_id == "bunker_main":
+                filtered_messages.append(msg)
+        
+        if len(filtered_messages) >= limit:
+            break
+            
+    return {"status": "success", "messages": filtered_messages[::-1]}
 
 # --- CHAT GLOBAL, WEBRTC CATEGORIZADO Y LIVE TIPPING ---
 
 @router.websocket("/global/ws/{user_id}")
-async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
+async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id: str = "bunker_main", db: Session = Depends(get_db)):
     ensure_chat_schema(db)
 
     user = db.query(User).filter(User.user_id == user_id).first()
@@ -416,16 +434,21 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
     user.last_seen = datetime.utcnow()
     db.commit()
 
-    online_count = db.query(User).filter(User.is_online == True).count()
+    # Conectar al usuario a su túnel de red específico (Aislamiento Total)
     await global_manager.connect(websocket, user_id)
+    await global_manager.join_room(room_id, websocket)
+
+    online_count = db.query(User).filter(User.is_online == True).count()
     await global_manager.broadcast({"type": "online_count_update", "count": online_count})
-    await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
+    
+    # Radar Update: Solo se notifica a los que están en la misma sala
+    await global_manager.broadcast_to_room(room_id, {"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online", "room_id": room_id})
 
     is_admin = (user.role == "admin" or user.user_id in [8269470905, 123456789])
 
     if not is_admin and user.role == "creator" and user.kyc_status != "verified":
         await websocket.accept()
-        await websocket.send_json({"is_error": True, "message": "🚫 ACCESO DENEGADO: Creadores requieren KYC (+18) aprobado para el Chat Global."})
+        await websocket.send_json({"is_error": True, "message": "🚫 ACCESO DENEGADO: Creadores requieren KYC (+18) aprobado."})
         await websocket.close(code=1008)
         return
 
@@ -446,62 +469,57 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
             try:
                 payload = json.loads(data)
                 msg_type = payload.get("type", "chat")
+                msg_room_id = payload.get("room_id", room_id)
                 user_access_tier = getattr(user, "access_level", 0)
                 
-                # 🛑 1. RESTRICCIÓN TOTAL AL RANGO ESPÍA (NIVEL 0) EN VIDEO
+                # 🛑 RESTRICCIÓN RANGO ESPÍA (NIVEL 0)
                 if msg_type in ["join_video", "webrtc_offer"]:
                     if user_access_tier < 1 and not is_admin:
                         await websocket.send_json({
                             "is_error": True,
                             "type": "tier_error",
-                            "message": "🚫 ACCESO DENEGADO: El rango ESPÍA (Nivel 0) no tiene autorización para abrir o transmitir video. Mejora tu rango en el Catálogo."
+                            "message": "🚫 ACCESO DENEGADO: El rango ESPÍA (Nivel 0) no puede transmitir video."
                         })
                         continue
 
-                # 📡 2. SEÑALIZACIÓN WEBRTC P2P CON SOPORTE DE SALAS
+                # 📡 SEÑALIZACIÓN WEBRTC P2P ENCAPSULADA POR SALA
                 if msg_type in ["webrtc_offer", "webrtc_answer", "webrtc_ice"]:
                     target_id = safe_int(payload.get("target_id"))
-                    room_id = payload.get("room_id", "bunker_main")
                     if target_id:
                         payload["caller_id"] = user_id 
                         payload["caller_name"] = user.name
-                        payload["room_id"] = room_id
+                        payload["room_id"] = msg_room_id
                         await global_manager.send_personal_message(payload, target_id)
                     continue
                 
                 if msg_type == "join_video":
-                    room_id = payload.get("room_id", "bunker_main")
                     user.is_live_video = True
                     db.commit()
-                    await global_manager.join_room(room_id, websocket)
-                    await global_manager.broadcast({
+                    await global_manager.broadcast_to_room(msg_room_id, {
                         "type": "radar_update",
                         "user_id": user_id,
                         "name": user.name,
                         "status": "live",
-                        "room_id": room_id
+                        "room_id": msg_room_id
                     })
                     continue
 
                 if msg_type == "leave_video":
-                    room_id = payload.get("room_id", "bunker_main")
                     user.is_live_video = False
                     db.commit()
-                    global_manager.leave_room(room_id, websocket)
-                    await global_manager.broadcast({
+                    await global_manager.broadcast_to_room(msg_room_id, {
                         "type": "radar_update",
                         "user_id": user_id,
                         "name": user.name,
                         "status": "online",
-                        "room_id": room_id
+                        "room_id": msg_room_id
                     })
                     continue
 
-                # 🪙 3. LIVE TIPPING (PROPINAS EN SALAS Y TRANSMISIONES EN VIVO)
+                # 🪙 LIVE TIPPING
                 if msg_type == "live_tip":
                     streamer_id = safe_int(payload.get("target_id"))
                     amount = safe_int(payload.get("amount")) or 0
-                    room_id = payload.get("room_id", "bunker_main")
 
                     if not streamer_id or amount <= 0:
                         await websocket.send_json({"is_error": True, "message": "Monto o destinatario de propina inválido."})
@@ -517,19 +535,12 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         receiver_wallet = Wallet(user_id=streamer_id, alpha_balance=0)
                         db.add(receiver_wallet)
 
-                    # Descuento y abono atómico
                     sender_wallet.alpha_balance -= amount
                     sender_wallet.total_spent = (sender_wallet.total_spent or 0) + amount
                     receiver_wallet.alpha_balance += amount
                     receiver_wallet.total_earned = (receiver_wallet.total_earned or 0) + amount
 
-                    tx = Transaction(
-                        sender_id=user_id,
-                        receiver_id=streamer_id,
-                        amount=amount,
-                        tx_type="live_tip",
-                        room_id=str(room_id)
-                    )
+                    tx = Transaction(sender_id=user_id, receiver_id=streamer_id, amount=amount, tx_type="live_tip", room_id=str(msg_room_id))
                     db.add(tx)
                     db.commit()
 
@@ -539,15 +550,13 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                         "sender_name": user.name,
                         "streamer_id": streamer_id,
                         "amount": amount,
-                        "room_id": str(room_id),
+                        "room_id": str(msg_room_id),
                         "message": f"🔥 ¡@{user.name} envió una propina de {amount} $ALPHA!"
                     }
-                    # Notificar a la sala en vivo y al canal general
-                    await global_manager.broadcast_to_room(room_id, tip_alert)
-                    await global_manager.broadcast(tip_alert)
+                    await global_manager.broadcast_to_room(msg_room_id, tip_alert)
                     continue
 
-                # 💬 4. MENSAJERÍA GENERAL & SEGURIDAD CENTINELA
+                # 💬 MENSAJERÍA INDEPENDIENTE POR SALAS
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
 
@@ -572,7 +581,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             author_name="Centinela",
                             author_role="admin",
                             access_level=5,
-                            content=json.dumps({"text": warning_msg, "media_url": None}),
+                            content=json.dumps({"text": warning_msg, "media_url": None, "room_id": msg_room_id}),
                             is_system=True
                         )
                         db.add(sys_msg)
@@ -584,12 +593,14 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             "id": sys_msg.id, "user_id": sys_msg.user_id, "author_name": sys_msg.author_name,
                             "author_role": sys_msg.author_role, "access_level": sys_msg.access_level,
                             "content": sys_msg.content, "is_system": sys_msg.is_system,
+                            "room_id": msg_room_id,
                             "created_at": sys_msg.created_at.isoformat()
                         }
-                        await global_manager.broadcast(sys_payload)
+                        await global_manager.broadcast_to_room(msg_room_id, sys_payload)
                         continue
 
-                db_content = json.dumps({"text": text_val, "media_url": media_val})
+                # Guardado serializando el room_id en el content JSON para aislamiento en la BBDD
+                db_content = json.dumps({"text": text_val, "media_url": media_val, "room_id": msg_room_id})
                 new_msg = ChatMessage(
                     user_id=user.user_id,
                     author_name=f"[Global] {user.name}",
@@ -611,9 +622,12 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                     "access_level": new_msg.access_level,
                     "content": new_msg.content,
                     "is_system": new_msg.is_system,
+                    "room_id": msg_room_id,
                     "created_at": new_msg.created_at.isoformat()
                 }
-                await global_manager.broadcast(msg_payload)
+                
+                # ENVIAR SOLO A LA SALA DONDE SE ESCRIBIÓ
+                await global_manager.broadcast_to_room(msg_room_id, msg_payload)
             except Exception as inner_err:
                 print(f"[GLOBAL WS INNER ERROR]: {inner_err}")
                 pass
@@ -626,7 +640,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         global_manager.disconnect(websocket, user_id)
         online_count = db.query(User).filter(User.is_online == True).count()
         await global_manager.broadcast({"type": "online_count_update", "count": online_count})
-        await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "offline"})
+        await global_manager.broadcast_to_room(room_id, {"type": "radar_update", "user_id": user_id, "name": user.name, "status": "offline", "room_id": room_id})
     except Exception as outer_err:
         print(f"[GLOBAL WS OUTER ERROR]: {outer_err}")
         try:
