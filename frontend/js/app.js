@@ -1594,13 +1594,13 @@ const app = {
                             <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> SALAS DE VIDEOCHAT</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0">
-                            <button onclick="app.filterVideoRooms('all')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Todas</button>
-                            <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Letter and gear</button>
-                            <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Alpha clothes</button>
-                            <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Sweat and thongs</button>
-                            <button onclick="app.filterVideoRooms('slam')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Slam</button>
-                            <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Party time</button>
+                        <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0 scrollbar-none">
+                            <button onclick="app.filterVideoRooms('all')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Todas</button>
+                            <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Letter and gear</button>
+                            <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Alpha clothes</button>
+                            <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Sweat and thongs</button>
+                            <button onclick="app.filterVideoRooms('slam')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Slam</button>
+                            <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Party time</button>
                         </div>
                         <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
                             <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando salas activas... ⏳</div>
@@ -1620,32 +1620,45 @@ const app = {
         if (!container) return;
         container.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10">Cargando salas... ⏳</div>`;
         try {
-            const url = category === 'all' ? `${this.backendUrl}/chat/rooms` : `${this.backendUrl}/chat/rooms?category=${category}`;
-            const res = await fetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                this.activeRooms = data.rooms || [];
-                if (this.activeRooms.length === 0) {
-                    container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">No hay salas disponibles en esta categoría.</div>`;
-                } else {
-                    container.innerHTML = this.activeRooms.map(r => `
-                        <div class="bg-black/80 border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex flex-col gap-3 transition shadow-md">
-                            <div class="flex items-start justify-between gap-2">
-                                <div>
-                                    <span class="text-sm font-black text-[#00f3ff] uppercase tracking-wider block mb-1">${this.escapeHtml(r.name)}</span>
-                                    <p class="text-[11px] text-neutral-300">${this.escapeHtml(r.description || 'Sala temática interactiva')}</p>
+            const officialRooms = [
+                { room_id: 'letter_and_gear', name: 'Letter and gear', description: 'Equipamiento y estilo táctico oficial', min_access_level: 0, category: 'letter_and_gear', icon: 'fa-gears text-[#00f3ff]' },
+                { room_id: 'alpha_clothes', name: 'Alpha clothes', description: 'Moda y exclusivas del Ecosistema Alpha', min_access_level: 0, category: 'alpha_clothes', icon: 'fa-shirt text-[#ff00ff]' },
+                { room_id: 'sweat_and_thongs', name: 'Sweat and thongs', description: 'Sala de alto voltaje y contenido exclusivo VIP', min_access_level: 1, category: 'sweat_and_thongs', icon: 'fa-fire text-[#ffb703]' },
+                { room_id: 'slam', name: 'Slam', description: 'Acción extrema sin censura y debates directos', min_access_level: 2, category: 'slam', icon: 'fa-bolt text-red-500' },
+                { room_id: 'party_time', name: 'Party time', description: 'Zona de fiesta, música y transmisiones nocturnas', min_access_level: 3, category: 'party_time', icon: 'fa-champagne-glasses text-purple-400' }
+            ];
+
+            let rooms = officialRooms;
+            if (category && category !== 'all') {
+                rooms = officialRooms.filter(r => r.category === category);
+            }
+
+            this.activeRooms = rooms;
+            if (this.activeRooms.length === 0) {
+                container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">No hay salas disponibles en esta categoría.</div>`;
+            } else {
+                container.innerHTML = this.activeRooms.map(r => `
+                    <div class="bg-black/80 border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex flex-col gap-3 transition shadow-md">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center shrink-0 shadow-inner">
+                                    <i class="fa-solid ${r.icon} text-base"></i>
                                 </div>
-                                <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">Nivel ${r.min_access_level}</span>
+                                <div>
+                                    <span class="text-sm font-black text-white uppercase tracking-wider block mb-0.5">${this.escapeHtml(r.name)}</span>
+                                    <p class="text-[11px] text-neutral-300">${this.escapeHtml(r.description)}</p>
+                                </div>
                             </div>
-                            <div class="pt-2 border-t border-neutral-800 flex justify-end">
-                                <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level})" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center">Entrar a la sala</button>
-                            </div>
+                            <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">Nivel ${r.min_access_level}</span>
                         </div>
-                    `).join('');
-                }
+                        <div class="pt-2 border-t border-neutral-800 flex justify-end">
+                            <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level})" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center">Entrar a la sala</button>
+                        </div>
+                    </div>
+                `).join('');
             }
         } catch (e) {
-            container.innerHTML = `<div class="text-center text-red-400 text-xs py-10">Error al conectar con el servidor de salas.</div>`;
+            container.innerHTML = `<div class="text-center text-red-400 text-xs py-10">Error al cargar las salas.</div>`;
         }
     },
 
