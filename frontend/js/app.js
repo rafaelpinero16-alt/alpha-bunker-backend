@@ -1596,11 +1596,11 @@ const app = {
                         </div>
                         <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0">
                             <button onclick="app.filterVideoRooms('all')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Todas</button>
-                            <button onclick="app.filterVideoRooms('letter-and-gear')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Letter and gear</button>
-                            <button onclick="app.filterVideoRooms('alpha-clothes')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Alpha clothes</button>
-                            <button onclick="app.filterVideoRooms('sweat-and-thongs')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Sweat and thongs</button>
+                            <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Letter and gear</button>
+                            <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Alpha clothes</button>
+                            <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Sweat and thongs</button>
                             <button onclick="app.filterVideoRooms('slam')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Slam</button>
-                            <button onclick="app.filterVideoRooms('party-time')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Party time</button>
+                            <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700">Party time</button>
                         </div>
                         <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
                             <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando salas activas... ⏳</div>
