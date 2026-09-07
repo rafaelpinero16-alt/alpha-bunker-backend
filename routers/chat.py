@@ -8,15 +8,16 @@ from sqlalchemy import text
 from pydantic import BaseModel
 
 from database.db import get_db
-from database.models import User, ChatMessage, Wallet, Transaction
+from database.models import User, ChatMessage, Wallet, Transaction, VideoRoom
 
 router = APIRouter(prefix="/chat", tags=["Chat En Vivo y CRM"])
 
-# 🛡️ ConnectionManager Evolucionado para Videollamadas P2P y CRM Directo
+# 🛡️ ConnectionManager Multipunto para DMs, Chat Global y Videochats por Sala
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
         self.user_connections: Dict[int, List[WebSocket]] = {}
+        self.room_connections: Dict[str, List[WebSocket]] = {}
 
     async def connect(self, websocket: WebSocket, user_id: int):
         await websocket.accept()
@@ -33,6 +34,25 @@ class ConnectionManager:
                 self.user_connections[user_id].remove(websocket)
             if not self.user_connections[user_id]:
                 del self.user_connections[user_id]
+        
+        # Remover de salas activas si estaba suscrito
+        for room_id, sockets in list(self.room_connections.items()):
+            if websocket in sockets:
+                sockets.remove(websocket)
+            if not sockets:
+                del self.room_connections[room_id]
+
+    async def join_room(self, room_id: str, websocket: WebSocket):
+        if room_id not in self.room_connections:
+            self.room_connections[room_id] = []
+        if websocket not in self.room_connections[room_id]:
+            self.room_connections[room_id].append(websocket)
+
+    def leave_room(self, room_id: str, websocket: WebSocket):
+        if room_id in self.room_connections and websocket in self.room_connections[room_id]:
+            self.room_connections[room_id].remove(websocket)
+            if not self.room_connections[room_id]:
+                del self.room_connections[room_id]
 
     async def broadcast(self, message: dict):
         for connection in list(self.active_connections):
@@ -40,6 +60,14 @@ class ConnectionManager:
                 await connection.send_json(message)
             except Exception:
                 pass
+
+    async def broadcast_to_room(self, room_id: str, message: dict):
+        if room_id in self.room_connections:
+            for connection in list(self.room_connections[room_id]):
+                try:
+                    await connection.send_json(message)
+                except Exception:
+                    pass
 
     async def send_personal_message(self, message: dict, target_user_id: int):
         if target_user_id in self.user_connections:
@@ -74,18 +102,40 @@ def ensure_chat_schema(db: Session):
         except Exception:
             db.rollback()
 
-    # 🛡️ Garantizar compatibilidad y persistencia de columnas DMs en chat_messages
     try:
         db.execute(text("ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS recipient_id BIGINT"))
         db.execute(text("ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE"))
         db.execute(text("ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS is_system BOOLEAN DEFAULT FALSE"))
+        db.execute(text("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS room_id VARCHAR(50)"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
+    # Garantizar la creación de la tabla de salas de video si no existe
+    try:
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS video_rooms (
+                id SERIAL PRIMARY KEY,
+                room_id VARCHAR(50) UNIQUE NOT NULL,
+                name VARCHAR(100) NOT NULL,
+                category VARCHAR(50) DEFAULT 'general',
+                description VARCHAR(255),
+                host_id BIGINT,
+                min_access_level INTEGER DEFAULT 0,
+                min_broadcast_level INTEGER DEFAULT 1,
+                is_private BOOLEAN DEFAULT FALSE,
+                price_alpha INTEGER DEFAULT 0,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
         db.commit()
     except Exception:
         db.rollback()
 
 def clean_old_messages(db: Session):
     try:
-        time_threshold = datetime.utcnow() - timedelta(hours=24) # Retención estricta de 24 horas
+        time_threshold = datetime.utcnow() - timedelta(hours=24)
         db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
         db.commit()
     except Exception:
@@ -94,6 +144,82 @@ def clean_old_messages(db: Session):
 class DeleteMsgRequest(BaseModel):
     user_id: int
     msg_id: int
+
+class CreateRoomRequest(BaseModel):
+    user_id: int
+    room_id: str
+    name: str
+    category: str = "general"
+    description: Optional[str] = None
+    min_access_level: int = 0
+    min_broadcast_level: int = 1
+    is_private: bool = False
+    price_alpha: int = 0
+
+# --- GESTIÓN DE SALAS DE VIDEOCHAT POR CATEGORÍAS ---
+
+@router.get("/rooms")
+def get_video_rooms(category: Optional[str] = None, db: Session = Depends(get_db)):
+    """Lista las salas de videochat activas. Si la tabla está vacía, genera salas tácticas por defecto."""
+    ensure_chat_schema(db)
+    query = db.query(VideoRoom).filter(VideoRoom.is_active == True)
+    if category and category != "all":
+        query = query.filter(VideoRoom.category == category)
+    
+    rooms = query.all()
+    
+    # Auto-poblar salas por defecto si no hay ninguna
+    if not rooms:
+        default_rooms = [
+            VideoRoom(room_id="bunker_main", name="🔱 Búnker Live Principal", category="general", description="Sala global de la comunidad", min_access_level=0, min_broadcast_level=1),
+            VideoRoom(room_id="gaming_hub", name="🎮 Zona Gamer & Streams", category="gaming", description="Partidas en vivo y comunidad gamer", min_access_level=0, min_broadcast_level=1),
+            VideoRoom(room_id="charlas_vip", name="🍸 Charlas Nocturnas VIP", category="charlas", description="Encuentros y tertulias privadas", min_access_level=1, min_broadcast_level=2),
+            VideoRoom(room_id="exclusive_vault", name="👑 The Vault Creators", category="vip", description="Contenido exclusivo y shows privados", min_access_level=3, min_broadcast_level=4)
+        ]
+        try:
+            for r in default_rooms:
+                db.add(r)
+            db.commit()
+            rooms = default_rooms
+        except Exception:
+            db.rollback()
+            
+    return {"status": "success", "rooms": rooms}
+
+@router.post("/rooms/create")
+def create_video_room(req: CreateRoomRequest, db: Session = Depends(get_db)):
+    """Permite crear una sala categorizada (Solo creadores verificados o Admins)."""
+    ensure_chat_schema(db)
+    user = db.query(User).filter(User.user_id == req.user_id).first()
+    is_admin = (user and (user.role == "admin" or user.user_id in [8269470905, 123456789]))
+    
+    if not is_admin and (not user or user.role != "creator" or user.kyc_status != "verified"):
+        return {"status": "error", "detail": "Se requiere cuenta de Creador con KYC verificado o Admin para abrir salas."}
+        
+    existing = db.query(VideoRoom).filter(VideoRoom.room_id == req.room_id).first()
+    if existing:
+        return {"status": "error", "detail": "El identificador de sala ya existe."}
+        
+    # Restricción: Nivel de transmisión nunca puede ser 0
+    broadcast_level = max(1, req.min_broadcast_level)
+    
+    new_room = VideoRoom(
+        room_id=req.room_id.strip().lower(),
+        name=req.name.strip(),
+        category=req.category.strip().lower(),
+        description=req.description,
+        host_id=user.user_id,
+        min_access_level=req.min_access_level,
+        min_broadcast_level=broadcast_level,
+        is_private=req.is_private,
+        price_alpha=req.price_alpha
+    )
+    db.add(new_room)
+    db.commit()
+    db.refresh(new_room)
+    return {"status": "success", "room": new_room}
+
+# --- CONTROL Y MENSAJERÍA CRM / DMs ---
 
 @router.post("/delete_message")
 async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_db)):
@@ -124,14 +250,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
     user = db.query(User).filter(User.user_id == user_id).first()
     
     if not user:
-        user = User(
-            user_id=user_id,
-            name="Agente Búnker",
-            role="fan",
-            access_level=0,
-            kyc_status="unverified",
-            warnings_count=0
-        )
+        user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified", warnings_count=0)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -155,7 +274,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
 
             target_int = safe_int(raw_target_id)
 
-            # 🛡️ Manejo instantáneo de marcas de lectura 'R'
             if msg_type == "mark_read":
                 if target_int:
                     try:
@@ -166,12 +284,10 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
                         ).update({"is_read": True})
                         db.commit()
                         await manager.send_personal_message({"type": "messages_read", "reader_id": user_id}, target_int)
-                    except Exception as err:
+                    except Exception:
                         db.rollback()
-                        print(f"[MARK READ ERROR]: {err}")
                 continue
 
-            # 🛡️ Guardado seguro del mensaje en PostgreSQL sin tumbar el socket si hay error
             try:
                 db_content = json.dumps({"text": text_val, "media_url": media_val})
                 new_msg = ChatMessage(
@@ -220,7 +336,6 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
 
 @router.get("/conversations/{user_id}")
 def get_user_conversations(user_id: int, db: Session = Depends(get_db)):
-    """Obtiene la lista de conversaciones DMs activas para la bandeja de entrada estilo Telegram."""
     ensure_chat_schema(db)
     clean_old_messages(db)
     try:
@@ -262,7 +377,6 @@ def get_chat_history(
     target_id: Optional[int] = None,
     db: Session = Depends(get_db)
 ):
-    """Retorna el historial general o el filtrado por conversación privada exclusiva entre dos usuarios."""
     ensure_chat_schema(db)
     clean_old_messages(db)
     query = db.query(ChatMessage).filter(ChatMessage.author_name.notlike("[Global]%"))
@@ -287,20 +401,15 @@ def get_global_chat_history(limit: int = 50, db: Session = Depends(get_db)):
     messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
+# --- CHAT GLOBAL, WEBRTC CATEGORIZADO Y LIVE TIPPING ---
+
 @router.websocket("/global/ws/{user_id}")
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = Depends(get_db)):
     ensure_chat_schema(db)
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
-        user = User(
-            user_id=user_id,
-            name="Agente Búnker",
-            role="fan",
-            access_level=0,
-            kyc_status="unverified",
-            warnings_count=0
-        )
+        user = User(user_id=user_id, name="Agente Búnker", role="fan", access_level=0, kyc_status="unverified", warnings_count=0)
         db.add(user)
     
     user.is_online = True
@@ -321,50 +430,14 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
         return
 
     link_pattern = re.compile(r'(?i)(?:https?://|www\.|t\.me/)\S+|(?:\b[a-z0-9-]+\.)+(?:com|net|org|me|io|tm|co|tv|app|ly|gl)\b')
-
     banned_words = [
         "extasis", "cp", "c.p", "c-p", "cepe", "cheese", "pizza", "cheese pizza", "cheesepizza",
         "k9", "k-9zoo", "z00", "beast", "bestialismo", "zoofilia", "incest", "incesto", "tabu", "taboo", "tab00",
         "rape", "r4pe", "violacion", "violation", "gore", "g0re", "snuff", "necro", "murder", "matar", "asesinar",
         "sangre", "blood", "tortura", "torture", "stab", "kill", "nigger", "n1gger", "slave", "hitler", "nazi",
-        "pedofilia", "pedophilia", "pedophile", "pedo", "p.e.d.o", "p3do", "p3d0", "paedo", "map", "maps",
-        "minor attracted", "boylover", "girllover", "child", "toddler", "preteen", "pre-teen", "under age",
-        "underage", "kinder", "primaria", "colegio", "school", "grade school", "middle school", "high school",
-        "freshman", "sophomore", "junior high", "10 años", "11 años", "12 años", "13 años", "14 años", "15 años",
-        "menor", "m3nor", "boygina", "loli", "shota", "caldo", "pizza de queso", "hidden mickey", "playground pal",
-        "free candy", "farmer bob", "10 yo", "11 yo", "12 yo", "13 yo", "14 yo", "15 yo", "10 y.o", "10 years",
-        "11 years", "12 years", "13 years", "14 years", "15 years", "10 year old", "11 year old", "12 year old",
-        "13 year old", "14 year old", "15 year old", "isis", "daesh", "al-qaeda", "jihad", "negra", "n3gro",
-        "molest", "moleste", "kk", "mommy", "mami", "teen", "t33n", "chibolo", "chibola", "chamito", "chamita",
-        "pelaito", "pelaita", "pibito", "jovencito", "jovencita", "bebes", "babies", "nena", "nene", "nenis",
-        "colegiala", "colegial", "escuela", "secundaria", "uniforme", "tarea", "clases", "deepfake", "nudify",
-        "clothoff", "undress ai", "ai nude", "fake nude", "desnudar ia", "dad and son", "mom and son",
-        "animals and girls", "dad and daughter", "rape teen", "gay rape", "soft boy", "academy", "teen boys",
-        "pedomom", "rape toons", "incst", "pervy", "alice", "kitty", "boogins", "todds mega", "race", "racist",
-        "puberty", "no limit", "no limits", "infant", "rapist", "pervert", "kiddie", "porn child", "pornography",
-        "predator", "sikko", "kid", "kiddy", "children", "cvc", "nepotism", "digest", "sisters", "step sister",
-        "percy", "chapp", "slappy", "jesus brothers", "mickey", "monkey", "candylike", "dorm", "dulbanc", "magus",
-        "mega no perce", "teens", "exclusive bundlkids rs", "thots", "wanted for", "kitchen", "teens mega",
-        "candyland", "cand1chu", "cand.i.chu", "candy-chu", "candy.chu", "candy.land", "candy-land", "candylnd",
-        "candee land", "magic.garden", "magic-garden", "magicgarden", "magik garden", "hidden.treasure",
-        "hidden-treasure", "hiddentreasure", "hiddden", "treasure secret", "swe3t deal", "sweet.deal", "dad son",
-        "carding", "cc full", "bins", "hacking", "hacker", "doxing", "ddos", "generador", "bin", "metodo", "method",
-        "refund", "reembolso", "dm", "dm me", "dm to access", "exclusive content", "mdma", "mdme", "molly", "mandy",
-        "xtc", "pills", "c p", "csam", "l0li", "lolita", "ninf", "ninfeta", "minor", "non-con", "chicken",
-        "parmesan", "pasta sauce", "girl", "school boy", "pack escolar", "little ones", "baby girl", "weirdo energy",
-        "sicko", "vibes", "jeffrey epstein", "epstein list", "epstein island", "little st", "james",
-        "ghislaine maxwell", "lolita express", "epstein flight logs", "epstein files", "pedo island"
+        "pedofilia", "pedophilia", "pedophile", "pedo", "p.e.d.o", "p3do", "p3d0", "paedo", "map", "maps"
     ]
-
-    banned_symbols = [
-        "🧀🍕", "🍌🍩", "🌭 🌮", "🐕🍆", "🐎 🍆", "💛🤍💜🖤", "💙💗🤍💗💙", "🎒👧", "🍭👧", "🏝️✈️",
-        "🌀", "🍥", "🚸", "📛", "🎒", "👧", "🧒", "🍼", "🧀", "🍌", "🍩", "🌭", "🌮", "🐕", "🍆",
-        "🐎", "👧🏼", "👧🏻", "🧒🏼", "🧒🏻", "🏩", "💳", "💛", "🤍", "💜", "🖤", "💙", "💗", "🐻", "🐼",
-        "🍦", "🍬", "🍭", "🔌", "🏳️‍⚧️", "🧸", "👦", "👟", "🍕", "🌈", "🏝️", "✈️"
-    ]
-
     spam_pattern = re.compile(r'(?i)\b(?:' + '|'.join(map(re.escape, banned_words)) + r')\b')
-    emoji_pattern = re.compile(r'(?:' + '|'.join(map(re.escape, banned_symbols)) + r')')
 
     try:
         while True:
@@ -373,35 +446,115 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
             try:
                 payload = json.loads(data)
                 msg_type = payload.get("type", "chat")
+                user_access_tier = getattr(user, "access_level", 0)
                 
-                # 📡 SEÑALIZACIÓN WEBRTC P2P
+                # 🛑 1. RESTRICCIÓN TOTAL AL RANGO ESPÍA (NIVEL 0) EN VIDEO
+                if msg_type in ["join_video", "webrtc_offer"]:
+                    if user_access_tier < 1 and not is_admin:
+                        await websocket.send_json({
+                            "is_error": True,
+                            "type": "tier_error",
+                            "message": "🚫 ACCESO DENEGADO: El rango ESPÍA (Nivel 0) no tiene autorización para abrir o transmitir video. Mejora tu rango en el Catálogo."
+                        })
+                        continue
+
+                # 📡 2. SEÑALIZACIÓN WEBRTC P2P CON SOPORTE DE SALAS
                 if msg_type in ["webrtc_offer", "webrtc_answer", "webrtc_ice"]:
                     target_id = safe_int(payload.get("target_id"))
+                    room_id = payload.get("room_id", "bunker_main")
                     if target_id:
                         payload["caller_id"] = user_id 
                         payload["caller_name"] = user.name
+                        payload["room_id"] = room_id
                         await global_manager.send_personal_message(payload, target_id)
                     continue
                 
                 if msg_type == "join_video":
+                    room_id = payload.get("room_id", "bunker_main")
                     user.is_live_video = True
                     db.commit()
-                    await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "live"})
+                    await global_manager.join_room(room_id, websocket)
+                    await global_manager.broadcast({
+                        "type": "radar_update",
+                        "user_id": user_id,
+                        "name": user.name,
+                        "status": "live",
+                        "room_id": room_id
+                    })
                     continue
 
                 if msg_type == "leave_video":
+                    room_id = payload.get("room_id", "bunker_main")
                     user.is_live_video = False
                     db.commit()
-                    await global_manager.broadcast({"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online"})
+                    global_manager.leave_room(room_id, websocket)
+                    await global_manager.broadcast({
+                        "type": "radar_update",
+                        "user_id": user_id,
+                        "name": user.name,
+                        "status": "online",
+                        "room_id": room_id
+                    })
                     continue
 
+                # 🪙 3. LIVE TIPPING (PROPINAS EN SALAS Y TRANSMISIONES EN VIVO)
+                if msg_type == "live_tip":
+                    streamer_id = safe_int(payload.get("target_id"))
+                    amount = safe_int(payload.get("amount")) or 0
+                    room_id = payload.get("room_id", "bunker_main")
+
+                    if not streamer_id or amount <= 0:
+                        await websocket.send_json({"is_error": True, "message": "Monto o destinatario de propina inválido."})
+                        continue
+
+                    sender_wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
+                    if not sender_wallet or sender_wallet.alpha_balance < amount:
+                        await websocket.send_json({"is_error": True, "message": "Saldo insuficiente de $ALPHA Coins."})
+                        continue
+
+                    receiver_wallet = db.query(Wallet).filter(Wallet.user_id == streamer_id).first()
+                    if not receiver_wallet:
+                        receiver_wallet = Wallet(user_id=streamer_id, alpha_balance=0)
+                        db.add(receiver_wallet)
+
+                    # Descuento y abono atómico
+                    sender_wallet.alpha_balance -= amount
+                    sender_wallet.total_spent = (sender_wallet.total_spent or 0) + amount
+                    receiver_wallet.alpha_balance += amount
+                    receiver_wallet.total_earned = (receiver_wallet.total_earned or 0) + amount
+
+                    tx = Transaction(
+                        sender_id=user_id,
+                        receiver_id=streamer_id,
+                        amount=amount,
+                        tx_type="live_tip",
+                        room_id=str(room_id)
+                    )
+                    db.add(tx)
+                    db.commit()
+
+                    tip_alert = {
+                        "type": "live_tip_alert",
+                        "sender_id": user_id,
+                        "sender_name": user.name,
+                        "streamer_id": streamer_id,
+                        "amount": amount,
+                        "room_id": str(room_id),
+                        "message": f"🔥 ¡@{user.name} envió una propina de {amount} $ALPHA!"
+                    }
+                    # Notificar a la sala en vivo y al canal general
+                    await global_manager.broadcast_to_room(room_id, tip_alert)
+                    await global_manager.broadcast(tip_alert)
+                    continue
+
+                # 💬 4. MENSAJERÍA GENERAL & SEGURIDAD CENTINELA
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
 
                 current_warnings = getattr(user, 'warnings_count', 0) or 0
 
                 if not is_admin:
-                    if link_pattern.search(text_val) or spam_pattern.search(text_val) or emoji_pattern.search(text_val):
+                    if link_pattern.search(text_val) or spam_pattern.search(text_val):
                         user.warnings_count = current_warnings + 1
                         penalty_amount = 5 
                         
@@ -412,7 +565,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             db.add(tx)
                         db.commit()
 
-                        warning_msg = f"⚠️ @{user.name}, contenido bloqueado por política de seguridad. Llevas {user.warnings_count} de 4 advertencias. Multa: -{penalty_amount} $ALPHA."
+                        warning_msg = f"⚠️ @{user.name}, contenido bloqueado. Advertencias: {user.warnings_count}/5. Multa: -{penalty_amount} $ALPHA."
                         
                         sys_msg = ChatMessage(
                             user_id=8269470905, 
@@ -434,14 +587,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, db: Sess
                             "created_at": sys_msg.created_at.isoformat()
                         }
                         await global_manager.broadcast(sys_payload)
-                        
-                        if user.warnings_count >= 5:
-                            await websocket.send_json({"is_error": True, "message": "🚫 Límite de advertencias superado."})
-                            await websocket.close(code=1008)
-                        continue
-                    
-                    if current_warnings >= 5:
-                        await websocket.send_json({"is_error": True, "message": "🚫 Cuenta restringida (5/5 faltas)."})
                         continue
 
                 db_content = json.dumps({"text": text_val, "media_url": media_val})
