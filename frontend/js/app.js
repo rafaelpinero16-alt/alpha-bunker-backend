@@ -1651,8 +1651,13 @@ async loadVideoRooms(category) {
                         </div>
                         <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">Nivel ${r.min_access_level}</span>
                     </div>
-                    <div class="pt-2 border-t border-neutral-800 flex justify-end">
-                        <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level})" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center">Entrar a la sala</button>
+                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-800">
+                        <button onclick="app.openRoomChat('${r.room_id}', '${this.escapeHtml(r.name)}', ${r.min_access_level})" class="w-full bg-[#00f3ff]/20 hover:bg-[#00f3ff]/30 text-[#00f3ff] border border-[#00f3ff] font-black py-2.5 rounded-xl text-xs uppercase shadow-md transition text-center flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-comments"></i> Chat
+                        </button>
+                        <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level}, '${this.escapeHtml(r.name)}')" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-video"></i> Video
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -1667,7 +1672,35 @@ filterVideoRooms(category) {
     this.loadVideoRooms(category);
 },
 
-async joinVideoRoom(roomId, minAccessLevel) {
+async openRoomChat(roomId, roomName, minAccessLevel) {
+    this.haptic('medium');
+    const userTier = this.userData?.access_tier || 0;
+    const isAdmin = this.isAdminUser();
+
+    if (!isAdmin && userTier < minAccessLevel) {
+        this.showToast(`⚠️ Esta sala requiere rango superior (Nivel ${minAccessLevel}).`);
+        this.openCatalogPackages();
+        return;
+    }
+
+    this.currentRoomId = roomId;
+    this.closeModals();
+
+    const titleEl = document.getElementById('global-chat-title');
+    if (titleEl) titleEl.innerText = `SALA: ${roomName.toUpperCase()}`;
+
+    const container = document.getElementById('global-chat-messages');
+    if (container) container.innerHTML = '';
+
+    document.getElementById('modal-global-chat')?.classList.remove('hidden');
+    this.setupSystemMessageObserver('global-chat-messages');
+
+    if (typeof BunkerChat !== 'undefined') {
+        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
+    }
+},
+
+async joinVideoRoom(roomId, minAccessLevel, roomName) {
     this.haptic('medium');
     const userTier = this.userData?.access_tier || 0;
     const isAdmin = this.isAdminUser();
@@ -1678,15 +1711,16 @@ async joinVideoRoom(roomId, minAccessLevel) {
         return;
     }
 
-    // 🛡️ Aislamiento estricto de sala individual y limpieza de WebRTC previo
     this.currentRoomId = roomId;
     this.closeModals();
     
     Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
 
+    const badge = document.getElementById('video-badge');
+    if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • PREVIEW`;
+
     await this.joinVideoBunker();
     
-    // Inicializar socket de chat con aislamiento estricto por room_id
     if (typeof BunkerChat !== 'undefined') {
         BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
     }
@@ -2158,7 +2192,23 @@ async joinVideoRoom(roomId, minAccessLevel) {
 
     appendChatMessage(msg, containerId) {
         const container = document.getElementById(containerId); 
-        if (!container) return;
+        if (!container || !msg) return;
+
+        // 🛡️ Filtro de seguridad: Descartar paquetes técnicos de red (radar, WebRTC, eventos de video)
+        if (msg.type && (msg.type.startsWith('webrtc_') || msg.type === 'radar_update' || msg.type === 'leave_video' || msg.type === 'join_video' || msg.type === 'online_count_update')) {
+            return;
+        }
+        try {
+            if (typeof msg.content === 'string' && (msg.content.trim().startsWith('{') || msg.content.trim().startsWith('['))) {
+                const parsedCheck = JSON.parse(msg.content);
+                if (parsedCheck && typeof parsedCheck === 'object' && parsedCheck.type) {
+                    if (parsedCheck.type.startsWith('webrtc_') || parsedCheck.type === 'radar_update' || parsedCheck.type === 'leave_video' || parsedCheck.type === 'join_video' || parsedCheck.type === 'online_count_update') {
+                        return;
+                    }
+                }
+            }
+        } catch (e) {}
+
         const isMe = msg.user_id == this.userId;
         const isAdminUser = this.isAdminUser();
         const rankInfo = this.getRankBadge(msg.access_level);
@@ -2188,8 +2238,8 @@ async joinVideoRoom(roomId, minAccessLevel) {
         let html = '';
         if (msg.is_system) {
             const msgId = `sys-msg-${msg.id || Date.now()}`;
-            html = `<div id="${msgId}" class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] px-4 py-1.5 rounded-full font-black text-center"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
-            setTimeout(() => { const el = document.getElementById(msgId); if(el) el.remove(); }, 3000);
+            html = `<div id="${msgId}" class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] px-4 py-1.5 rounded-full font-black text-center shadow-[0_0_10px_rgba(245,158,11,0.3)]"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
+            setTimeout(() => { const el = document.getElementById(msgId); if(el) el.remove(); }, 4000);
         } else if (isMe) {
             html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">Tú • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]">${safeText}${safeMedia} <span class="inline-flex items-center">${readStatusHtml}</span></div></div>`;
         } else {
