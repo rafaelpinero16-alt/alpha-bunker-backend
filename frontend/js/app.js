@@ -1023,6 +1023,7 @@ const app = {
             }
         } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`; }
     },
+
     openPaymentMethods() {
         this.closeModals();
         let modal = document.getElementById('modal-payment-methods');
@@ -1319,6 +1320,7 @@ const app = {
             `).join('');
         }
     },
+
     async sendCustomTip(creatorId, postId) {
         this.haptic('heavy');
         const amountInput = document.getElementById('fan-tip-amount');
