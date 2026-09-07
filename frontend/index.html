@@ -297,37 +297,43 @@
 
     <!-- VIEW 2: FEED -->
     <div id="view-feed" class="hidden h-screen flex flex-col relative z-10 gpu-accelerated">
-        <header class="glass-panel mx-2 mt-2 p-3 flex items-center justify-between z-20">
-            <div class="flex items-center gap-3 cursor-pointer" onclick="app.openSidebar()">
-                <div class="relative w-12 h-12 rounded-full border-2 border-[#00f3ff] overflow-visible shadow-[0_0_10px_#00f3ff] flex items-center justify-center bg-black">
-                    <img id="avatar-feed" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover rounded-full">
-                    <span id="feed-neon-dot" class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full neon-green-dot border-2 border-black animate-pulse"></span>
-                </div>
-                <div class="flex flex-col justify-center">
-                    <h3 class="font-bold text-base text-white leading-tight" id="name-feed">USER</h3>
-                    <div class="flex flex-wrap items-center gap-2 mt-1">
-                        <p class="text-[10px] font-black text-[#ffb703] tracking-wider bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/50"><span id="rank-feed">ESPÍA 🕵️</span></p>
-                        <span id="user-status-badge" class="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/30">● ONLINE</span>
-                        <span class="text-[9px] font-bold text-[#00f3ff] bg-[#00f3ff]/10 px-2 py-0.5 rounded-full border border-[#00f3ff]/30 shadow-[0_0_5px_#00f3ff]" title="Usuarios Activos">
-                            <i class="fa-solid fa-earth-americas mr-1"></i><span id="views-counter">0</span>
-                        </span>
-                        <span class="text-[9px] font-bold text-[#ffb703] bg-[#ffb703]/10 px-2 py-0.5 rounded-full border border-[#ffb703]/30 shadow-[0_0_5px_#ffb703]" title="Visitas Diarias del Búnker">
-                            <i class="fa-solid fa-fire mr-1"></i>Visitas: <span id="daily-visits-counter">0</span>
-                        </span>
+        <header class="glass-panel mx-2 mt-2 p-3 flex flex-col gap-2.5 z-20">
+            <!-- Fila Superior: Botón Menú + Avatar Grande + Nombre y Rango + Botones de Acción -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="app.openSidebar()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-xl w-10 h-10 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-sm shadow-[0_0_10px_#00f3ff] shrink-0" title="Menú Lateral">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <div class="relative w-14 h-14 rounded-full border-2 border-[#00f3ff] overflow-hidden shadow-[0_0_15px_#00f3ff] flex items-center justify-center bg-black shrink-0 cursor-pointer" onclick="app.openProfile()">
+                        <img id="avatar-feed" src="assets/logo.png" onerror="this.src='https://i.postimg.cc/tYxFr9ZY/1000289059.jpg'" class="w-full h-full object-cover">
+                    </div>
+                    <div class="flex flex-col justify-center min-w-0">
+                        <h3 class="font-black text-white text-sm tracking-wide truncate max-w-[110px]" id="name-feed">USER</h3>
+                        <p class="text-[9px] font-black text-[#ffb703] tracking-wider bg-[#ffb703]/20 px-2 py-0.5 rounded-full border border-[#ffb703]/50 mt-0.5 inline-block w-fit"><span id="rank-feed">ESPÍA 🕵️</span></p>
                     </div>
                 </div>
+                
+                <div class="flex gap-2 items-center">
+                    <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-xl px-3 py-2 flex items-center hover:bg-[rgba(0,243,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
+                        <i class="fa-solid fa-wallet mr-1 text-xs"></i> <span id="btn-wallet-hdr">WALLET</span>
+                    </button>
+                    <button onclick="app.logout()" class="text-[#ff00ff] border border-[#ff00ff] bg-black/60 rounded-xl px-3 py-2 flex items-center hover:bg-[rgba(255,0,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
+                        <i class="fa-solid fa-right-from-bracket mr-1 text-xs"></i> <span id="btn-logout">SALIR</span>
+                    </button>
+                </div>
             </div>
-            <div class="flex gap-2 items-center">
-                <!-- ≡ BOTÓN MENÚ LATERAL (SIDEBAR DRAWER) -->
-                <button onclick="app.openSidebar()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-full w-9 h-9 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-sm shadow-[0_0_10px_#00f3ff] active:scale-95" title="Menú Lateral">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-                <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center hover:bg-[rgba(0,243,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
-                    <i class="fa-solid fa-wallet mr-1.5 text-xs"></i> <span id="btn-wallet-hdr">WALLET</span>
-                </button>
-                <button onclick="app.logout()" class="text-[#ff00ff] border border-[#ff00ff] bg-black/50 rounded-full px-3 py-1.5 flex items-center hover:bg-[rgba(255,0,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
-                    <i class="fa-solid fa-right-from-bracket mr-1.5 text-xs"></i> <span id="btn-logout">SALIR</span>
-                </button>
+
+            <!-- Fila Inferior: Métricas de Búnker ordenadas debajo de forma limpia -->
+            <div class="flex items-center justify-between pt-2 border-t border-neutral-800/80 text-[10px]">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-[#00f3ff] bg-[#00f3ff]/10 px-2.5 py-1 rounded-lg border border-[#00f3ff]/30 shadow-[0_0_5px_#00f3ff] flex items-center gap-1">
+                        <i class="fa-solid fa-earth-americas"></i> Activos: <span id="views-counter">0</span>
+                    </span>
+                    <span class="font-bold text-[#ffb703] bg-[#ffb703]/10 px-2.5 py-1 rounded-lg border border-[#ffb703]/30 shadow-[0_0_5px_#ffb703] flex items-center gap-1">
+                        <i class="fa-solid fa-fire"></i> Visitas: <span id="daily-visits-counter">0</span>
+                    </span>
+                </div>
+                <span class="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/30">● Sistema Operativo</span>
             </div>
         </header>
 
