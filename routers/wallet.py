@@ -1,18 +1,29 @@
+import json
+from typing import Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from datetime import datetime
+
 from database.db import get_db
-from database.models import Wallet, User, Transaction, ChatMessage
-from routers.chat import manager  # ⚡ Cerebro del WebSocket en vivo
+from database.models import (
+    Wallet,
+    User,
+    Transaction,
+    ChatMessage,
+    PayoutRequest as DBPayoutRequest
+)
+from routers.chat import manager, global_manager
 
 router = APIRouter(prefix="/wallet", tags=["Wallet & Alfa Coins"])
 
 class TipRequest(BaseModel):
     sender_id: int
     receiver_id: int
-    amount: int
-    post_id: int | None = None
+    amount: Optional[int] = None
+    amount_alpha: Optional[int] = None
+    post_id: Optional[int] = None
+    message: Optional[str] = None
 
 class TonConnectRequest(BaseModel):
     user_id: int
@@ -24,12 +35,12 @@ class RechargeRequest(BaseModel):
     alpha_added: int
     boc: str
 
-# 🛡️ Nuevo Modelo para Retiros de Creadores
-class PayoutRequest(BaseModel):
+class PayoutCreateRequest(BaseModel):
     user_id: int
     amount_alpha: int
-    payout_method: str  # Ej: "nequi", "binance", "ton", "global66"
-    account_details: str
+    payout_method: str  # Ej: "dolarapp_ach", "skrill", "ton", "binance"
+    account_details: Optional[str] = None
+    destination_account: Optional[str] = None
 
 @router.get("/payment-methods")
 def get_platform_payment_methods():
@@ -58,149 +69,200 @@ def get_platform_payment_methods():
 
 @router.get("/balance/{user_id}")
 def get_wallet_balance(user_id: int, db: Session = Depends(get_db)):
+    """Devuelve el balance consolidado y las transacciones recientes para alimentar el Centro de Ajustes."""
     wallet = db.query(Wallet).filter(Wallet.user_id == user_id).first()
     if not wallet:
         wallet = Wallet(user_id=user_id, alpha_balance=0, total_earned=0, total_spent=0)
         db.add(wallet)
         db.commit()
         db.refresh(wallet)
+
+    txs = db.query(Transaction).filter(
+        (Transaction.sender_id == user_id) | (Transaction.receiver_id == user_id)
+    ).order_by(Transaction.created_at.desc()).limit(25).all()
+
+    transactions_data = []
+    for t in txs:
+        is_outgoing = (t.sender_id == user_id and t.receiver_id != user_id)
+        effective_amount = -abs(t.amount) if is_outgoing else abs(t.amount)
+        transactions_data.append({
+            "id": t.id,
+            "tx_type": t.tx_type,
+            "amount": effective_amount,
+            "created_at": t.created_at.isoformat() if t.created_at else datetime.utcnow().isoformat()
+        })
+
     return {
-        "status": "success", 
-        "alpha_balance": wallet.alpha_balance, 
-        "balance_alfa_coins": wallet.alpha_balance
+        "status": "success",
+        "alpha_balance": wallet.alpha_balance,
+        "balance_alfa_coins": wallet.alpha_balance,
+        "total_earned": wallet.total_earned or 0,
+        "total_spent": wallet.total_spent or 0,
+        "transactions": transactions_data
     }
 
+@router.get("/history/{user_id}")
+def get_wallet_history(user_id: int, limit: int = 50, db: Session = Depends(get_db)):
+    """Historial completo de movimientos de AlphaCoins."""
+    txs = db.query(Transaction).filter(
+        (Transaction.sender_id == user_id) | (Transaction.receiver_id == user_id)
+    ).order_by(Transaction.created_at.desc()).limit(limit).all()
+
+    history = []
+    for t in txs:
+        is_outgoing = (t.sender_id == user_id and t.receiver_id != user_id)
+        effective_amount = -abs(t.amount) if is_outgoing else abs(t.amount)
+        history.append({
+            "id": t.id,
+            "tx_type": t.tx_type,
+            "amount": effective_amount,
+            "room_id": t.room_id,
+            "reference_id": t.reference_id,
+            "created_at": t.created_at.isoformat() if t.created_at else datetime.utcnow().isoformat()
+        })
+
+    return {"status": "success", "transactions": history}
+
+@router.post("/transfer")
 @router.post("/send-tip")
-async def send_tip(data: TipRequest, db: Session = Depends(get_db)):
-    try:
-        sender = db.query(User).filter(User.user_id == data.sender_id).first()
-        receiver = db.query(User).filter(User.user_id == data.receiver_id).first()
-        
-        if not sender or not receiver:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado en la base de datos.")
+async def send_tip_or_transfer(data: TipRequest, db: Session = Depends(get_db)):
+    """Procesa propinas directas desde el muro, perfiles o DMs con split 85/15."""
+    amount = data.amount_alpha if data.amount_alpha is not None else data.amount
+    if not amount or amount <= 0:
+        raise HTTPException(status_code=400, detail="El monto de la propina debe ser mayor a 0 $ALPHA.")
 
-        if data.sender_id == data.receiver_id:
-            raise HTTPException(status_code=400, detail="No puedes enviarte propinas a ti mismo.")
+    if data.sender_id == data.receiver_id:
+        raise HTTPException(status_code=400, detail="No puedes enviarte propinas a ti mismo.")
 
-        if data.amount <= 0:
-            raise HTTPException(status_code=400, detail="El monto de la propina debe ser mayor a 0.")
+    sender = db.query(User).filter(User.user_id == data.sender_id).first()
+    receiver = db.query(User).filter(User.user_id == data.receiver_id).first()
+    
+    if not sender or not receiver:
+        raise HTTPException(status_code=404, detail="Usuario emisor o receptor no encontrado.")
 
-        sender_wallet = db.query(Wallet).filter(Wallet.user_id == data.sender_id).first()
-        receiver_wallet = db.query(Wallet).filter(Wallet.user_id == data.receiver_id).first()
+    sender_wallet = db.query(Wallet).filter(Wallet.user_id == data.sender_id).first()
+    if not sender_wallet or sender_wallet.alpha_balance < amount:
+        raise HTTPException(status_code=400, detail="Saldo insuficiente de $ALPHA Coins.")
 
-        if not sender_wallet or sender_wallet.alpha_balance < data.amount:
-            raise HTTPException(status_code=400, detail="Saldo insuficiente para enviar la propina.")
+    receiver_wallet = db.query(Wallet).filter(Wallet.user_id == data.receiver_id).first()
+    if not receiver_wallet:
+        receiver_wallet = Wallet(user_id=data.receiver_id, alpha_balance=0, total_earned=0, total_spent=0)
+        db.add(receiver_wallet)
 
-        # 🛡️ Lógica de Split 85/15 (Actualizada)
-        platform_fee = int(data.amount * 0.15)
-        creator_earnings = data.amount - platform_fee
+    platform_fee = int(amount * 0.15)
+    creator_earnings = amount - platform_fee
 
-        sender_wallet.alpha_balance -= data.amount
-        sender_wallet.total_spent += data.amount
-        
-        if not receiver_wallet:
-            receiver_wallet = Wallet(user_id=data.receiver_id, alpha_balance=0, total_earned=0, total_spent=0)
-            db.add(receiver_wallet)
-            
-        receiver_wallet.alpha_balance += creator_earnings
-        receiver_wallet.total_earned += creator_earnings
+    sender_wallet.alpha_balance -= amount
+    sender_wallet.total_spent = (sender_wallet.total_spent or 0) + amount
 
-        # Registro del pago al creador (85%)
-        tx_creator = Transaction(
-            sender_id=data.sender_id,
-            receiver_id=data.receiver_id,
-            amount=creator_earnings,
-            tx_type="tip_earnings",
-            reference_id=data.post_id
-        )
-        
-        # Registro de la comisión de la plataforma (15%)
-        tx_platform = Transaction(
-            sender_id=data.sender_id,
-            receiver_id=None, 
-            amount=platform_fee,
-            tx_type="platform_fee",
-            reference_id=data.post_id
-        )
-        
-        db.add(tx_creator)
-        db.add(tx_platform)
+    receiver_wallet.alpha_balance += creator_earnings
+    receiver_wallet.total_earned = (receiver_wallet.total_earned or 0) + creator_earnings
 
-        alert_msg = f"¡{sender.name} ha enviado una propina a @{receiver.name}! 🪙💎"
-        
-        new_system_msg = ChatMessage(
-            user_id=data.sender_id,
-            author_name="Búnker System",
-            author_role="admin",
-            access_level=99,
-            content=alert_msg,
-            is_system=True
-        )
-        db.add(new_system_msg)
-        db.commit()
-        db.refresh(new_system_msg)
+    tx_creator = Transaction(
+        sender_id=data.sender_id,
+        receiver_id=data.receiver_id,
+        amount=creator_earnings,
+        tx_type="tip_earnings",
+        reference_id=data.post_id
+    )
+    tx_platform = Transaction(
+        sender_id=data.sender_id,
+        receiver_id=None,
+        amount=platform_fee,
+        tx_type="platform_fee",
+        reference_id=data.post_id
+    )
+    db.add(tx_creator)
+    db.add(tx_platform)
 
-        msg_payload = {
-            "id": new_system_msg.id,
-            "user_id": new_system_msg.user_id,
-            "author_name": new_system_msg.author_name,
-            "author_role": new_system_msg.author_role,
-            "access_level": new_system_msg.access_level,
-            "content": new_system_msg.content,
-            "is_system": new_system_msg.is_system,
-            "created_at": new_system_msg.created_at.isoformat()
-        }
-        await manager.broadcast(msg_payload)
+    custom_note = f" \"{data.message}\"" if data.message else ""
+    alert_msg = f"🪙 ¡@{sender.name} envió una propina de {amount} $ALPHA a @{receiver.name}!{custom_note} 💎"
 
-        return {
-            "status": "success", 
-            "message": "Propina procesada.", 
-            "amount_sent": data.amount,
-            "creator_received": creator_earnings,
-            "platform_fee": platform_fee
-        }
-        
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        db.rollback()
-        print(f"[TIP ROUTE ERROR]: {e}")
-        raise HTTPException(status_code=500, detail="Error crítico al procesar la propina.")
+    new_system_msg = ChatMessage(
+        user_id=8269470905,
+        author_name="Búnker System",
+        author_role="admin",
+        access_level=5,
+        content=json.dumps({"text": alert_msg, "media_url": None}),
+        is_system=True
+    )
+    db.add(new_system_msg)
+    db.commit()
+    db.refresh(new_system_msg)
+
+    msg_payload = {
+        "type": "new_msg",
+        "id": new_system_msg.id,
+        "user_id": new_system_msg.user_id,
+        "author_name": new_system_msg.author_name,
+        "author_role": new_system_msg.author_role,
+        "access_level": new_system_msg.access_level,
+        "content": new_system_msg.content,
+        "is_system": new_system_msg.is_system,
+        "created_at": new_system_msg.created_at.isoformat()
+    }
+
+    await manager.broadcast(msg_payload)
+    await global_manager.broadcast(msg_payload)
+
+    return {
+        "status": "success",
+        "message": "Propina enviada con éxito.",
+        "amount_sent": amount,
+        "creator_received": creator_earnings,
+        "platform_fee": platform_fee
+    }
 
 @router.post("/request-payout")
-def request_payout(data: PayoutRequest, db: Session = Depends(get_db)):
-    """Congela los fondos del creador y emite una orden de retiro hacia su método externo (Regla 90 Días)."""
-    try:
-        wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
-        
-        if not wallet or wallet.alpha_balance < data.amount_alpha:
-            raise HTTPException(status_code=400, detail="Saldo insuficiente para procesar el retiro.")
+def request_payout(data: PayoutCreateRequest, db: Session = Depends(get_db)):
+    """Registra una orden de retiro para creadores hacia pasarelas o cuentas bancarias."""
+    if data.amount_alpha <= 0:
+        raise HTTPException(status_code=400, detail="El monto a retirar debe ser mayor a 0 $ALPHA.")
 
-        # Descontamos los $ALPHA de su saldo disponible
-        wallet.alpha_balance -= data.amount_alpha
+    user = db.query(User).filter(User.user_id == data.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-        # Registramos la orden en la base de datos
-        tx = Transaction(
-            sender_id=data.user_id,
-            receiver_id=None, 
-            amount=data.amount_alpha,
-            tx_type=f"payout_request_{data.payout_method}",
-            reference_id=None
-        )
-        db.add(tx)
-        db.commit()
+    is_admin = (user.role == "admin" or user.user_id in [8269470905, 123456789])
+    if not is_admin and user.role == "creator" and user.kyc_status != "verified":
+        raise HTTPException(status_code=403, detail="Los creadores requieren verificación KYC (+18) aprobada para retirar fondos.")
 
-        return {
-            "status": "success", 
-            "message": f"Solicitud de retiro de {data.amount_alpha} $ALPHA registrada exitosamente vía {data.payout_method.upper()}. Recuerda que los fondos están sujetos al período de liquidación de 90 días por seguridad."
-        }
-        
-    except HTTPException as http_exc:
-        raise http_exc
-    except Exception as e:
-        db.rollback()
-        print(f"[PAYOUT ERROR]: {e}")
-        raise HTTPException(status_code=500, detail="Falla interna al procesar el retiro.")
+    wallet = db.query(Wallet).filter(Wallet.user_id == data.user_id).first()
+    if not wallet or wallet.alpha_balance < data.amount_alpha:
+        raise HTTPException(status_code=400, detail="Saldo insuficiente de $ALPHA Coins para procesar el retiro.")
+
+    wallet.alpha_balance -= data.amount_alpha
+
+    destination = (data.destination_account or data.account_details or "Cuenta registrada").strip()
+    amount_usd = round(data.amount_alpha * 0.05, 2)  # Conversión base: 20 $ALPHA = $1 USD
+
+    payout_record = DBPayoutRequest(
+        user_id=data.user_id,
+        amount_alpha=data.amount_alpha,
+        amount_usd=amount_usd,
+        payout_method=data.payout_method.lower(),
+        destination_account=destination,
+        status="pending"
+    )
+    db.add(payout_record)
+
+    tx = Transaction(
+        sender_id=data.user_id,
+        receiver_id=None,
+        amount=data.amount_alpha,
+        tx_type=f"payout_request_{data.payout_method.lower()}",
+        reference_id=None
+    )
+    db.add(tx)
+    db.commit()
+
+    return {
+        "status": "success",
+        "payout_id": payout_record.id,
+        "amount_alpha": data.amount_alpha,
+        "amount_usd": amount_usd,
+        "message": f"Solicitud de retiro de {data.amount_alpha} $ALPHA (~${amount_usd} USD) registrada exitosamente vía {data.payout_method.upper()}."
+    }
 
 @router.post("/connect-ton")
 def connect_ton_wallet(data: TonConnectRequest, db: Session = Depends(get_db)):
