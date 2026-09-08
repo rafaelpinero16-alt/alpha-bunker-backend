@@ -406,7 +406,7 @@ def get_global_chat_history(room_id: str = "bunker_main", limit: int = 50, db: S
             msg_room = content_data.get("room_id", "bunker_main")
             if msg_room == room_id:
                 # Filtro 2: Eliminar paquetes de telemetría basura incrustados
-                if "radar_update" in msg.content or "leave_video" in msg.content or "webrtc_" in msg.content:
+                if "radar_update" in msg.content or "leave_video" in msg.content or "webrtc_" in msg.content or "join_video" in msg.content:
                     continue
                 filtered_messages.append(msg)
         except:
@@ -482,39 +482,30 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                         })
                         continue
 
-                # 📡 SEÑALIZACIÓN WEBRTC P2P ENCAPSULADA POR SALA
-                if msg_type in ["webrtc_offer", "webrtc_answer", "webrtc_ice"]:
-                    target_id = safe_int(payload.get("target_id"))
-                    if target_id:
-                        payload["caller_id"] = user_id 
-                        payload["caller_name"] = user.name
-                        payload["room_id"] = msg_room_id
-                        await global_manager.send_personal_message(payload, target_id)
-                    continue
-                
-                if msg_type == "join_video":
-                    user.is_live_video = True
-                    db.commit()
-                    await global_manager.broadcast_to_room(msg_room_id, {
-                        "type": "radar_update",
-                        "user_id": user_id,
-                        "name": user.name,
-                        "status": "live",
-                        "room_id": msg_room_id
-                    })
-                    continue
-
-                if msg_type == "leave_video":
-                    user.is_live_video = False
-                    db.commit()
-                    await global_manager.broadcast_to_room(msg_room_id, {
-                        "type": "radar_update",
-                        "user_id": user_id,
-                        "name": user.name,
-                        "status": "online",
-                        "room_id": msg_room_id
-                    })
-                    continue
+                # 🛡️ INTERCEPTOR TÉCNICO: Evita que los comandos de red se guarden como chat en BD
+                if msg_type in ["radar_update", "webrtc_offer", "webrtc_answer", "webrtc_ice", "join_video", "leave_video", "online_count_update"]:
+                    if msg_type == "radar_update":
+                        await global_manager.broadcast_to_room(msg_room_id, payload)
+                    elif msg_type in ["webrtc_offer", "webrtc_answer", "webrtc_ice"]:
+                        target_id = safe_int(payload.get("target_id"))
+                        if target_id:
+                            payload["caller_id"] = user_id 
+                            payload["caller_name"] = user.name
+                            payload["room_id"] = msg_room_id
+                            await global_manager.send_personal_message(payload, target_id)
+                    elif msg_type == "join_video":
+                        user.is_live_video = True
+                        db.commit()
+                        await global_manager.broadcast_to_room(msg_room_id, {
+                            "type": "radar_update", "user_id": user_id, "name": user.name, "status": "live", "room_id": msg_room_id
+                        })
+                    elif msg_type == "leave_video":
+                        user.is_live_video = False
+                        db.commit()
+                        await global_manager.broadcast_to_room(msg_room_id, {
+                            "type": "radar_update", "user_id": user_id, "name": user.name, "status": "online", "room_id": msg_room_id
+                        })
+                    continue # 🛑 NUNCA REMOVER: Este 'continue' salva el chat de la contaminación JSON
 
                 # 🪙 LIVE TIPPING
                 if msg_type == "live_tip":
@@ -556,7 +547,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                     await global_manager.broadcast_to_room(msg_room_id, tip_alert)
                     continue
 
-                # 💬 MENSAJERÍA INDEPENDIENTE POR SALAS
+                # 💬 MENSAJERÍA INDEPENDIENTE POR SALAS (Aquí SÍ entra el texto limpio, como "Hola")
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
 
