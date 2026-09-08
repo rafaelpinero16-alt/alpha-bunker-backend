@@ -2259,7 +2259,87 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         this.showToast('Reportado');
     },
 
-    appendChatMessage(msg, containerId)
+    appendChatMessage(msg, containerId) {
+        const container = document.getElementById(containerId); 
+        if (!container || !msg) return;
+
+        // 🛡️ Filtro estricto anti-JSON técnico
+        if (msg.type && (msg.type.startsWith('webrtc_') || msg.type === 'radar_update' || msg.type === 'leave_video' || msg.type === 'join_video' || msg.type === 'online_count_update')) {
+            return;
+        }
+
+        // Extracción robusta del contenido para limpiar llaves y comillas
+        let textContent = '', mediaUrl = null;
+        if (typeof msg.content === 'object' && msg.content !== null) {
+            textContent = msg.content.text || '';
+            mediaUrl = msg.content.media_url || null;
+        } else if (typeof msg.content === 'string') {
+            let raw = msg.content.trim();
+            
+            if ((raw.startsWith('{') || raw.startsWith('[')) && (raw.includes('"type"') || raw.includes('"radar_update"'))) {
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(raw);
+                if (typeof parsed === 'object' && parsed !== null) {
+                    textContent = parsed.text !== undefined ? parsed.text : raw;
+                    mediaUrl = parsed.media_url || null;
+                } else {
+                    textContent = raw;
+                }
+            } catch (e1) {
+                try {
+                    const fixed = raw.replace(/'/g, '"').replace(/None/g, 'null').replace(/True/g, 'true').replace(/False/g, 'false');
+                    const parsed = JSON.parse(fixed);
+                    if (typeof parsed === 'object' && parsed !== null) {
+                        textContent = parsed.text !== undefined ? parsed.text : raw;
+                        mediaUrl = parsed.media_url || null;
+                    } else {
+                        textContent = raw;
+                    }
+                } catch (e2) {
+                    textContent = raw;
+                }
+            }
+        }
+
+        const isMe = msg.user_id == this.userId;
+        const isAdminUser = this.isAdminUser();
+        const rankInfo = this.getRankBadge(msg.access_level);
+        let safeText = this.escapeHtml(textContent), safeMedia = '';
+        
+        if (mediaUrl) {
+            const encodedUrl = encodeURI(this.sanitizeUrl(mediaUrl));
+            if (encodedUrl) {
+                const uniqueId = msg.id || Math.random().toString(36).substr(2,9);
+                const isOwner = msg.user_id == this.userId;
+                let menuHtml = `<div class="absolute top-2 right-2 z-10" onclick="event.stopPropagation();"><button onclick="document.getElementById('media-menu-${uniqueId}').classList.toggle('hidden')" class="bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-ellipsis-vertical"></i></button><div id="media-menu-${uniqueId}" class="hidden absolute right-0 mt-2 w-36 bg-neutral-900 border border-neutral-700 rounded-xl shadow-lg overflow-hidden flex flex-col z-20">${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this, ${msg.id})" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800">Eliminar</button>` : ''}</div></div>`;
+                if (mediaUrl.startsWith('data:video') || mediaUrl.includes('.mp4')) { 
+                    safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group flex justify-center" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl max-h-48 object-cover pointer-events-none mx-auto block" autoplay muted loop playsinline></video>${menuHtml}</div>`; 
+                } else if (mediaUrl.startsWith('data:audio')) {
+                    safeMedia = `<div class="relative mt-2 mb-1"><audio src="${encodedUrl}" controls class="w-full h-10 rounded-full" controlsList="nodownload"></audio>${menuHtml}</div>`; 
+                } else { 
+                    safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group flex justify-center" onclick="app.openLightbox('${encodedUrl}', 'image')"><img src="${encodedUrl}" class="rounded-xl max-h-48 object-cover pointer-events-none mx-auto block" />${menuHtml}</div>`; 
+                }
+            }
+        }
+
+        const safeAuthorName = this.escapeHtml(msg.author_name);
+        let readStatusHtml = isMe ? (msg.is_read ? '<span class="text-[9px] text-cyan-400 font-bold ml-1.5 msg-status-indicator" title="Leído">R</span>' : '<span class="text-[9px] text-neutral-400 ml-1.5 msg-status-indicator" title="Enviado">✓</span>') : '';
+        
+        let html = '';
+        if (msg.is_system) {
+            const msgId = `sys-msg-${msg.id || Date.now()}`;
+            html = `<div id="${msgId}" class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] px-4 py-1.5 rounded-full font-black text-center shadow-[0_0_10px_rgba(245,158,11,0.3)]"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
+            setTimeout(() => { const el = document.getElementById(msgId); if(el) el.remove(); }, 5000);
+        } else if (isMe) {
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">Tú • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]" style="word-break: break-word;">${safeText}${safeMedia} <span class="inline-flex items-center">${readStatusHtml}</span></div></div>`;
+        } else {
+            html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black cursor-pointer hover:underline" onclick="app.viewCreatorProfile('${msg.user_id}', '${safeAuthorName}')">@${safeAuthorName}</span> • ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]" style="word-break: break-word;">${safeText}${safeMedia}</div></div>`;
+        }
+        container.insertAdjacentHTML('beforeend', html);
+    },
 
     openLightbox(mediaUrl, type) {
         this.haptic('light'); 
