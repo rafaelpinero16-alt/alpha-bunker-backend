@@ -285,7 +285,7 @@ const app = {
         if (!listEl) return;
         let contacts = JSON.parse(localStorage.getItem('alpha_user_contacts') || '[]');
         if (contacts.length === 0) {
-            listEl.innerHTML = '<div class="text-center text-neutral-500 text-xs py-3">No tienes contactos guardados aún.</div>';
+            listEl.innerHTML = `<div class="text-center text-neutral-500 text-xs py-3">${this.getTrans('no_contacts') || 'No tienes contactos guardados aún.'}</div>`;
             return;
         }
         listEl.innerHTML = contacts.map(c => `
@@ -317,7 +317,7 @@ const app = {
                 const data = await res.json();
                 const txs = data.transactions || [];
                 if (txs.length === 0) {
-                    container.innerHTML = '<div class="text-center text-neutral-500 text-xs py-4">No hay transacciones registradas aún.</div>';
+                    container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">${this.getTrans('no_recent_tx') || 'No hay transacciones registradas aún.'}</div>`;
                 } else {
                     container.innerHTML = txs.map(tx => `
                         <div class="bg-black border border-neutral-800 p-2 rounded-xl flex justify-between items-center text-xs">
@@ -331,7 +331,7 @@ const app = {
                 }
             }
         } catch(e) {
-            container.innerHTML = '<div class="text-center text-neutral-500 text-xs py-4">No se pudo cargar el historial.</div>';
+            container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">No se pudo cargar el historial.</div>`;
         }
     },
 
@@ -1406,7 +1406,7 @@ const app = {
         if (titleEl) titleEl.innerText = "DMs (MENSAJES DIRECTOS)";
 
         if (inboxView) {
-            inboxView.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando conversaciones... ⏳</div>`;
+            inboxView.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10 font-bold">${this.getTrans('loading_conversations')}</div>`;
             try {
                 this.initUserId();
                 const res = await fetch(`${this.backendUrl}/chat/conversations/${this.userId}`);
@@ -1414,7 +1414,7 @@ const app = {
                     const data = await res.json();
                     const conversations = data.conversations || [];
                     if (conversations.length === 0) {
-                        inboxView.innerHTML = `<div class="text-center text-neutral-500 text-xs py-12">No tienes chats activos aún. Visita el perfil de un usuario para iniciar un DM.</div>`;
+                        inboxView.innerHTML = `<div class="text-center text-neutral-500 text-xs py-12">${this.getTrans('no_active_chats')}</div>`;
                     } else {
                         inboxView.innerHTML = conversations.map(c => {
                             const avatarSrc = c.avatar_url ? this.sanitizeUrl(c.avatar_url) : '';
@@ -1510,7 +1510,7 @@ const app = {
 
                 const btn = document.getElementById('btn-profile-follow');
                 if (btn) {
-                    btn.innerHTML = data.following ? '<i class="fa-solid fa-user-check"></i> Siguiendo' : '<i class="fa-solid fa-user-plus"></i> Seguir';
+                    btn.innerHTML = data.following ? `<i class="fa-solid fa-user-check"></i> ${this.getTrans('btn_following')}` : `<i class="fa-solid fa-user-plus"></i> ${this.getTrans('btn_follow')}`;
                     btn.className = data.following 
                         ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
                         : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
@@ -1523,13 +1523,14 @@ const app = {
 
     blockUser(targetId, targetName) {
         this.haptic('heavy');
-        if (confirm(`¿Estás seguro de bloquear a @${targetName}? Ya no verás sus publicaciones ni mensajes.`)) {
+        const confirmMsg = this.getTrans('confirm_block').replace('{name}', targetName);
+        if (confirm(confirmMsg)) {
             let blocked = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
             if (!blocked.includes(String(targetId))) {
                 blocked.push(String(targetId));
                 localStorage.setItem('alpha_user_blocked', JSON.stringify(blocked));
             }
-            this.showToast(`Usuario @${targetName} bloqueado.`);
+            this.showToast(this.getTrans('user_blocked').replace('{name}', targetName));
             this.closeModals();
             this.renderFeed();
         }
@@ -1543,8 +1544,8 @@ const app = {
             const modalHTML = `
                 <div id="modal-communities-links" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                        <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span>ECOSISTEMA</span></h3>
-                        <p class="text-xs text-neutral-300 text-center mb-6">Únete a nuestros canales y grupos oficiales.</p>
+                        <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title">${this.getTrans('com_title_eco')}</span></h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc">${this.getTrans('com_desc_eco')}</p>
                         
                         <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
                             <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
@@ -1563,7 +1564,7 @@ const app = {
                                 <i class="fa-solid fa-fire-flame-curved text-lg"></i> EUPHORIA
                             </button>
                         </div>
-                        <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition">CERRAR</button>
+                        <button onclick="document.getElementById('modal-communities-links').classList.add('hidden')" class="text-neutral-400 hover:text-white font-bold mt-6 uppercase text-sm w-full text-center transition btn-back-text">CERRAR</button>
                     </div>
                 </div>
             `;
@@ -1591,11 +1592,11 @@ const app = {
             <div id="modal-video-rooms" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
                 <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_25px_rgba(0,243,255,0.3)]">
                     <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                        <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> SALAS DE VIDEOCHAT</h3>
+                        <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> ${this.getTrans('video_rooms_title')}</h3>
                         <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                     </div>
                     <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0 scrollbar-none">
-                        <button onclick="app.filterVideoRooms('all')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Todas</button>
+                        <button onclick="app.filterVideoRooms('all')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">${this.getTrans('btn_all')}</button>
                         <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Letter and gear</button>
                         <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Alpha clothes</button>
                         <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Sweat and thongs</button>
@@ -1603,7 +1604,7 @@ const app = {
                         <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Party time</button>
                     </div>
                     <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
-                        <div class="text-center text-neutral-400 text-xs py-10 font-bold">Cargando salas activas... ⏳</div>
+                        <div class="text-center text-neutral-400 text-xs py-10 font-bold">${this.getTrans('loading_active_rooms')}</div>
                     </div>
                 </div>
             </div>
@@ -1618,7 +1619,7 @@ const app = {
 async loadVideoRooms(category) {
     const container = document.getElementById('video-rooms-list');
     if (!container) return;
-    container.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10">Cargando salas... ⏳</div>`;
+    container.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10">${this.getTrans('loading_rooms')}</div>`;
     try {
         const officialRooms = [
             { room_id: 'letter_and_gear', name: 'Letter and gear', description: 'Equipamiento y estilo táctico oficial', min_access_level: 0, category: 'letter_and_gear', icon: 'fa-gears text-[#00f3ff]' },
@@ -1635,7 +1636,7 @@ async loadVideoRooms(category) {
 
         this.activeRooms = rooms;
         if (this.activeRooms.length === 0) {
-            container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">No hay salas disponibles en esta categoría.</div>`;
+            container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">${this.getTrans('no_rooms_category')}</div>`;
         } else {
             container.innerHTML = this.activeRooms.map(r => `
                 <div class="bg-black/80 border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex flex-col gap-3 transition shadow-md">
@@ -1649,14 +1650,14 @@ async loadVideoRooms(category) {
                                 <p class="text-[11px] text-neutral-300">${this.escapeHtml(r.description)}</p>
                             </div>
                         </div>
-                        <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">Nivel ${r.min_access_level}</span>
+                        <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">${this.getTrans('level_prefix')} ${r.min_access_level}</span>
                     </div>
                     <div class="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-800">
                         <button onclick="app.openRoomChat('${r.room_id}', '${this.escapeHtml(r.name)}', ${r.min_access_level})" class="w-full bg-[#00f3ff]/20 hover:bg-[#00f3ff]/30 text-[#00f3ff] border border-[#00f3ff] font-black py-2.5 rounded-xl text-xs uppercase shadow-md transition text-center flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-comments"></i> Chat
+                            <i class="fa-solid fa-comments"></i> ${this.getTrans('btn_chat')}
                         </button>
                         <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level}, '${this.escapeHtml(r.name)}')" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-video"></i> Video
+                            <i class="fa-solid fa-video"></i> ${this.getTrans('btn_video')}
                         </button>
                     </div>
                 </div>
@@ -1688,7 +1689,7 @@ async openRoomChat(roomId, roomName, minAccessLevel) {
     this.closeModals();
 
     const titleEl = document.getElementById('global-chat-title');
-    if (titleEl) titleEl.innerText = `SALA: ${roomName.toUpperCase()}`;
+    if (titleEl) titleEl.innerText = `${this.getTrans('room_title_prefix')} ${roomName.toUpperCase()}`;
 
     const container = document.getElementById('global-chat-messages');
     if (container) container.innerHTML = ''; // Vaciar pantalla
@@ -1722,42 +1723,16 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
     Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
 
     const badge = document.getElementById('video-badge');
-    if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • PREVIEW`;
+    if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • ${this.getTrans('preview_badge')}`;
     
     const titleEl = document.getElementById('global-chat-title');
-    if (titleEl) titleEl.innerText = `SALA: ${(roomName || roomId).toUpperCase()}`;
+    if (titleEl) titleEl.innerText = `${this.getTrans('room_title_prefix')} ${(roomName || roomId).toUpperCase()}`;
 
     const container = document.getElementById('global-chat-messages');
     if (container) container.innerHTML = ''; // Vaciar pantalla
 
     await this.joinVideoBunker();
     await this.loadGlobalChatHistory();
-    
-    if (typeof BunkerChat !== 'undefined') {
-        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
-    }
-},
-
-async joinVideoRoom(roomId, minAccessLevel, roomName) {
-    this.haptic('medium');
-    const userTier = this.userData?.access_tier || 0;
-    const isAdmin = this.isAdminUser();
-
-    if (!isAdmin && userTier < minAccessLevel) {
-        this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
-        this.openCatalogPackages();
-        return;
-    }
-
-    this.currentRoomId = roomId;
-    this.closeModals();
-    
-    Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
-
-    const badge = document.getElementById('video-badge');
-    if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • PREVIEW`;
-
-    await this.joinVideoBunker();
     
     if (typeof BunkerChat !== 'undefined') {
         BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
@@ -1795,7 +1770,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         
         let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
         const isFollowing = following.includes(safeUserId);
-        const followBtnText = isFollowing ? 'Siguiendo' : 'Seguir';
+        const followBtnText = isFollowing ? this.getTrans('btn_following') : this.getTrans('btn_follow');
         const followBtnClass = isFollowing 
             ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
             : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
@@ -1888,7 +1863,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-neutral-700 text-neutral-400 bg-neutral-800';
         }
         if (bioEl) bioEl.innerText = 'Operativo en el Ecosistema Alpha.';
-        if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>`;
+        if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">${this.getTrans('msg_no_posts')}</div>`;
 
         try {
             const res = await fetch(`${this.backendUrl}/kyc/status/${safeUserId}`);
@@ -1914,7 +1889,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                 const feedData = await feedRes.json();
                 const creatorPosts = (feedData.posts || []).filter(p => String(p.creator_id || p.user_id) === safeUserId);
                 if (creatorPosts.length === 0) {
-                    postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4 bg-black/40 rounded-xl">No hay publicaciones de este usuario.</div>`;
+                    postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4 bg-black/40 rounded-xl" id="msg-no-posts-creator">${this.getTrans('msg_no_posts')}</div>`;
                 } else {
                     let html = '';
                     for (let i = 0; i < creatorPosts.length; i++) {
@@ -1933,7 +1908,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                                         <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover blur-md grayscale opacity-50 pointer-events-none select-none mx-auto block" />
                                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg z-10 text-center pointer-events-none">
                                             <i class="fa-solid fa-lock text-3xl text-amber-400 mb-1 drop-shadow-md"></i>
-                                            <span class="bg-black/80 px-2 py-0.5 rounded text-[9px] font-black text-white border border-amber-500/50 uppercase tracking-widest">Protegido</span>
+                                            <span class="bg-black/80 px-2 py-0.5 rounded text-[9px] font-black text-white border border-amber-500/50 uppercase tracking-widest">${this.getTrans('txt_protected_content')}</span>
                                         </div>
                                     </div>
                                 `;
@@ -1983,7 +1958,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         // 🛡️ Forzar sala global
         this.currentRoomId = 'bunker_main';
         const titleEl = document.getElementById('global-chat-title');
-        if (titleEl) titleEl.innerText = `CHAT GLOBAL & VIDEO BÚNKER`;
+        if (titleEl) titleEl.innerText = `${this.getTrans('wall_chat_title')}`;
 
         const msgContainer = document.getElementById('global-chat-messages');
         if (msgContainer) msgContainer.innerHTML = '';
@@ -2179,7 +2154,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         const previewName = document.getElementById(`${type}-chat-preview-name`);
         
         if (isVideo) {
-            if (file.size > 15 * 1024 * 1024) { this.showToast('Video muy pesado (máx 15MB)'); this.clearChatMedia(type); return; }
+            if (file.size > 15 * 1024 * 1024) { this.showToast(this.getTrans('toast_max_video_size')); this.clearChatMedia(type); return; }
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 this.tempChatMediaData = e.target.result; 
@@ -2190,11 +2165,11 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                     if(previewName) previewName.innerText = `Video adjunto`; 
                 } 
                 if (inputEl) inputEl.focus(); 
-                this.showToast('Video adjunto'); 
+                this.showToast(this.getTrans('toast_video_attached')); 
             }; 
             reader.readAsDataURL(file);
         } else if (isAudio) {
-            if (file.size > 8 * 1024 * 1024) { this.showToast('Audio muy pesado (máx 8MB)'); this.clearChatMedia(type); return; }
+            if (file.size > 8 * 1024 * 1024) { this.showToast(this.getTrans('toast_max_audio_size')); this.clearChatMedia(type); return; }
             const reader = new FileReader(); 
             reader.onload = (e) => { 
                 this.tempChatMediaData = e.target.result; 
@@ -2205,7 +2180,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                     if(previewName) previewName.innerHTML = `Audio / Nota de voz adjunta`; 
                 } 
                 if (inputEl) inputEl.focus(); 
-                this.showToast('Audio adjunto'); 
+                this.showToast(this.getTrans('toast_audio_attached')); 
             }; 
             reader.readAsDataURL(file);
         } else {
@@ -2217,7 +2192,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                 if(previewName) previewName.innerText = `Foto adjunta`; 
             } 
             if (inputEl) inputEl.focus(); 
-            this.showToast('Foto adjunta');
+            this.showToast(this.getTrans('toast_photo_attached'));
         }
     },
 
@@ -2233,7 +2208,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
 
     async deleteChatMessage(msgId, btnElement, realMsgId) {
         this.haptic('medium');
-        if (confirm('¿Eliminar mensaje?')) {
+        if (confirm(this.getTrans('confirm_delete_chat') || '¿Eliminar mensaje?')) {
             try {
                 if (realMsgId) {
                     await fetch(`${this.backendUrl}/chat/delete_message`, {
@@ -2248,7 +2223,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                     bubble.style.height = '0px';
                     setTimeout(() => bubble.remove(), 300);
                 }
-                this.showToast('Mensaje eliminado');
+                this.showToast(this.getTrans('toast_chat_deleted') || 'Mensaje eliminado');
             } catch(e) {}
         }
     },
@@ -2256,7 +2231,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
     reportChatMessage(msgId, btnElement) {
         this.haptic('light');
         document.getElementById(`media-menu-${msgId}`)?.classList.add('hidden');
-        this.showToast('Reportado');
+        this.showToast(this.getTrans('toast_chat_reported') || 'Reportado');
     },
 
     appendChatMessage(msg, containerId) {
@@ -2314,7 +2289,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             if (encodedUrl) {
                 const uniqueId = msg.id || Math.random().toString(36).substr(2,9);
                 const isOwner = msg.user_id == this.userId;
-                let menuHtml = `<div class="absolute top-2 right-2 z-10" onclick="event.stopPropagation();"><button onclick="document.getElementById('media-menu-${uniqueId}').classList.toggle('hidden')" class="bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-ellipsis-vertical"></i></button><div id="media-menu-${uniqueId}" class="hidden absolute right-0 mt-2 w-36 bg-neutral-900 border border-neutral-700 rounded-xl shadow-lg overflow-hidden flex flex-col z-20">${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this, ${msg.id})" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800">Eliminar</button>` : ''}</div></div>`;
+                let menuHtml = `<div class="absolute top-2 right-2 z-10" onclick="event.stopPropagation();"><button onclick="document.getElementById('media-menu-${uniqueId}').classList.toggle('hidden')" class="bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center"><i class="fa-solid fa-ellipsis-vertical"></i></button><div id="media-menu-${uniqueId}" class="hidden absolute right-0 mt-2 w-36 bg-neutral-900 border border-neutral-700 rounded-xl shadow-lg overflow-hidden flex flex-col z-20">${(isOwner || isAdminUser) ? `<button onclick="app.deleteChatMessage('${uniqueId}', this, ${msg.id})" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-800 text-left w-full border-b border-neutral-800">${this.getTrans('btn_delete')}</button>` : ''}</div></div>`;
                 if (mediaUrl.startsWith('data:video') || mediaUrl.includes('.mp4')) { 
                     safeMedia = `<div class="relative mt-2 mb-1 cursor-pointer group flex justify-center" onclick="app.openLightbox('${encodedUrl}', 'video')"><video src="${encodedUrl}" class="rounded-xl max-h-48 object-cover pointer-events-none mx-auto block" autoplay muted loop playsinline></video>${menuHtml}</div>`; 
                 } else if (mediaUrl.startsWith('data:audio')) {
@@ -2334,7 +2309,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             html = `<div id="${msgId}" class="flex flex-col items-center my-2"><div class="bg-amber-500/20 border border-amber-500/50 text-amber-400 text-[10px] px-4 py-1.5 rounded-full font-black text-center shadow-[0_0_10px_rgba(245,158,11,0.3)]"><i class="fa-solid fa-bolt mr-1"></i> ${safeText}</div></div>`;
             setTimeout(() => { const el = document.getElementById(msgId); if(el) el.remove(); }, 5000);
         } else if (isMe) {
-            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">Tú • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]" style="word-break: break-word;">${safeText}${safeMedia} <span class="inline-flex items-center">${readStatusHtml}</span></div></div>`;
+            html = `<div class="flex flex-col items-end my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold mr-1">${this.getTrans('txt_you')} • ${rankInfo.name}</span><div class="bg-[#00f3ff]/20 text-white text-sm p-3 rounded-2xl border border-[#00f3ff]/50 max-w-[85%]" style="word-break: break-word;">${safeText}${safeMedia} <span class="inline-flex items-center">${readStatusHtml}</span></div></div>`;
         } else {
             html = `<div class="flex flex-col items-start my-2"><span class="text-[9px] text-neutral-500 mb-1 font-bold ml-1"><span class="text-[#00f3ff] font-black cursor-pointer hover:underline" onclick="app.viewCreatorProfile('${msg.user_id}', '${safeAuthorName}')">@${safeAuthorName}</span> • ${rankInfo.name}</span><div class="bg-neutral-800 text-white text-sm p-3 rounded-2xl border border-neutral-700 max-w-[85%]" style="word-break: break-word;">${safeText}${safeMedia}</div></div>`;
         }
@@ -2425,14 +2400,14 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
 
     startGlobalSelfieCam() {
         document.getElementById('global-media-menu')?.classList.add('hidden');
-        this.showToast('Iniciando cámara frontal para video selfie...');
+        this.showToast(this.getTrans('toast_recording_selfie') || 'Iniciando cámara frontal para video selfie...');
         navigator.mediaDevices?.getUserMedia({ video: { facingMode: "user" }, audio: true })
             .then(stream => {
                 this.activeWebcamStream = stream;
                 this.openUploadPanel();
             })
             .catch(err => {
-                this.showToast('⚠️ No se pudo acceder a la cámara frontal.');
+                this.showToast(this.getTrans('toast_cam_error') || '⚠️ No se pudo acceder a la cámara frontal.');
             });
     },
 
@@ -2445,14 +2420,14 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         const userTier = this.userData?.access_tier || 0;
         
         if (userTier < 1 && !this.isAdminUser()) {
-            this.showToast('🚫 Acceso denegado: Rango ESPÍA no autorizado para videollamadas.');
+            this.showToast(this.getTrans('toast_tier_req_video') || '🚫 Acceso denegado: Rango ESPÍA no autorizado para videollamadas.');
             this.openCatalogPackages();
             return;
         }
 
         const bunker = document.getElementById('floating-video-bunker'), placeholder = document.getElementById('cam-loading-placeholder'), badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live');
         if (bunker) { bunker.classList.remove('hidden'); this.isVideoMinimized = false; bunker.className = 'fixed inset-0 z-[150] bg-[#050505] flex flex-col transition-all duration-300'; document.getElementById('video-controls-bar').classList.remove('hidden'); document.getElementById('icon-minimize').className = 'fa-solid fa-compress'; }
-        if (badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if (badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = this.getTrans('preview_badge') || 'PREVISUALIZACIÓN'; }
         if (btnGoLive) btnGoLive.classList.remove('hidden');
         if (placeholder) { placeholder.innerHTML = `<i class="fa-solid fa-lock-open text-4xl text-neutral-600 mb-2 animate-bounce"></i>`; placeholder.classList.remove('hidden'); }
         await this.requestAndLoadMedia();
@@ -2486,7 +2461,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                 BunkerChat.sendGlobal(JSON.stringify({ type: 'join_video', room_id: this.currentRoomId || 'bunker_main' }));
             }
         } catch (err) {
-            this.showToast('⚠️ Permiso de cámara denegado o no disponible.');
+            this.showToast(this.getTrans('toast_cam_error') || '⚠️ Permiso de cámara denegado o no disponible.');
         }
     },
 
@@ -2510,20 +2485,20 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             let seen = new Set(), obsFound = false;
             videoDevices.forEach((device, index) => {
                 let original = device.label.toLowerCase(), cleanLabel = `Cámara #${index + 1}`;
-                if (original.includes('obs') || original.includes('virtual')) { cleanLabel = `🎥 OBS Virtual`; obsFound = true; } 
-                else if (original.includes('front')) { cleanLabel = `📱 Frontal`; } 
-                else if (original.includes('back')) { cleanLabel = `📱 Trasera`; } 
+                if (original.includes('obs') || original.includes('virtual')) { cleanLabel = `🎥 ${this.getTrans('cam_obs') || 'OBS Virtual'}`; obsFound = true; } 
+                else if (original.includes('front')) { cleanLabel = `📱 ${this.getTrans('cam_front') || 'Frontal'}`; } 
+                else if (original.includes('back')) { cleanLabel = `📱 ${this.getTrans('cam_back') || 'Trasera'}`; } 
                 else if (device.label) { cleanLabel = device.label; }
                 if (!seen.has(cleanLabel)) { seen.add(cleanLabel); const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = cleanLabel; selectCam.appendChild(opt); }
             });
-            if (!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = `🎥 Forzar OBS`; selectCam.appendChild(optObs); }
+            if (!obsFound) { const optObs = document.createElement('option'); optObs.value = "obs-fallback"; optObs.text = `🎥 ${this.getTrans('cam_force_obs') || 'Forzar OBS'}`; selectCam.appendChild(optObs); }
             
             const savedCam = localStorage.getItem('alpha_preferred_cam');
             if (savedCam) selectCam.value = savedCam;
         }
         if (selectMic) {
-            selectMic.innerHTML = `<option value="none">🔇 Silenciar</option>`;
-            audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `Micrófono #${index + 1}`; selectMic.appendChild(opt); });
+            selectMic.innerHTML = `<option value="none">🔇 ${this.getTrans('mic_none') || 'Silenciar'}</option>`;
+            audioDevices.forEach((device, index) => { const opt = document.createElement('option'); opt.value = device.deviceId; opt.text = device.label || `${this.getTrans('txt_mic') || 'Micrófono'} #${index + 1}`; selectMic.appendChild(opt); });
             
             const savedMic = localStorage.getItem('alpha_preferred_mic');
             if (savedMic) selectMic.value = savedMic;
@@ -2621,13 +2596,13 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         if (badge) { badge.className = 'absolute top-3 left-3 z-20 bg-red-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded animate-pulse shadow-md uppercase'; badge.innerText = 'EN VIVO'; }
         if (btnGoLive) btnGoLive.classList.add('hidden'); 
         if (btnCancel) btnCancel.classList.remove('hidden');
-        if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: '📡 ¡Transmisión en vivo iniciada en el Búnker!', media_url: null })); }
+        if (typeof BunkerChat !== 'undefined') { BunkerChat.sendGlobal(JSON.stringify({ text: `📡 ${this.getTrans('stream_announce') || '¡Transmisión en vivo iniciada en el Búnker!'}`, media_url: null })); }
     },
 
     cancelLiveTransmission() {
         this.haptic('medium');
         const badge = document.getElementById('video-badge'), btnGoLive = document.getElementById('btn-go-live'), btnCancel = document.getElementById('btn-cancel-stream');
-        if (badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = 'PREVISUALIZACIÓN'; }
+        if (badge) { badge.className = 'absolute top-3 left-3 z-20 bg-amber-500 text-black text-[9px] font-black px-2.5 py-0.5 rounded shadow-md uppercase'; badge.innerText = this.getTrans('preview_badge') || 'PREVISUALIZACIÓN'; }
         if (btnCancel) btnCancel.classList.add('hidden'); 
         if (btnGoLive) btnGoLive.classList.remove('hidden');
     },
@@ -2707,27 +2682,27 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         if (!file) return; 
         
         if (file.type.startsWith('video/')) {
-            if (file.size > 20 * 1024 * 1024) { this.showToast('El video supera los 20MB'); return; }
+            if (file.size > 20 * 1024 * 1024) { this.showToast(this.getTrans('toast_max_video_size')); return; }
             const reader = new FileReader();
             reader.onload = (e) => { 
                 this.tempPostMedia = e.target.result; 
                 const txt = document.getElementById('txt-upload');
-                if (txt) txt.innerText = `Video cargado: ${file.name}`; 
+                if (txt) txt.innerText = `${this.getTrans('txt_video') || 'Video'}: ${file.name}`; 
             };
             reader.readAsDataURL(file);
         } else if (file.type.startsWith('audio/')) {
-            if (file.size > 5 * 1024 * 1024) { this.showToast('El audio supera los 5MB'); return; }
+            if (file.size > 5 * 1024 * 1024) { this.showToast(this.getTrans('toast_max_audio_size')); return; }
             const reader = new FileReader();
             reader.onload = (e) => { 
                 this.tempPostMedia = e.target.result; 
                 const txt = document.getElementById('txt-upload');
-                if (txt) txt.innerText = `Audio cargado: ${file.name}`; 
+                if (txt) txt.innerText = `${this.getTrans('txt_audio') || 'Audio'}: ${file.name}`; 
             };
             reader.readAsDataURL(file);
         } else {
             this.tempPostMedia = await this.compressImage(file, 1200, 0.75); 
             const txt = document.getElementById('txt-upload');
-            if (txt) txt.innerText = `Imagen cargada: ${file.name}`;
+            if (txt) txt.innerText = `${this.getTrans('txt_photo') || 'Foto'}: ${file.name}`;
         }
     },
 
@@ -2744,7 +2719,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
     },
 
     async deletePost(postId) { 
-        if (!confirm('¿Eliminar publicación?')) return; 
+        if (!confirm(this.getTrans('confirm_delete_post') || '¿Eliminar publicación?')) return; 
         try { 
             await fetch(`${this.backendUrl}/posts/delete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: this.userId || 0, post_id: postId }) }); 
             this.renderFeed(); 
@@ -2826,8 +2801,9 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
 
         const visiblePosts = posts.filter(p => !blockedUsers.includes(String(p.creator_id || p.user_id)));
 
+        // 🛡️ AQUÍ ESTÁ LA TRADUCCIÓN DINÁMICA DEL MURO VACÍO
         if (visiblePosts.length === 0) { 
-            feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold">No hay publicaciones disponibles</div>`; 
+            feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold" id="msg-no-posts">${this.getTrans('msg_no_posts')}</div>`; 
             return; 
         }
         
@@ -2857,8 +2833,8 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                             <img src="${cleanUrl}" class="rounded-xl w-full max-h-80 object-cover blur-xl grayscale opacity-50 pointer-events-none select-none mx-auto block" />
                             <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/30 rounded-xl z-10 p-4 text-center pointer-events-none">
                                 <i class="fa-solid fa-lock text-5xl text-amber-400 mb-3 drop-shadow-md"></i>
-                                <span class="text-[10px] font-black text-white bg-black/80 px-3 py-1.5 rounded-full mb-3 border border-amber-500/50 uppercase tracking-widest">Nivel Requerido: ${rankInfo.name}</span>
-                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2.5 px-5 rounded-xl text-xs shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95 transition uppercase tracking-wider pointer-events-auto"><i class="fa-solid fa-key mr-1"></i> Desbloquear (${post.price_alpha || 20} $ALPHA)</button>
+                                <span class="text-[10px] font-black text-white bg-black/80 px-3 py-1.5 rounded-full mb-3 border border-amber-500/50 uppercase tracking-widest">${this.getTrans('txt_protected_content')}</span>
+                                <button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2.5 px-5 rounded-xl text-xs shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95 transition uppercase tracking-wider pointer-events-auto"><i class="fa-solid fa-key mr-1"></i> ${this.getTrans('btn_unlock')} (${post.price_alpha || 20} $ALPHA)</button>
                             </div>
                         </div>
                     `;
@@ -2872,7 +2848,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                     }
                 }
             } else if (post.is_locked) {
-                mediaContent = `<div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3 relative"><i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i><span class="block text-xs font-bold text-neutral-400 mb-3 uppercase">Contenido protegido</span><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2 px-4 rounded-xl text-xs uppercase shadow-md transition active:scale-95"><i class="fa-solid fa-key mr-1"></i> Desbloquear (${post.price_alpha || 20} $ALPHA)</button></div>`;
+                mediaContent = `<div class="bg-black/60 border border-amber-500/30 rounded-xl p-6 text-center mb-3 relative"><i class="fa-solid fa-lock text-3xl text-amber-400 mb-2"></i><span class="block text-xs font-bold text-neutral-400 mb-3 uppercase">${this.getTrans('txt_protected_content')}</span><button onclick="app.unlockPostContent(${post.id}, ${post.price_alpha || 20})" class="bg-amber-500 hover:bg-amber-400 text-black font-black py-2 px-4 rounded-xl text-xs uppercase shadow-md transition active:scale-95"><i class="fa-solid fa-key mr-1"></i> ${this.getTrans('btn_unlock')} (${post.price_alpha || 20} $ALPHA)</button></div>`;
             }
 
             let textContent = post.content ? `<p class="text-sm ${post.is_locked && !post.media_url ? 'blur-md select-none opacity-50' : 'text-neutral-200'} mb-3">${this.escapeHtml(post.content)}</p>` : '';
@@ -2994,6 +2970,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         container.innerHTML = html;
     },
 
+    // 🛡️ AQUÍ ESTÁ LA TRADUCCIÓN DINÁMICA DEL TOAST DE GUARDADO
     saveAllSlots() {
         for (let i = 1; i <= 10; i++) {
             const input = document.getElementById(`slot-input-${i}`);
@@ -3001,7 +2978,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                 localStorage.setItem(`alpha_slot_${i}`, input.value.trim());
             }
         }
-        this.showToast('¡Los 10 slots se guardaron con éxito en tu perfil!');
+        this.showToast(this.getTrans('toast_10_slots_saved') || '¡Los 10 slots se guardaron con éxito en tu perfil!');
         this.closeSlotsModal();
     }
 };
