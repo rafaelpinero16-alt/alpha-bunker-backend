@@ -395,22 +395,18 @@ def get_global_chat_history(room_id: str = "bunker_main", limit: int = 50, db: S
     ensure_chat_schema(db)
     clean_old_messages(db)
     
-    # Extraemos todos los mensajes globales recientes
     messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(150).all()
     
     filtered_messages = []
     for msg in messages:
         try:
             content_data = json.loads(msg.content)
-            # Filtro 1: Aislar por room_id
             msg_room = content_data.get("room_id", "bunker_main")
             if msg_room == room_id:
-                # Filtro 2: Eliminar paquetes de telemetría basura incrustados
                 if "radar_update" in msg.content or "leave_video" in msg.content or "webrtc_" in msg.content or "join_video" in msg.content:
                     continue
                 filtered_messages.append(msg)
         except:
-            # Mensajes antiguos sin formato JSON se asumen al bunker principal
             if room_id == "bunker_main":
                 filtered_messages.append(msg)
         
@@ -434,14 +430,12 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
     user.last_seen = datetime.utcnow()
     db.commit()
 
-    # Conectar al usuario a su túnel de red específico (Aislamiento Total)
     await global_manager.connect(websocket, user_id)
     await global_manager.join_room(room_id, websocket)
 
     online_count = db.query(User).filter(User.is_online == True).count()
     await global_manager.broadcast({"type": "online_count_update", "count": online_count})
     
-    # Radar Update: Solo se notifica a los que están en la misma sala
     await global_manager.broadcast_to_room(room_id, {"type": "radar_update", "user_id": user_id, "name": user.name, "status": "online", "room_id": room_id})
 
     is_admin = (user.role == "admin" or user.user_id in [8269470905, 123456789])
@@ -505,7 +499,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                         await global_manager.broadcast_to_room(msg_room_id, {
                             "type": "radar_update", "user_id": user_id, "name": user.name, "status": "online", "room_id": msg_room_id
                         })
-                    continue # 🛑 NUNCA REMOVER: Este 'continue' salva el chat de la contaminación JSON
+                    continue
 
                 # 🪙 LIVE TIPPING
                 if msg_type == "live_tip":
@@ -547,7 +541,7 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                     await global_manager.broadcast_to_room(msg_room_id, tip_alert)
                     continue
 
-                # 💬 MENSAJERÍA INDEPENDIENTE POR SALAS (Aquí SÍ entra el texto limpio, como "Hola")
+                # 💬 MENSAJERÍA INDEPENDIENTE POR SALAS
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
 
@@ -590,7 +584,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                         await global_manager.broadcast_to_room(msg_room_id, sys_payload)
                         continue
 
-                # Guardado serializando el room_id en el content JSON para aislamiento en la BBDD
                 db_content = json.dumps({"text": text_val, "media_url": media_val, "room_id": msg_room_id})
                 new_msg = ChatMessage(
                     user_id=user.user_id,
@@ -617,7 +610,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                     "created_at": new_msg.created_at.isoformat()
                 }
                 
-                # ENVIAR SOLO A LA SALA DONDE SE ESCRIBIÓ
                 await global_manager.broadcast_to_room(msg_room_id, msg_payload)
             except Exception as inner_err:
                 print(f"[GLOBAL WS INNER ERROR]: {inner_err}")
