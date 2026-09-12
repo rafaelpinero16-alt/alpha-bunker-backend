@@ -1851,7 +1851,7 @@ async openRoomChat(roomId, roomName, minAccessLevel) {
 
     await this.loadGlobalChatHistory();
 
-    // 🛡️ Inyección del mensaje de bienvenida traducido por sala en los 6 idiomas
+    // 🛡️ Inyección estricta del mensaje de bienvenida traducido según el ID de la sala
     const welcomeKey = `welcome_${roomId}`;
     const welcomeText = this.getTrans(welcomeKey) || `Bienvenido a la sala ${roomName}`;
     this.appendChatMessage({
@@ -1875,7 +1875,7 @@ async openGlobalChat() {
     
     this.currentRoomId = 'bunker_main';
     const titleEl = document.getElementById('global-chat-title');
-    if (titleEl) titleEl.innerText = `${this.getTrans('wall_chat_title')}`;
+    if (titleEl) titleEl.innerText = `${this.getTrans('wall_chat_title') || 'CHAT GLOBAL'}`;
 
     const msgContainer = document.getElementById('global-chat-messages');
     if (msgContainer) msgContainer.innerHTML = '';
