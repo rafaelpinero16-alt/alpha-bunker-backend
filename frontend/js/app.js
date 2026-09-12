@@ -1036,7 +1036,7 @@ const app = {
         } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`; }
     },
 
-    // ⭐ COMPRA DE RANGO VÍA TELEGRAM STARS
+    // ⭐ COMPRA DE RANGO NATIVA VÍA TELEGRAM STARS
     async buyPackageStars(packageSlug, level) {
         this.haptic('medium');
         this.initUserId();
@@ -1066,11 +1066,62 @@ const app = {
                     }
                 });
             } else {
-                // Fallback fuera del cliente nativo de Telegram
                 this.openLink(invoiceLink);
             }
         } catch (err) {
             this.showToast(this.getTrans('toast_invoice_error') || '⚠️ No se pudo generar la factura de Stars.');
+        }
+    },
+
+    // 💎 RECARGA DE $ALPHA VÍA TON CONNECT
+    async rechargeAlphaCoins(priceTon, alphaTotal, level) {
+        this.haptic('medium');
+        this.initUserId();
+        if (!this.tonConnectUI) await this.initTonConnect();
+        if (!this.tonConnectUI || !this.tonConnectUI.connected) {
+            this.showToast(this.getTrans('toast_connect_wallet_first') || 'Conecta tu wallet TON primero.');
+            this.openPaymentMethods();
+            return;
+        }
+        this.showToast(this.getTrans('toast_generating_tx') || 'Generando transacción TON... 💎');
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/ton/create-transaction`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: this.userId || 0, price_ton: priceTon, alpha_total: alphaTotal, level: level })
+            });
+            if (!res.ok) throw new Error('tx_failed');
+            const data = await res.json();
+            if (!data.address || !data.payload) throw new Error('bad_tx_data');
+
+            const tx = {
+                validUntil: Math.floor(Date.now() / 1000) + 600,
+                messages: [
+                    {
+                        address: data.address,
+                        amount: data.amount_nano || String(Math.floor(priceTon * 1e9)),
+                        payload: data.payload
+                    }
+                ]
+            };
+
+            const result = await this.tonConnectUI.sendTransaction(tx);
+
+            const verifyRes = await fetch(`${this.backendUrl}/payments/ton/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: this.userId || 0, boc: result.boc, level: level })
+            });
+            if (verifyRes.ok) {
+                this.showLevelUpAnimation(level);
+                await this.refreshUserData();
+                this.updateProfileUI();
+                this.closeModals();
+            } else {
+                this.showToast(this.getTrans('toast_verify_pending') || 'Transacción enviada, verificando pago...');
+            }
+        } catch (err) {
+            this.showToast(this.getTrans('toast_ton_tx_error') || '⚠️ No se pudo completar la transacción TON.');
         }
     },
 
@@ -1800,9 +1851,56 @@ async openRoomChat(roomId, roomName, minAccessLevel) {
 
     await this.loadGlobalChatHistory();
 
-    // 🛡️ Se inyecta tanto el roomId como el roomName hacia BunkerChat
+    // 🛡️ Inyección del mensaje de bienvenida traducido por sala en los 6 idiomas
+    const welcomeKey = `welcome_${roomId}`;
+    const welcomeText = this.getTrans(welcomeKey) || `Bienvenido a la sala ${roomName}`;
+    this.appendChatMessage({
+        id: 'welcome-' + Date.now(),
+        user_id: 0,
+        author_name: 'Centinela',
+        author_role: 'admin',
+        access_level: 5,
+        content: JSON.stringify({ text: welcomeText, media_url: null, room_id: roomId }),
+        is_system: true,
+        created_at: new Date().toISOString()
+    }, 'global-chat-messages');
+
     if (typeof BunkerChat !== 'undefined') {
         BunkerChat.initGlobal(this.userId, this.backendUrl, roomId, roomName);
+    }
+},
+
+async openGlobalChat() { 
+    this.closeModals(); 
+    
+    this.currentRoomId = 'bunker_main';
+    const titleEl = document.getElementById('global-chat-title');
+    if (titleEl) titleEl.innerText = `${this.getTrans('wall_chat_title')}`;
+
+    const msgContainer = document.getElementById('global-chat-messages');
+    if (msgContainer) msgContainer.innerHTML = '';
+
+    document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
+    this.updateOnlineUsersRadar();
+    this.setupSystemMessageObserver('global-chat-messages'); 
+    
+    await this.loadGlobalChatHistory(); 
+
+    // 🛡️ Saludo oficial traducido en los 6 idiomas para el Búnker Principal
+    const welcomeText = this.getTrans('welcome_bunker_main') || "🔱 Bienvenidos al Búnker Principal. Relájate y comienza a disfrutar.";
+    this.appendChatMessage({
+        id: 'welcome-' + Date.now(),
+        user_id: 0,
+        author_name: 'Centinela',
+        author_role: 'admin',
+        access_level: 5,
+        content: JSON.stringify({ text: welcomeText, media_url: null, room_id: 'bunker_main' }),
+        is_system: true,
+        created_at: new Date().toISOString()
+    }, 'global-chat-messages');
+
+    if (typeof BunkerChat !== 'undefined') {
+        BunkerChat.initGlobal(this.userId, this.backendUrl, 'bunker_main', 'Búnker Principal'); 
     }
 },
 
