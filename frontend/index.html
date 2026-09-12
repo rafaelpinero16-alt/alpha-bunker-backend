@@ -89,49 +89,49 @@
             <span id="sidebar-rank" class="text-[10px] font-bold text-[#ffb703] bg-[#ffb703]/20 px-2.5 py-0.5 rounded-full border border-[#ffb703]/40 mt-1">ESPÍA 🕵️</span>
         </div>
 
+        <!-- 🛡️ MENÚ LATERAL CON ETIQUETAS ID PARA EL TRADUCTOR -->
         <div class="flex-1 p-3 space-y-2">
             <button onclick="app.openProfile(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-user-gear text-[#00f3ff] text-base w-6"></i> <span>Mi Perfil y Cuenta</span>
+                <i class="fa-solid fa-user-gear text-[#00f3ff] text-base w-6"></i> <span id="sb-profile">Mi Perfil y Cuenta</span>
             </button>
             <button onclick="app.openSettingsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-sliders text-[#ff00ff] text-base w-6"></i> <span>Ajustes Generales</span>
+                <i class="fa-solid fa-sliders text-[#ff00ff] text-base w-6"></i> <span id="sb-settings">Ajustes Generales</span>
             </button>
             <button onclick="app.openSlotsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ffb703] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-layer-group text-[#ffb703] text-base w-6"></i> <span>Gestionar 10 Slots</span>
+                <i class="fa-solid fa-layer-group text-[#ffb703] text-base w-6"></i> <span id="sb-slots">Gestionar 10 Slots</span>
             </button>
             <button onclick="app.openVideoRoomsModal(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-amber-400 text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-video text-amber-400 text-base w-6"></i> <span>Videochat Rooms</span>
+                <i class="fa-solid fa-video text-amber-400 text-base w-6"></i> <span id="sb-video-rooms">Videochat Rooms</span>
             </button>
             <button onclick="app.openGlobalChat(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#00f3ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-comments text-[#00f3ff] text-base w-6"></i> <span>Global Bunker Chat</span>
+                <i class="fa-solid fa-comments text-[#00f3ff] text-base w-6"></i> <span id="sb-global-chat">Global Bunker Chat</span>
             </button>
             <button onclick="app.openAVSettings(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-emerald-400 text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-sliders text-emerald-400 text-base w-6"></i> <span>Hardware A/V</span>
+                <i class="fa-solid fa-sliders text-emerald-400 text-base w-6"></i> <span id="sb-av">Hardware A/V</span>
             </button>
             <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-3 rounded-xl bg-neutral-900/60 border border-neutral-800 hover:border-[#ff00ff] text-white transition text-xs font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-address-book text-[#ff00ff] text-base w-6"></i> <span>Contactos y DMs</span>
+                <i class="fa-solid fa-address-book text-[#ff00ff] text-base w-6"></i> <span id="sb-contacts">Contactos y DMs</span>
             </button>
 
             <div class="border-t border-neutral-800 my-2 pt-2"></div>
 
             <button onclick="app.openSupport(); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-circle-question text-cyan-400 text-sm w-5"></i> <span>Hacer una pregunta</span>
+                <i class="fa-solid fa-circle-question text-cyan-400 text-sm w-5"></i> <span id="sb-ask">Hacer una pregunta</span>
             </button>
             <button onclick="app.openLink('https://t.me/therealonetom'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-file-lines text-cyan-400 text-sm w-5"></i> <span>Preguntas Frecuentes (FAQ)</span>
+                <i class="fa-solid fa-file-lines text-cyan-400 text-sm w-5"></i> <span id="sb-faq">Preguntas Frecuentes (FAQ)</span>
             </button>
             <button onclick="app.openLink('https://t.me/therealonetom'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-graduation-cap text-cyan-400 text-sm w-5"></i> <span>Aprende sobre Alpha App</span>
+                <i class="fa-solid fa-graduation-cap text-cyan-400 text-sm w-5"></i> <span id="sb-learn">Aprende sobre Alpha App</span>
             </button>
             <button onclick="app.openLink('https://t.me/therealonetom'); app.closeSidebar();" class="w-full flex items-center gap-3.5 px-4 py-2.5 rounded-xl bg-neutral-900/40 border border-neutral-800 hover:border-cyan-400 text-neutral-300 transition text-[11px] font-bold uppercase tracking-wider">
-                <i class="fa-solid fa-shield-cat text-cyan-400 text-sm w-5"></i> <span>Política de Privacidad</span>
+                <i class="fa-solid fa-shield-cat text-cyan-400 text-sm w-5"></i> <span id="sb-privacy">Política de Privacidad</span>
             </button>
         </div>
 
         <div class="p-4 border-t border-neutral-800 bg-black/40">
-            <!-- 🛡️ BOTÓN DE CERRAR SESIÓN AISLADO EN EL MENÚ LATERAL -->
             <button onclick="app.logout(); app.closeSidebar();" class="w-full bg-red-950/40 border border-red-800 text-red-300 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-red-900/40 transition">
-                <i class="fa-solid fa-right-from-bracket"></i> <span>Cerrar Sesión</span>
+                <i class="fa-solid fa-right-from-bracket"></i> <span id="sb-logout">Cerrar Sesión</span>
             </button>
         </div>
     </aside>
@@ -285,7 +285,6 @@
     <!-- VIEW 2: FEED -->
     <div id="view-feed" class="hidden h-screen flex flex-col relative z-10 gpu-accelerated">
         <header class="glass-panel mx-2 mt-2 p-3 flex flex-col gap-2.5 z-20">
-            <!-- Fila Superior: Botón Menú + Avatar Grande + Nombre y Rango + Botones de Acción -->
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <button onclick="app.openSidebar()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-xl w-10 h-10 flex items-center justify-center hover:bg-[rgba(0,243,255,0.2)] transition text-sm shadow-[0_0_10px_#00f3ff] shrink-0" title="Menú Lateral">
@@ -300,7 +299,6 @@
                     </div>
                 </div>
                 
-                <!-- 🛡️ SE ELIMINÓ EL BOTÓN "SALIR" DE LA CABECERA -->
                 <div class="flex gap-2 items-center">
                     <button onclick="app.connectWallet()" class="text-[#00f3ff] border border-[#00f3ff] bg-black/60 rounded-xl px-3 py-2 flex items-center hover:bg-[rgba(0,243,255,0.2)] transition text-[10px] font-bold shadow-[0_0_8px_#ff00ff]">
                         <i class="fa-solid fa-wallet mr-1 text-xs"></i> <span id="btn-wallet-hdr">WALLET</span>
@@ -308,7 +306,6 @@
                 </div>
             </div>
 
-            <!-- Fila Inferior: Métricas de Búnker ordenadas debajo de forma limpia -->
             <div class="flex items-center justify-between pt-2 border-t border-neutral-800/80 text-[10px]">
                 <div class="flex items-center gap-2">
                     <span class="font-bold text-[#00f3ff] bg-[#00f3ff]/10 px-2.5 py-1 rounded-lg border border-[#00f3ff]/30 shadow-[0_0_5px_#00f3ff] flex items-center gap-1">
