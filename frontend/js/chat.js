@@ -10,7 +10,7 @@ const BunkerChat = {
     currentUserId: null,
     currentRoomId: 'bunker_main',
 
-    // 🏷️ DICCIONARIO OFICIAL DE CATEGORÍAS DEL BÚNKER
+    // 🏷️ DICCIONARIO OFICIAL DE CATEGORÍAS DEL BÚNKER (6 SALAS AISLADAS)
     roomNames: {
         'bunker_main': 'Búnker Principal',
         'letter_and_gear': 'Letter and gear',
@@ -148,7 +148,7 @@ const BunkerChat = {
         }
     },
 
-    // 🎥 GESTIÓN AISLADA POR SALA CON HEADER DINÁMICO
+    // 🎥 GESTIÓN AISLADA POR SALA CON HEADER DINÁMICO Y ANTI-PARPADEO
     initGlobal(userId, baseUrl, roomId = 'bunker_main', customRoomName = null, isReconnect = false) {
         if (!userId) return;
         this.currentRoomId = roomId;
@@ -168,8 +168,6 @@ const BunkerChat = {
         }
 
         // 2. Limpiar mensajes previos SOLO en conexión inicial o cambio real de sala.
-        // En reconexiones (isReconnect=true) se preserva el historial ya renderizado
-        // para evitar el parpadeo/reseteo visual descrito en la auditoría.
         const msgContainer = document.getElementById('global-chat-messages');
         if (msgContainer && !isReconnect) {
             msgContainer.innerHTML = `<div class="text-center text-cyan-400 text-[11px] py-4 font-black tracking-widest uppercase animate-pulse"><i class="fa-solid fa-satellite-dish mr-1"></i> Conectando a ${displayName}...</div>`;
@@ -188,8 +186,6 @@ const BunkerChat = {
             this.globalSocket.onopen = () => {
                 this.reconnectAttemptsGlobal = 0;
                 console.log(`[GLOBAL] Conectado a la sala aislada: ${roomId} (${displayName})`);
-                // Solo limpiar el mensaje de "Conectando..." en la conexión inicial;
-                // en una reconexión el historial ya está preservado en el DOM.
                 if (msgContainer && !isReconnect) msgContainer.innerHTML = '';
             };
 
