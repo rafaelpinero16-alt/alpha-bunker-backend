@@ -147,6 +147,18 @@ const app = {
         this.userData.isOnline = !this.userData.isOnline;
         localStorage.setItem('alpha_user_online', this.userData.isOnline);
         this.updateOnlineStatusUI();
+
+        // 🛡️ Notificar al WebSocket global para sincronizar radares y chats
+        const statusStr = this.userData.isOnline ? 'online' : 'offline';
+        if (typeof BunkerChat !== 'undefined' && BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === WebSocket.OPEN) {
+            BunkerChat.sendGlobal(JSON.stringify({
+                type: "radar_update",
+                user_id: this.userId,
+                name: this.userData.name || localStorage.getItem('alpha_user_name') || 'mastertom',
+                status: statusStr
+            }));
+        }
+
         this.showToast(this.userData.isOnline ? this.getTrans('toast_status_online') : this.getTrans('toast_status_offline'));
     },
 
@@ -219,9 +231,9 @@ const app = {
             const panel = document.getElementById(`settings-panel-${t}`);
             if (btn) {
                 if (t === tabName) {
-                    btn.className = 'px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-white font-bold text-xs uppercase tracking-wider shrink-0 transition settings-tab-active';
+                    btn.className = 'w-full text-left px-3.5 py-2.5 rounded-xl border border-[#00f3ff] bg-[#00f3ff]/10 text-[#00f3ff] font-bold text-xs uppercase tracking-wider transition settings-tab-active shadow-[0_0_10px_rgba(0,243,255,0.2)]';
                 } else {
-                    btn.className = 'px-3 py-1.5 rounded-xl border border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-xs uppercase tracking-wider shrink-0 transition';
+                    btn.className = 'w-full text-left px-3.5 py-2.5 rounded-xl border border-neutral-800 hover:border-neutral-700 bg-neutral-900 text-neutral-400 font-bold text-xs uppercase tracking-wider transition';
                 }
             }
             if (panel) {
@@ -1684,24 +1696,57 @@ async openRoomChat(roomId, roomName, minAccessLevel) {
         return;
     }
 
-    // 🛡️ Aislamiento total del Room
     this.currentRoomId = roomId;
     this.closeModals();
 
     const titleEl = document.getElementById('global-chat-title');
-    if (titleEl) titleEl.innerText = `${this.getTrans('room_title_prefix')} ${roomName.toUpperCase()}`;
+    if (titleEl) titleEl.innerText = `${this.getTrans('room_title_prefix') || 'SALA:'} ${roomName.toUpperCase()}`;
 
     const container = document.getElementById('global-chat-messages');
-    if (container) container.innerHTML = ''; // Vaciar pantalla
+    if (container) container.innerHTML = '';
 
     document.getElementById('modal-global-chat')?.classList.remove('hidden');
     this.setupSystemMessageObserver('global-chat-messages');
 
-    // Cargar SOLO el historial de este roomId
     await this.loadGlobalChatHistory();
 
+    // 🛡️ Se inyecta tanto el roomId como el roomName hacia BunkerChat
     if (typeof BunkerChat !== 'undefined') {
-        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
+        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId, roomName);
+    }
+},
+
+async joinVideoRoom(roomId, minAccessLevel, roomName) {
+    this.haptic('medium');
+    const userTier = this.userData?.access_tier || 0;
+    const isAdmin = this.isAdminUser();
+
+    if (!isAdmin && userTier < minAccessLevel) {
+        this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
+        this.openCatalogPackages();
+        return;
+    }
+
+    this.currentRoomId = roomId;
+    this.closeModals();
+    
+    Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
+
+    const badge = document.getElementById('video-badge');
+    if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • ${this.getTrans('preview_badge') || 'PREVISUALIZACIÓN'}`;
+    
+    const titleEl = document.getElementById('global-chat-title');
+    if (titleEl) titleEl.innerText = `${this.getTrans('room_title_prefix') || 'SALA:'} ${(roomName || roomId).toUpperCase()}`;
+
+    const container = document.getElementById('global-chat-messages');
+    if (container) container.innerHTML = '';
+
+    await this.joinVideoBunker();
+    await this.loadGlobalChatHistory();
+    
+    // 🛡️ Conexión WebRTC aislada con nombre de sala
+    if (typeof BunkerChat !== 'undefined') {
+        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId, roomName);
     }
 },
 
@@ -1764,9 +1809,12 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
     async viewCreatorProfile(userId, userName) {
         this.closeModals();
         this.haptic('light');
+        this.initUserId();
+        
         let modal = document.getElementById('modal-creator-profile');
         const safeUserId = String(userId);
         const safeUserName = String(userName || 'Usuario');
+        const isSelf = String(safeUserId) === String(this.userId);
         
         let following = JSON.parse(localStorage.getItem('alpha_user_following') || '[]');
         const isFollowing = following.includes(safeUserId);
@@ -1785,7 +1833,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                         <div class="absolute top-4 left-4 z-20">
                             <button onclick="document.getElementById('creator-options-menu').classList.toggle('hidden')" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-ellipsis-vertical text-xl"></i></button>
                             <div id="creator-options-menu" class="hidden absolute left-0 mt-2 w-36 bg-black border border-neutral-700 rounded-xl shadow-xl z-30 flex flex-col overflow-hidden">
-                                <button id="btn-block-creator-action" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-900 text-left w-full"><i class="fa-solid fa-ban mr-1"></i> Bloquear</button>
+                                <button id="btn-block-creator-action" class="px-4 py-3 text-xs font-black text-red-400 hover:bg-neutral-900 text-left w-full"><i class="fa-solid fa-ban mr-1"></i> ${this.getTrans('btn_block') || 'Bloquear'}</button>
                             </div>
                         </div>
 
@@ -1797,29 +1845,29 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                             </div>
                             <h3 id="creator-prof-name" class="text-xl font-black text-white uppercase tracking-wider truncate w-full px-4">@${safeUserName}</h3>
                             <span id="creator-prof-status" class="text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border">OFFLINE</span>
-                            <span class="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-widest">Operativo en el Ecosistema Alfa</span>
+                            <span class="text-[10px] font-bold text-neutral-400 mt-1 uppercase tracking-widest">${this.getTrans('ecosystem_operative') || 'Operativo en el Ecosistema Alfa'}</span>
                         </div>
                         
-                        <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-3 text-center shrink-0">Cargando biografía...</div>
+                        <div id="creator-prof-bio" class="text-xs text-neutral-300 bg-black/50 border border-neutral-800 rounded-xl p-3 mb-3 text-center shrink-0">${this.getTrans('loading_bio') || 'Cargando biografía...'}</div>
                         
                         <div class="flex gap-2 mb-3 shrink-0">
                             <button id="btn-creator-tip-action" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-coins"></i> Enviar Tip
+                                <i class="fa-solid fa-coins"></i> ${this.getTrans('btn_send_tip') || 'Enviar Tip'}
                             </button>
                             <button id="btn-creator-chat-action" class="flex-1 bg-[#00f3ff] hover:bg-[#00f3ff]/80 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-comments"></i> Chat
+                                <i class="fa-solid fa-comments"></i> ${this.getTrans('btn_chat') || 'Chat'}
                             </button>
                         </div>
 
-                        <div class="flex gap-2 mb-3 shrink-0">
+                        <div class="flex gap-2 mb-3 shrink-0" id="creator-follow-container">
                             <button id="btn-profile-follow" class="${followBtnClass}">
                                 <i class="fa-solid ${followIcon}"></i> ${followBtnText}
                             </button>
                         </div>
                         
-                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2 shrink-0">Publicaciones del Creador</h4>
+                        <h4 class="text-xs font-black text-[#00f3ff] uppercase tracking-widest mb-2 shrink-0">${this.getTrans('creator_posts_title') || 'Publicaciones del Creador'}</h4>
                         <div id="creator-prof-posts" class="flex-1 overflow-y-auto space-y-3 pr-2 pb-6">
-                            <div class="text-center text-neutral-500 text-xs py-4">Cargando publicaciones...</div>
+                            <div class="text-center text-neutral-500 text-xs py-4">${this.getTrans('loading_posts') || 'Cargando publicaciones...'}</div>
                         </div>
                     </div>
                 </div>
@@ -1857,13 +1905,36 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         if (nameEl) nameEl.innerText = `@${safeUserName}`;
         if (avatarEl) avatarEl.classList.add('hidden');
         if (defaultIconEl) defaultIconEl.style.display = 'block';
-        if (dotEl) dotEl.classList.add('hidden');
-        if (statusEl) {
-            statusEl.innerText = 'OFFLINE';
-            statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-neutral-700 text-neutral-400 bg-neutral-800';
+
+        // 🛡️ SINCRONIZACIÓN INMEDIATA: Si es el usuario actual, reflejar su estado online real
+        const currentSelfOnline = this.userData?.isOnline !== false;
+        if (isSelf) {
+            if (statusEl) {
+                statusEl.innerText = currentSelfOnline ? '● ONLINE' : '○ OFFLINE';
+                statusEl.className = currentSelfOnline
+                    ? 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10'
+                    : 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-neutral-700 text-neutral-400 bg-neutral-800';
+            }
+            if (dotEl) dotEl.classList.toggle('hidden', !currentSelfOnline);
+            
+            const savedAvatar = localStorage.getItem('alpha_user_avatar');
+            if (savedAvatar && avatarEl && defaultIconEl) {
+                avatarEl.src = this.sanitizeUrl(savedAvatar);
+                avatarEl.classList.remove('hidden');
+                defaultIconEl.style.display = 'none';
+            }
+            const savedBio = localStorage.getItem('alpha_user_bio');
+            if (savedBio && bioEl) bioEl.innerText = savedBio;
+        } else {
+            if (dotEl) dotEl.classList.add('hidden');
+            if (statusEl) {
+                statusEl.innerText = 'OFFLINE';
+                statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-neutral-700 text-neutral-400 bg-neutral-800';
+            }
+            if (bioEl) bioEl.innerText = this.getTrans('ecosystem_operative') || 'Operativo en el Ecosistema Alfa.';
         }
-        if (bioEl) bioEl.innerText = 'Operativo en el Ecosistema Alpha.';
-        if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">${this.getTrans('msg_no_posts')}</div>`;
+
+        if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4">${this.getTrans('loading_posts') || 'Cargando publicaciones...'}</div>`;
 
         try {
             const res = await fetch(`${this.backendUrl}/kyc/status/${safeUserId}`);
@@ -1875,10 +1946,18 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                     defaultIconEl.style.display = 'none';
                 }
                 if (data.bio && bioEl) { bioEl.innerText = data.bio; }
-                if (data.is_online && dotEl && statusEl) {
-                    dotEl.classList.remove('hidden');
-                    statusEl.innerText = '● ONLINE';
-                    statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
+                
+                // Si no es el propio usuario, actualizar con los datos devueltos por el backend
+                if (!isSelf && dotEl && statusEl) {
+                    if (data.is_online) {
+                        dotEl.classList.remove('hidden');
+                        statusEl.innerText = '● ONLINE';
+                        statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
+                    } else {
+                        dotEl.classList.add('hidden');
+                        statusEl.innerText = '○ OFFLINE';
+                        statusEl.className = 'text-[10px] font-bold mt-1 px-2.5 py-0.5 rounded-full border border-neutral-700 text-neutral-400 bg-neutral-800';
+                    }
                 }
             }
         } catch(e) {}
@@ -1889,7 +1968,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                 const feedData = await feedRes.json();
                 const creatorPosts = (feedData.posts || []).filter(p => String(p.creator_id || p.user_id) === safeUserId);
                 if (creatorPosts.length === 0) {
-                    postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4 bg-black/40 rounded-xl" id="msg-no-posts-creator">${this.getTrans('msg_no_posts')}</div>`;
+                    postsContainer.innerHTML = `<div class="text-center text-neutral-500 text-xs py-4 bg-black/40 rounded-xl" id="msg-no-posts-creator">${this.getTrans('msg_no_posts') || 'No hay publicaciones disponibles'}</div>`;
                 } else {
                     let html = '';
                     for (let i = 0; i < creatorPosts.length; i++) {
@@ -1908,7 +1987,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                                         <img src="${cleanUrl}" class="rounded-lg w-full max-h-48 object-cover blur-md grayscale opacity-50 pointer-events-none select-none mx-auto block" />
                                         <div class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 rounded-lg z-10 text-center pointer-events-none">
                                             <i class="fa-solid fa-lock text-3xl text-amber-400 mb-1 drop-shadow-md"></i>
-                                            <span class="bg-black/80 px-2 py-0.5 rounded text-[9px] font-black text-white border border-amber-500/50 uppercase tracking-widest">${this.getTrans('txt_protected_content')}</span>
+                                            <span class="bg-black/80 px-2 py-0.5 rounded text-[9px] font-black text-white border border-amber-500/50 uppercase tracking-widest">${this.getTrans('txt_protected_content') || 'Contenido protegido'}</span>
                                         </div>
                                     </div>
                                 `;
@@ -1931,7 +2010,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                         }
 
                         const textContent = p.content ? `<p class="text-neutral-200 ${isLocked && !cleanUrl ? 'blur-sm opacity-50 select-none' : ''}">${this.escapeHtml(p.content)}</p>` : '';
-                        const priceText = p.price_alpha ? p.price_alpha + ' $ALPHA' : 'Gratis';
+                        const priceText = p.price_alpha ? p.price_alpha + ' $ALPHA' : (this.getTrans('lbl_free') || 'Gratis');
 
                         html += `
                             <div class="bg-black border border-neutral-800 rounded-xl p-3 text-white text-xs space-y-2 relative">
@@ -1948,7 +2027,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                 }
             }
         } catch(e) {
-            if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-red-400 text-xs py-4">Error al cargar publicaciones.</div>`;
+            if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-red-400 text-xs py-4">${this.getTrans('msg_no_posts') || 'Error al cargar publicaciones.'}</div>`;
         }
     },
 
@@ -2439,23 +2518,44 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             let stream; 
             const cachedCamId = localStorage.getItem('alpha_preferred_cam');
             const cachedMicId = localStorage.getItem('alpha_preferred_mic');
-            let constraints = { video: true, audio: true };
-            if (cachedCamId) constraints.video = { deviceId: { exact: cachedCamId } };
-            if (cachedMicId === 'none') constraints.audio = false;
-            else if (cachedMicId) constraints.audio = { deviceId: { exact: cachedMicId } };
+            
+            // 🛡️ Restricciones normalizadas a 1280x720 para estabilizar el canvas en Electron
+            let videoConstraints = {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 }
+            };
+            if (cachedCamId && cachedCamId !== 'obs-fallback') {
+                videoConstraints.deviceId = { exact: cachedCamId };
+            }
+
+            let constraints = {
+                video: videoConstraints,
+                audio: cachedMicId === 'none' ? false : (cachedMicId ? { deviceId: { exact: cachedMicId } } : true)
+            };
 
             try { 
                 stream = await navigator.mediaDevices.getUserMedia(constraints); 
             } catch (e) { 
+                // Fallback básico si el dispositivo rechaza las dimensiones ideales
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); 
             }
+
             this.activeWebcamStream = stream; 
             this.isMicMuted = false; 
             this.isCamOff = false; 
             this.updateMediaTogglesUI();
-            const videoElem = document.getElementById('bunker-webcam-feed'), placeholder = document.getElementById('cam-loading-placeholder');
-            if (videoElem) { videoElem.srcObject = this.activeWebcamStream; videoElem.play(); videoElem.classList.remove('hidden'); }
+
+            const videoElem = document.getElementById('bunker-webcam-feed');
+            const placeholder = document.getElementById('cam-loading-placeholder');
+            if (videoElem) { 
+                videoElem.srcObject = this.activeWebcamStream; 
+                videoElem.muted = true; // Previene bucle de audio local
+                videoElem.play(); 
+                videoElem.classList.remove('hidden'); 
+            }
             if (placeholder) { placeholder.classList.add('hidden'); }
+            
             await this.populateMediaDevices(stream);
             if (typeof BunkerChat !== 'undefined') {
                 BunkerChat.sendGlobal(JSON.stringify({ type: 'join_video', room_id: this.currentRoomId || 'bunker_main' }));
