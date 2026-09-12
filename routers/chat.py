@@ -12,7 +12,6 @@ from database.models import User, ChatMessage, Wallet, Transaction, VideoRoom
 
 router = APIRouter(prefix="/chat", tags=["Chat En Vivo y CRM"])
 
-# 🛡️ ConnectionManager Multipunto para DMs, Chat Global y Videochats por Sala
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -35,7 +34,6 @@ class ConnectionManager:
             if not self.user_connections[user_id]:
                 del self.user_connections[user_id]
         
-        # Remover de salas activas si estaba suscrito
         for room_id, sockets in list(self.room_connections.items()):
             if websocket in sockets:
                 sockets.remove(websocket)
@@ -134,7 +132,8 @@ def ensure_chat_schema(db: Session):
 
 def clean_old_messages(db: Session):
     try:
-        time_threshold = datetime.utcnow() - timedelta(hours=24)
+        # 🛡️ Limpieza automática ampliada a 72 horas para mantener el flujo limpio
+        time_threshold = datetime.utcnow() - timedelta(hours=72)
         db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
         db.commit()
     except Exception:
@@ -155,8 +154,6 @@ class CreateRoomRequest(BaseModel):
     is_private: bool = False
     price_alpha: int = 0
 
-# --- GESTIÓN DE SALAS DE VIDEOCHAT POR CATEGORÍAS ---
-
 @router.get("/rooms")
 def get_video_rooms(category: Optional[str] = None, db: Session = Depends(get_db)):
     ensure_chat_schema(db)
@@ -167,11 +164,14 @@ def get_video_rooms(category: Optional[str] = None, db: Session = Depends(get_db
     rooms = query.all()
     
     if not rooms:
+        # 🛡️ Las 6 salas oficiales y aisladas del Búnker
         default_rooms = [
-            VideoRoom(room_id="bunker_main", name="🔱 Búnker Live Principal", category="general", description="Sala global de la comunidad", min_access_level=0, min_broadcast_level=1),
-            VideoRoom(room_id="gaming_hub", name="🎮 Zona Gamer & Streams", category="gaming", description="Partidas en vivo y comunidad gamer", min_access_level=0, min_broadcast_level=1),
-            VideoRoom(room_id="charlas_vip", name="🍸 Charlas Nocturnas VIP", category="charlas", description="Encuentros y tertulias privadas", min_access_level=1, min_broadcast_level=2),
-            VideoRoom(room_id="exclusive_vault", name="👑 The Vault Creators", category="vip", description="Contenido exclusivo y shows privados", min_access_level=3, min_broadcast_level=4)
+            VideoRoom(room_id="bunker_main", name="Búnker Principal", category="general", description="Sala global de la comunidad", min_access_level=0, min_broadcast_level=1),
+            VideoRoom(room_id="letter_and_gear", name="Letter and gear", category="letter_and_gear", description="Equipamiento y estilo táctico oficial", min_access_level=0, min_broadcast_level=1),
+            VideoRoom(room_id="alpha_clothes", name="Alpha clothes", category="alpha_clothes", description="Moda y exclusivas del Ecosistema Alpha", min_access_level=0, min_broadcast_level=1),
+            VideoRoom(room_id="sweat_and_thongs", name="Sweat and thongs", category="sweat_and_thongs", description="Sala de alto voltaje y contenido exclusivo VIP", min_access_level=1, min_broadcast_level=2),
+            VideoRoom(room_id="slam", name="Slam", category="slam", description="Acción extrema sin censura y debates directos", min_access_level=2, min_broadcast_level=2),
+            VideoRoom(room_id="party_time", name="Party time", category="party_time", description="Zona de fiesta, música y transmisiones nocturnas", min_access_level=3, min_broadcast_level=3)
         ]
         try:
             for r in default_rooms:
@@ -214,8 +214,6 @@ def create_video_room(req: CreateRoomRequest, db: Session = Depends(get_db)):
     db.refresh(new_room)
     return {"status": "success", "room": new_room}
 
-# --- CONTROL Y MENSAJERÍA CRM / DMs ---
-
 @router.post("/delete_message")
 async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_db)):
     ensure_chat_schema(db)
@@ -253,11 +251,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int, db: Session = D
     try:
         while True:
             data = await websocket.receive_text()
-            
-            text_val = ""
-            media_val = None
-            raw_target_id = None
-            msg_type = "chat"
+            text_val, media_val, raw_target_id, msg_type = "", None, None, "chat"
             try:
                 payload = json.loads(data)
                 msg_type = payload.get("type", "chat")
@@ -389,7 +383,6 @@ def get_chat_history(
     messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
-# 🛡️ OBTENER HISTORIAL DE CHAT FILTRADO ESTRICTAMENTE POR SALA
 @router.get("/global/history")
 def get_global_chat_history(room_id: str = "bunker_main", limit: int = 50, db: Session = Depends(get_db)):
     ensure_chat_schema(db)
@@ -414,8 +407,6 @@ def get_global_chat_history(room_id: str = "bunker_main", limit: int = 50, db: S
             break
             
     return {"status": "success", "messages": filtered_messages[::-1]}
-
-# --- CHAT GLOBAL, WEBRTC CATEGORIZADO Y LIVE TIPPING ---
 
 @router.websocket("/global/ws/{user_id}")
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id: str = "bunker_main", db: Session = Depends(get_db)):
@@ -459,14 +450,12 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
     try:
         while True:
             data = await websocket.receive_text()
-            
             try:
                 payload = json.loads(data)
                 msg_type = payload.get("type", "chat")
                 msg_room_id = payload.get("room_id", room_id)
                 user_access_tier = getattr(user, "access_level", 0)
                 
-                # 🛑 RESTRICCIÓN RANGO ESPÍA (NIVEL 0)
                 if msg_type in ["join_video", "webrtc_offer"]:
                     if user_access_tier < 1 and not is_admin:
                         await websocket.send_json({
@@ -476,7 +465,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                         })
                         continue
 
-                # 🛡️ INTERCEPTOR TÉCNICO: Evita que los comandos de red se guarden como chat en BD
                 if msg_type in ["radar_update", "webrtc_offer", "webrtc_answer", "webrtc_ice", "join_video", "leave_video", "online_count_update"]:
                     if msg_type == "radar_update":
                         await global_manager.broadcast_to_room(msg_room_id, payload)
@@ -501,7 +489,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                         })
                     continue
 
-                # 🪙 LIVE TIPPING
                 if msg_type == "live_tip":
                     streamer_id = safe_int(payload.get("target_id"))
                     amount = safe_int(payload.get("amount")) or 0
@@ -541,10 +528,8 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                     await global_manager.broadcast_to_room(msg_room_id, tip_alert)
                     continue
 
-                # 💬 MENSAJERÍA INDEPENDIENTE POR SALAS
                 text_val = payload.get("text", "")
                 media_val = payload.get("media_url", None)
-
                 current_warnings = getattr(user, 'warnings_count', 0) or 0
 
                 if not is_admin:
@@ -560,7 +545,6 @@ async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id:
                         db.commit()
 
                         warning_msg = f"⚠️ @{user.name}, contenido bloqueado. Advertencias: {user.warnings_count}/5. Multa: -{penalty_amount} $ALPHA."
-                        
                         sys_msg = ChatMessage(
                             user_id=8269470905, 
                             author_name="Centinela",
