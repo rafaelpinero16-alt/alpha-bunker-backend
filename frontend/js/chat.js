@@ -138,7 +138,6 @@ const BunkerChat = {
         if (!userId) return;
         this.currentRoomId = roomId;
         
-        // Si ya hay un socket abierto, lo cerramos para aislar la nueva sala limpiamente
         if (this.globalSocket) {
             this.globalSocket.close();
             this.globalSocket = null;
@@ -151,35 +150,13 @@ const BunkerChat = {
             this.globalSocket.onopen = () => {
                 this.reconnectAttemptsGlobal = 0;
                 console.log(`[GLOBAL] Conectado a la sala aislada: ${roomId}`);
-                
-                // 🤖 Mensaje de bienvenida automático del sistema al entrar a la categoría
-                setTimeout(() => {
-                    if (typeof app !== 'undefined') {
-                        const roomNames = {
-                            'letter_and_gear': 'Letter and gear',
-                            'alpha_clothes': 'Alpha clothes',
-                            'sweat_and_thongs': 'Sweat and thongs',
-                            'slam': 'Slam',
-                            'party_time': 'Party time',
-                            'bunker_main': 'Búnker Principal'
-                        };
-                        const prettyName = roomNames[roomId] || roomId;
-                        const welcomeMsg = {
-                            is_system: true,
-                            content: `¡Bienvenido a la sala oficial de ${prettyName}! Conexión segura establecida.`,
-                            created_at: new Date().toISOString()
-                        };
-                        app.appendChatMessage(welcomeMsg, 'global-chat-messages');
-                        app.scrollToBottom('global-chat-messages');
-                    }
-                }, 500);
+                // 🛡️ BUCLE DE BIENVENIDA REPETITIVA ELIMINADO DEFINITIVAMENTE
             };
 
             this.globalSocket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     
-                    // Filtrar estrictamente mensajes de la sala actual
                     if (data.room_id && data.room_id !== this.currentRoomId) return;
 
                     if (data.is_error) {
@@ -259,11 +236,23 @@ const BunkerChat = {
         return false;
     },
 
+    // 🛡️ CORRECCIÓN DE PARSEO PARA EVITAR JSON EN PANTALLA Y PERMITIR MULTIMEDIA
     sendGlobal(payload) {
         if (this.globalSocket && this.globalSocket.readyState === WebSocket.OPEN) {
-            let objPayload = typeof payload === 'object' ? payload : { text: payload };
+            let objPayload;
+            if (typeof payload === 'string') {
+                try {
+                    objPayload = JSON.parse(payload);
+                } catch(e) {
+                    objPayload = { text: payload };
+                }
+            } else {
+                objPayload = payload || {};
+            }
+            
             objPayload.room_id = this.currentRoomId;
             const finalPayload = JSON.stringify(objPayload);
+            
             try {
                 this.globalSocket.send(finalPayload);
                 return true;
