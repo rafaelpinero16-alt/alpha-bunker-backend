@@ -1036,6 +1036,96 @@ const app = {
         } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`; }
     },
 
+    // ⭐ COMPRA DE RANGO VÍA TELEGRAM STARS
+    async buyPackageStars(packageSlug, level) {
+        this.haptic('medium');
+        this.initUserId();
+        if (!packageSlug) return;
+        this.showToast(this.getTrans('toast_generating_invoice') || 'Generando factura... ⏳');
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/stars/create-invoice`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: this.userId || 0, package_slug: packageSlug })
+            });
+            if (!res.ok) throw new Error('invoice_failed');
+            const data = await res.json();
+            const invoiceLink = data.invoice_link;
+            if (!invoiceLink) throw new Error('no_link');
+
+            const canOpenNativeInvoice = !!(window.Telegram?.WebApp?.openInvoice);
+            if (canOpenNativeInvoice) {
+                window.Telegram.WebApp.openInvoice(invoiceLink, async (status) => {
+                    if (status === 'paid') {
+                        this.showLevelUpAnimation(level);
+                        await this.refreshUserData();
+                        this.updateProfileUI();
+                        this.closeModals();
+                    } else if (status === 'failed' || status === 'cancelled') {
+                        this.showToast(this.getTrans('toast_payment_cancelled') || 'Pago cancelado.');
+                    }
+                });
+            } else {
+                // Fallback fuera del cliente nativo de Telegram
+                this.openLink(invoiceLink);
+            }
+        } catch (err) {
+            this.showToast(this.getTrans('toast_invoice_error') || '⚠️ No se pudo generar la factura de Stars.');
+        }
+    },
+
+    // 💎 RECARGA DE $ALPHA VÍA TON CONNECT
+    async rechargeAlphaCoins(priceTon, alphaTotal, level) {
+        this.haptic('medium');
+        this.initUserId();
+        if (!this.tonConnectUI) await this.initTonConnect();
+        if (!this.tonConnectUI || !this.tonConnectUI.connected) {
+            this.showToast(this.getTrans('toast_connect_wallet_first') || 'Conecta tu wallet TON primero.');
+            this.openPaymentMethods();
+            return;
+        }
+        this.showToast(this.getTrans('toast_generating_tx') || 'Generando transacción TON... ⏳');
+        try {
+            const res = await fetch(`${this.backendUrl}/payments/ton/create-transaction`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: this.userId || 0, price_ton: priceTon, alpha_total: alphaTotal, level: level })
+            });
+            if (!res.ok) throw new Error('tx_failed');
+            const data = await res.json();
+            if (!data.address || !data.payload) throw new Error('bad_tx_data');
+
+            const tx = {
+                validUntil: Math.floor(Date.now() / 1000) + 600,
+                messages: [
+                    {
+                        address: data.address,
+                        amount: data.amount_nano || String(Math.floor(priceTon * 1e9)),
+                        payload: data.payload
+                    }
+                ]
+            };
+
+            const result = await this.tonConnectUI.sendTransaction(tx);
+
+            const verifyRes = await fetch(`${this.backendUrl}/payments/ton/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: this.userId || 0, boc: result.boc, level: level })
+            });
+            if (verifyRes.ok) {
+                this.showLevelUpAnimation(level);
+                await this.refreshUserData();
+                this.updateProfileUI();
+                this.closeModals();
+            } else {
+                this.showToast(this.getTrans('toast_verify_pending') || 'Transacción enviada, verificando pago...');
+            }
+        } catch (err) {
+            this.showToast(this.getTrans('toast_ton_tx_error') || '⚠️ No se pudo completar la transacción TON.');
+        }
+    },
+
     openPaymentMethods() {
         this.closeModals();
         let modal = document.getElementById('modal-payment-methods');
@@ -1750,40 +1840,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
     }
 },
 
-async joinVideoRoom(roomId, minAccessLevel, roomName) {
-    this.haptic('medium');
-    const userTier = this.userData?.access_tier || 0;
-    const isAdmin = this.isAdminUser();
-
-    if (!isAdmin && userTier < minAccessLevel) {
-        this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
-        this.openCatalogPackages();
-        return;
-    }
-
-    this.currentRoomId = roomId;
-    this.closeModals();
-    
-    // Limpiar WebRTC y DOM para no mezclar transmisiones
-    Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
-
-    const badge = document.getElementById('video-badge');
-    if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • ${this.getTrans('preview_badge')}`;
-    
-    const titleEl = document.getElementById('global-chat-title');
-    if (titleEl) titleEl.innerText = `${this.getTrans('room_title_prefix')} ${(roomName || roomId).toUpperCase()}`;
-
-    const container = document.getElementById('global-chat-messages');
-    if (container) container.innerHTML = ''; // Vaciar pantalla
-
-    await this.joinVideoBunker();
-    await this.loadGlobalChatHistory();
-    
-    if (typeof BunkerChat !== 'undefined') {
-        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
-    }
-},
-
     // 🪙 LIVE TIPPING EN TRANSMISIONES
     async sendLiveTip(streamerId, amountAlpha) {
         this.haptic('heavy');
@@ -2452,7 +2508,8 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
         if (!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { 
-            BunkerChat.initGlobal(this.userId, this.backendUrl); 
+            const currentRoom = this.currentRoomId || 'bunker_main';
+            BunkerChat.initGlobal(this.userId, this.backendUrl, currentRoom, BunkerChat.getRoomDisplayName(currentRoom), true); 
             setTimeout(() => { 
                 if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { 
                     BunkerChat.sendGlobal(payload); 

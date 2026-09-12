@@ -149,7 +149,7 @@ const BunkerChat = {
     },
 
     // 🎥 GESTIÓN AISLADA POR SALA CON HEADER DINÁMICO
-    initGlobal(userId, baseUrl, roomId = 'bunker_main', customRoomName = null) {
+    initGlobal(userId, baseUrl, roomId = 'bunker_main', customRoomName = null, isReconnect = false) {
         if (!userId) return;
         this.currentRoomId = roomId;
         this.currentUserId = String(userId);
@@ -167,9 +167,11 @@ const BunkerChat = {
             badgeEl.innerText = displayName.toUpperCase();
         }
 
-        // 2. Limpiar mensajes previos para no mezclar salas
+        // 2. Limpiar mensajes previos SOLO en conexión inicial o cambio real de sala.
+        // En reconexiones (isReconnect=true) se preserva el historial ya renderizado
+        // para evitar el parpadeo/reseteo visual descrito en la auditoría.
         const msgContainer = document.getElementById('global-chat-messages');
-        if (msgContainer) {
+        if (msgContainer && !isReconnect) {
             msgContainer.innerHTML = `<div class="text-center text-cyan-400 text-[11px] py-4 font-black tracking-widest uppercase animate-pulse"><i class="fa-solid fa-satellite-dish mr-1"></i> Conectando a ${displayName}...</div>`;
         }
 
@@ -186,7 +188,9 @@ const BunkerChat = {
             this.globalSocket.onopen = () => {
                 this.reconnectAttemptsGlobal = 0;
                 console.log(`[GLOBAL] Conectado a la sala aislada: ${roomId} (${displayName})`);
-                if (msgContainer) msgContainer.innerHTML = '';
+                // Solo limpiar el mensaje de "Conectando..." en la conexión inicial;
+                // en una reconexión el historial ya está preservado en el DOM.
+                if (msgContainer && !isReconnect) msgContainer.innerHTML = '';
             };
 
             this.globalSocket.onmessage = (event) => {
@@ -224,7 +228,7 @@ const BunkerChat = {
             this.globalSocket.onclose = () => {
                 if (this.reconnectAttemptsGlobal < this.maxReconnectAttempts) {
                     this.reconnectAttemptsGlobal++;
-                    setTimeout(() => this.initGlobal(userId, baseUrl, roomId, displayName), this.reconnectDelay);
+                    setTimeout(() => this.initGlobal(userId, baseUrl, roomId, displayName, true), this.reconnectDelay);
                 }
             };
 
