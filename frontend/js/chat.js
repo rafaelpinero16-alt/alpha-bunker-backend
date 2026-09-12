@@ -10,6 +10,20 @@ const BunkerChat = {
     currentUserId: null,
     currentRoomId: 'bunker_main',
 
+    // 🏷️ DICCIONARIO OFICIAL DE CATEGORÍAS DEL BÚNKER
+    roomNames: {
+        'bunker_main': 'Búnker Principal',
+        'letter_and_gear': 'Letter and gear',
+        'alpha_clothes': 'Alpha clothes',
+        'sweat_and_thongs': 'Sweat and thongs',
+        'slam': 'Slam',
+        'party_time': 'Party time'
+    },
+
+    getRoomDisplayName(roomId) {
+        return this.roomNames[roomId] || (roomId ? roomId.replace(/_/g, ' ').toUpperCase() : 'SALA GENERAL');
+    },
+
     getWsUrl(baseUrl) {
         if (!baseUrl) return '';
         return baseUrl.replace('https://', 'wss://').replace('http://', 'ws://');
@@ -134,10 +148,32 @@ const BunkerChat = {
         }
     },
 
-    initGlobal(userId, baseUrl, roomId = 'bunker_main') {
+    // 🎥 GESTIÓN AISLADA POR SALA CON HEADER DINÁMICO
+    initGlobal(userId, baseUrl, roomId = 'bunker_main', customRoomName = null) {
         if (!userId) return;
         this.currentRoomId = roomId;
+        this.currentUserId = String(userId);
         
+        const displayName = customRoomName || this.getRoomDisplayName(roomId);
+
+        // 1. Actualizar títulos de sala en la interfaz
+        const titleEl = document.getElementById('global-chat-title') || document.getElementById('room-chat-title');
+        if (titleEl) {
+            titleEl.innerHTML = `<i class="fa-solid fa-door-open mr-1 text-[#00f3ff]"></i> SALA: <span class="text-[#ffb703]">${displayName.toUpperCase()}</span>`;
+        }
+
+        const badgeEl = document.getElementById('video-room-badge') || document.getElementById('current-room-badge');
+        if (badgeEl) {
+            badgeEl.innerText = displayName.toUpperCase();
+        }
+
+        // 2. Limpiar mensajes previos para no mezclar salas
+        const msgContainer = document.getElementById('global-chat-messages');
+        if (msgContainer) {
+            msgContainer.innerHTML = `<div class="text-center text-cyan-400 text-[11px] py-4 font-black tracking-widest uppercase animate-pulse"><i class="fa-solid fa-satellite-dish mr-1"></i> Conectando a ${displayName}...</div>`;
+        }
+
+        // 3. Cerrar conexión previa si existía
         if (this.globalSocket) {
             this.globalSocket.close();
             this.globalSocket = null;
@@ -149,14 +185,15 @@ const BunkerChat = {
 
             this.globalSocket.onopen = () => {
                 this.reconnectAttemptsGlobal = 0;
-                console.log(`[GLOBAL] Conectado a la sala aislada: ${roomId}`);
-                // 🛡️ BUCLE DE BIENVENIDA REPETITIVA ELIMINADO DEFINITIVAMENTE
+                console.log(`[GLOBAL] Conectado a la sala aislada: ${roomId} (${displayName})`);
+                if (msgContainer) msgContainer.innerHTML = '';
             };
 
             this.globalSocket.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     
+                    // Aislamiento estricto: descartar mensajes de otras salas
                     if (data.room_id && data.room_id !== this.currentRoomId) return;
 
                     if (data.is_error) {
@@ -187,7 +224,7 @@ const BunkerChat = {
             this.globalSocket.onclose = () => {
                 if (this.reconnectAttemptsGlobal < this.maxReconnectAttempts) {
                     this.reconnectAttemptsGlobal++;
-                    setTimeout(() => this.initGlobal(userId, baseUrl, roomId), this.reconnectDelay);
+                    setTimeout(() => this.initGlobal(userId, baseUrl, roomId, displayName), this.reconnectDelay);
                 }
             };
 
@@ -236,7 +273,6 @@ const BunkerChat = {
         return false;
     },
 
-    // 🛡️ CORRECCIÓN DE PARSEO PARA EVITAR JSON EN PANTALLA Y PERMITIR MULTIMEDIA
     sendGlobal(payload) {
         if (this.globalSocket && this.globalSocket.readyState === WebSocket.OPEN) {
             let objPayload;
@@ -250,6 +286,7 @@ const BunkerChat = {
                 objPayload = payload || {};
             }
             
+            // Garantizar que siempre se envíe el identificador de la sala actual
             objPayload.room_id = this.currentRoomId;
             const finalPayload = JSON.stringify(objPayload);
             
@@ -261,6 +298,14 @@ const BunkerChat = {
             }
         }
         return false;
+    },
+
+    // 🔄 MÉTODO AUXILIAR PARA CAMBIO RÁPIDO DE SALAS
+    switchRoom(roomId, roomName = null) {
+        if (typeof app !== 'undefined') {
+            app.currentRoomId = roomId;
+            this.initGlobal(app.userId, app.backendUrl, roomId, roomName);
+        }
     },
     
     closeConnections() {
