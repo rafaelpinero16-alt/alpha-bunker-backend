@@ -10,7 +10,6 @@ const BunkerChat = {
     currentUserId: null,
     currentRoomId: 'bunker_main',
 
-    // 🏷️ DICCIONARIO OFICIAL DE CATEGORÍAS DEL BÚNKER (6 SALAS AISLADAS)
     roomNames: {
         'bunker_main': 'Búnker Principal',
         'letter_and_gear': 'Letter and gear',
@@ -148,7 +147,6 @@ const BunkerChat = {
         }
     },
 
-    // 🎥 GESTIÓN AISLADA POR SALA CON HEADER DINÁMICO Y ANTI-PARPADEO
     initGlobal(userId, baseUrl, roomId = 'bunker_main', customRoomName = null, isReconnect = false) {
         if (!userId) return;
         this.currentRoomId = roomId;
@@ -156,7 +154,6 @@ const BunkerChat = {
         
         const displayName = customRoomName || this.getRoomDisplayName(roomId);
 
-        // 1. Actualizar títulos de sala en la interfaz
         const titleEl = document.getElementById('global-chat-title') || document.getElementById('room-chat-title');
         if (titleEl) {
             titleEl.innerHTML = `<i class="fa-solid fa-door-open mr-1 text-[#00f3ff]"></i> SALA: <span class="text-[#ffb703]">${displayName.toUpperCase()}</span>`;
@@ -167,13 +164,11 @@ const BunkerChat = {
             badgeEl.innerText = displayName.toUpperCase();
         }
 
-        // 2. Limpiar mensajes previos SOLO en conexión inicial o cambio real de sala.
         const msgContainer = document.getElementById('global-chat-messages');
         if (msgContainer && !isReconnect) {
             msgContainer.innerHTML = `<div class="text-center text-cyan-400 text-[11px] py-4 font-black tracking-widest uppercase animate-pulse"><i class="fa-solid fa-satellite-dish mr-1"></i> Conectando a ${displayName}...</div>`;
         }
 
-        // 3. Cerrar conexión previa si existía
         if (this.globalSocket) {
             this.globalSocket.close();
             this.globalSocket = null;
@@ -193,7 +188,6 @@ const BunkerChat = {
                 try {
                     const data = JSON.parse(event.data);
                     
-                    // Aislamiento estricto: descartar mensajes de otras salas
                     if (data.room_id && data.room_id !== this.currentRoomId) return;
 
                     if (data.is_error) {
@@ -274,6 +268,17 @@ const BunkerChat = {
     },
 
     sendGlobal(payload) {
+        const senderTier = (typeof app !== 'undefined') ? (app.userData?.access_tier || 0) : 0;
+        const isAdmin = typeof app !== 'undefined' && typeof app.isAdminUser === 'function' ? app.isAdminUser() : false;
+        
+        if (!isAdmin && senderTier === 0) {
+            const alphaBalance = typeof app !== 'undefined' ? (app.userData?.alpha_balance || 0) : 0;
+            if (alphaBalance < 1) {
+                if (typeof app !== 'undefined') app.showToast("⚠️ Nivel ESPÍA requiere 1 $ALPHA por mensaje. Saldo insuficiente.");
+                return false;
+            }
+        }
+
         if (this.globalSocket && this.globalSocket.readyState === WebSocket.OPEN) {
             let objPayload;
             if (typeof payload === 'string') {
@@ -286,7 +291,6 @@ const BunkerChat = {
                 objPayload = payload || {};
             }
             
-            // Garantizar que siempre se envíe el identificador de la sala actual
             objPayload.room_id = this.currentRoomId;
             const finalPayload = JSON.stringify(objPayload);
             
@@ -300,7 +304,6 @@ const BunkerChat = {
         return false;
     },
 
-    // 🔄 MÉTODO AUXILIAR PARA CAMBIO RÁPIDO DE SALAS
     switchRoom(roomId, roomName = null) {
         if (typeof app !== 'undefined') {
             app.currentRoomId = roomId;
