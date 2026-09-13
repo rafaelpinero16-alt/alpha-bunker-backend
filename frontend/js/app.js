@@ -20,7 +20,7 @@ const app = {
     isVideoMinimized: false,
     currentCheckoutPackage: null,
 
-    // 🎥 GESTIÓN DE SALAS DE VIDEOCHAT CATEGORIZADAS
+    // GESTIÓN DE SALAS DE VIDEOCHAT CATEGORIZADAS
     currentRoomId: 'bunker_main',
     activeRooms: [],
 
@@ -148,7 +148,6 @@ const app = {
         localStorage.setItem('alpha_user_online', this.userData.isOnline);
         this.updateOnlineStatusUI();
 
-        // 🛡️ Notificar al WebSocket global para sincronizar radares y chats
         const statusStr = this.userData.isOnline ? 'online' : 'offline';
         if (typeof BunkerChat !== 'undefined' && BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === WebSocket.OPEN) {
             BunkerChat.sendGlobal(JSON.stringify({
@@ -324,7 +323,7 @@ const app = {
         if (!container) return;
         this.initUserId();
         try {
-            const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}`);
+            const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}?t=${Date.now()}`);
             if (res.ok) {
                 const data = await res.json();
                 const txs = data.transactions || [];
@@ -409,7 +408,7 @@ const app = {
         this.haptic('medium');
         const input = document.getElementById('settings-username-input');
         const newName = input ? input.value.trim() : '';
-        if (!newName) { this.showToast(this.getTrans('toast_invalid_alias')); return; }
+        if (!newName) { this.showToast(this.getTrans('toast_invalid_alias') || 'Ingresa un alias válido'); return; }
 
         const lastChange = localStorage.getItem('alpha_last_name_change');
         const now = Date.now();
@@ -418,7 +417,7 @@ const app = {
         if (lastChange && !this.isAdminUser()) {
             if ((now - parseInt(lastChange)) < thirtyDaysMs) {
                 const daysLeft = Math.ceil((thirtyDaysMs - (now - parseInt(lastChange))) / (1000 * 60 * 60 * 24));
-                this.showToast(this.getTrans('toast_alias_wait').replace('{days}', daysLeft));
+                this.showToast(this.getTrans('toast_alias_wait')?.replace('{days}', daysLeft) || `Espera ${daysLeft} días`);
                 return;
             }
         }
@@ -436,7 +435,7 @@ const app = {
         } catch(e) {}
 
         this.updateProfileUI(); 
-        this.showToast(this.getTrans('toast_alias_updated')); 
+        this.showToast(this.getTrans('toast_alias_updated') || 'Alias actualizado'); 
         this.closeSettingsModal();
     },
 
@@ -451,13 +450,13 @@ const app = {
         const confirmPass = confirmPassInput?.value.trim();
         const currentSavedPass = localStorage.getItem('alpha_user_pass') || '';
 
-        if (!oldPass || !newPass || !confirmPass) { this.showToast(this.getTrans('toast_pwd_empty')); return; }
-        if (currentSavedPass && oldPass !== currentSavedPass) { this.showToast(this.getTrans('toast_pwd_mismatch')); return; }
-        if (newPass.length < 6) { this.showToast(this.getTrans('toast_pwd_short')); return; }
-        if (newPass !== confirmPass) { this.showToast(this.getTrans('toast_pwd_not_match')); return; }
+        if (!oldPass || !newPass || !confirmPass) { this.showToast(this.getTrans('toast_pwd_empty') || 'Completa la contraseña'); return; }
+        if (currentSavedPass && oldPass !== currentSavedPass) { this.showToast(this.getTrans('toast_pwd_mismatch') || 'Contraseña actual incorrecta'); return; }
+        if (newPass.length < 6) { this.showToast(this.getTrans('toast_pwd_short') || 'Mínimo 6 caracteres'); return; }
+        if (newPass !== confirmPass) { this.showToast(this.getTrans('toast_pwd_not_match') || 'Contraseñas no coinciden'); return; }
 
         localStorage.setItem('alpha_user_pass', newPass);
-        this.showToast(`🔒 ${this.getTrans('pwd_changed_success')}`);
+        this.showToast(`🔒 ${this.getTrans('pwd_changed_success') || 'Contraseña cambiada'}`);
         oldPassInput.value = ''; 
         newPassInput.value = ''; 
         if (confirmPassInput) confirmPassInput.value = '';
@@ -486,7 +485,7 @@ const app = {
             if (typeof window.applyTranslations === 'function') window.applyTranslations(savedLang);
 
             try {
-                const visitRes = await fetch(`${this.backendUrl}/users/visit/increment`, { method: 'POST' });
+                const visitRes = await fetch(`${this.backendUrl}/users/visit/increment?t=${Date.now()}`, { method: 'POST' });
                 if (visitRes.ok) {
                     const visitData = await visitRes.json();
                     const counterEl = document.getElementById('daily-visits-counter');
@@ -536,8 +535,8 @@ const app = {
                 method: "POST", headers: { "Content-Type": "application/json" }, 
                 body: JSON.stringify({ 
                     user_id: this.userId, 
-                    name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent'), 
-                    bio: localStorage.getItem('alpha_user_bio') || this.getTrans('default_bio_sync'), 
+                    name: localStorage.getItem('alpha_user_name') || tgUser?.first_name || this.getTrans('default_agent') || 'USER', 
+                    bio: localStorage.getItem('alpha_user_bio') || this.getTrans('default_bio_sync') || 'Operativo', 
                     avatar: localStorage.getItem('alpha_user_avatar'), 
                     init_data: initData, 
                     is_telegram: !!initData,
@@ -580,7 +579,7 @@ const app = {
         const now = Date.now();
         if (now < this._captchaBlockedUntil) {
             const secs = Math.ceil((this._captchaBlockedUntil - now) / 1000);
-            this.showToast(this.getTrans('toast_captcha_wait').replace('{secs}', secs));
+            this.showToast(this.getTrans('toast_captcha_wait')?.replace('{secs}', secs) || `Espera ${secs}s`);
             return;
         }
         const input = document.getElementById('captcha-input');
@@ -601,9 +600,9 @@ const app = {
             if (this._captchaFailCount >= 5) {
                 this._captchaBlockedUntil = now + 30000;
                 this._captchaFailCount = 0;
-                this.showToast(this.getTrans('toast_captcha_blocked'));
+                this.showToast(this.getTrans('toast_captcha_blocked') || 'Bloqueado 30s');
             } else {
-                this.showToast(this.getTrans('toast_captcha_error').replace('{count}', this._captchaFailCount));
+                this.showToast(this.getTrans('toast_captcha_error')?.replace('{count}', this._captchaFailCount) || `Error ${this._captchaFailCount}/5`);
             }
             if (input) input.value = '';
             this.generateCaptcha();
@@ -631,13 +630,13 @@ const app = {
         overlay.className = 'fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-500 opacity-0';
         overlay.innerHTML = `
             <div class="levitate flex flex-col items-center text-center">
-                <h2 class="text-4xl font-black text-[#00f3ff] uppercase tracking-widest mb-8 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">${this.getTrans('level_up_title')}</h2>
+                <h2 class="text-4xl font-black text-[#00f3ff] uppercase tracking-widest mb-8 drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">${this.getTrans('level_up_title') || '¡NUEVO RANGO!'}</h2>
                 <div class="relative inline-flex w-40 h-40 items-center justify-center mb-8">
                     <div class="absolute inset-0 bg-[#00f3ff] rounded-full blur-[25px] opacity-90 animate-pulse"></div>
                     <img src="${rankInfo.img}" style="mix-blend-mode: screen; -webkit-mix-blend-mode: screen;" class="relative w-full h-full object-contain drop-shadow-[0_0_10px_rgba(0,243,255,1)]" onerror="this.src='./assets/badge_0.png'"> 
                 </div>
                 <p class="text-3xl font-black text-[#ffb703] uppercase tracking-widest drop-shadow-[0_0_10px_rgba(255,183,3,0.8)]">${rankInfo.name}</p>
-                <p class="text-sm font-bold text-neutral-300 mt-4 uppercase tracking-widest">${this.getTrans('level_up_sub')}</p>
+                <p class="text-sm font-bold text-neutral-300 mt-4 uppercase tracking-widest">${this.getTrans('level_up_sub') || 'Privilegios Desbloqueados'}</p>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -645,7 +644,7 @@ const app = {
         setTimeout(() => { overlay.classList.add('opacity-0'); setTimeout(() => overlay.remove(), 500); }, 4500);
     },
 
-    copyText(text) { navigator.clipboard.writeText(text).then(() => this.showToast(this.getTrans('toast_copied'))); },
+    copyText(text) { navigator.clipboard.writeText(text).then(() => this.showToast(this.getTrans('toast_copied') || 'Copiado! 📋')); },
     openLink(url) { if (window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url); else window.open(url, '_blank'); },
 
     compressImage(file, maxWidth = 1024, quality = 0.7) {
@@ -704,7 +703,7 @@ const app = {
         if (!this.userId) return;
         try {
             let balance = 0;
-            const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}`);
+            const res = await fetch(`${this.backendUrl}/wallet/balance/${this.userId}?t=${Date.now()}`);
             if (res.ok) { const data = await res.json(); balance = data.balance_alfa_coins ?? data.alpha_balance ?? 0; }
             document.querySelectorAll('#prof-alpha-balance, #wallet-balance, .wallet-balance-val').forEach(el => { el.innerText = `${balance} $ALPHA`; });
         } catch (err) {}
@@ -714,7 +713,7 @@ const app = {
         if (!this.userId) this.initUserId();
         if (!this.userId) return;
         try {
-            const res = await fetch(`${this.backendUrl}/kyc/status/${this.userId}`);
+            const res = await fetch(`${this.backendUrl}/kyc/status/${this.userId}?t=${Date.now()}`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.kyc_status) {
@@ -728,7 +727,7 @@ const app = {
                     this.updateProfileUI();
                 }
             }
-        } catch (err) {}
+        } catch(err) {}
     },
 
     updateProfileUI() {
@@ -795,13 +794,13 @@ const app = {
         const walletConnected = (this.tonConnectUI && this.tonConnectUI.connected) || localStorage.getItem('alpha_ton_connected') === 'true';
 
         let warningText = "";
-        if (this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label')}: ${this.userData.warnings}/5`;
+        if (this.userData.warnings > 0) warningText = ` - ⚠️ ${this.getTrans('warnings_label') || 'ADVERTENCIAS'}: ${this.userData.warnings}/5`;
 
         if (kycStatusEl) {
             if (userRole === 'fan' && walletConnected) {
-                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('status_wallet_linked')} ✅ ${warningText}</span>`; 
+                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('status_wallet_linked') || 'VINCULADO'} ✅ ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
-                if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc');
+                if (kycDescEl) kycDescEl.innerText = this.getTrans('status_kyc_fan_desc') || '';
                 if (kycBtn && localStorage.getItem('alpha_logged_in') === 'true' && this.userId) {
                     kycBtn.classList.remove('hidden');
                     kycBtn.innerHTML = `<i class="fa-solid fa-money-check-dollar mr-1"></i> CAMBIAR MÉTODO DE PAGO`;
@@ -809,28 +808,28 @@ const app = {
                     kycBtn.setAttribute('onclick', 'app.openPaymentMethods()');
                 }
             } else if (kycStatus === 'verified' || isAdminUser) {
-                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('prof_kyc_verified')} ${warningText}</span>`; 
+                kycStatusEl.innerHTML = `<img src="./assets/badge_verified.png" style="mix-blend-mode: screen; background-color: transparent;" class="w-4 h-4 inline-block align-middle mr-1" onerror="this.style.display='none'"> <span class="align-middle">${this.getTrans('prof_kyc_verified') || 'VERIFICADO'} ${warningText}</span>`; 
                 kycStatusEl.className = `text-xs font-black uppercase text-green-400 flex items-center justify-center`;
-                if (kycDescEl) kycDescEl.innerText = this.getTrans('prof_kyc_verified_desc');
+                if (kycDescEl) kycDescEl.innerText = this.getTrans('prof_kyc_verified_desc') || '';
                 if (kycBtn) kycBtn.classList.add('hidden');
             } else {
                 if (userRole === 'fan') {
-                    kycStatusEl.innerText = `${this.getTrans('status_unlinked')} ⚠️${warningText}`; 
+                    kycStatusEl.innerText = `${this.getTrans('status_unlinked') || 'NO VINCULADO'} ⚠️${warningText}`; 
                     kycStatusEl.className = `text-xs font-black uppercase text-neutral-400`;
-                    if (kycDescEl) kycDescEl.innerText = this.getTrans('status_unlinked_desc');
+                    if (kycDescEl) kycDescEl.innerText = this.getTrans('status_unlinked_desc') || '';
                     if (kycBtn) {
                         kycBtn.classList.remove('hidden');
-                        kycBtn.innerHTML = this.getTrans('btn_link_payment');
+                        kycBtn.innerHTML = this.getTrans('btn_link_payment') || 'VINCULAR PAGO';
                         kycBtn.className = 'w-full bg-[#00f3ff] text-black hover:bg-[#00f3ff]/80 font-black py-3 px-4 rounded-xl text-xs shadow-[0_0_15px_rgba(0,243,255,0.4)] transition mt-2';
                         kycBtn.setAttribute('onclick', 'app.openPaymentMethods()');
                     }
                 } else {
                     kycStatusEl.innerText = `NO VERIFICADO ⚠️${warningText}`; 
                     kycStatusEl.className = `text-xs font-black uppercase text-neutral-400`;
-                    if (kycDescEl) kycDescEl.innerText = this.getTrans('prof_kyc_desc');
+                    if (kycDescEl) kycDescEl.innerText = this.getTrans('prof_kyc_desc') || '';
                     if (kycBtn) {
                         kycBtn.classList.remove('hidden');
-                        kycBtn.innerText = this.getTrans('btn_verify_kyc');
+                        kycBtn.innerText = this.getTrans('btn_verify_kyc') || 'VERIFICAR CUENTA';
                         kycBtn.className = 'w-full bg-[#ff00ff] text-black hover:bg-[#ff00ff]/80 font-black py-3 px-4 rounded-xl text-xs shadow-[0_0_15px_rgba(255,0,255,0.4)] transition uppercase mt-2';
                         kycBtn.setAttribute('onclick', 'app.openKYCModal()');
                     }
@@ -845,7 +844,7 @@ const app = {
             if (userRole === 'creator' || isAdminUser) {
                 if (creatorSubBox) creatorSubBox.classList.remove('hidden');
                 dynamicButtons.forEach(btn => {
-                    btn.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${this.getTrans('b2b_edit_tips')}`;
+                    btn.innerHTML = `<i class="fa-solid fa-list-ul"></i> ${this.getTrans('b2b_edit_tips') || 'EDITAR MIS TIPS'}`;
                     btn.setAttribute('onclick', 'app.openTipMenuManagementModal()');
                     btn.classList.replace('bg-[#00f3ff]', 'bg-[#ff00ff]');
                     btn.classList.replace('text-[#00f3ff]', 'text-[#ff00ff]');
@@ -853,7 +852,7 @@ const app = {
             } else {
                 if (creatorSubBox) creatorSubBox.classList.add('hidden'); 
                 dynamicButtons.forEach(btn => {
-                    btn.innerHTML = `<i class="fa-solid fa-star"></i> ${this.getTrans('btn_my_favorites')}`;
+                    btn.innerHTML = `<i class="fa-solid fa-star"></i> ${this.getTrans('btn_my_favorites') || 'FAVORITOS'}`;
                     btn.setAttribute('onclick', 'app.openFavoritesModal()');
                     btn.classList.replace('bg-[#ff00ff]', 'bg-[#00f3ff]'); 
                     btn.classList.replace('text-[#ff00ff]', 'text-[#ff00ff]');
@@ -868,7 +867,7 @@ const app = {
         const refInput = document.getElementById('referral-link-input');
         if (refInput) {
             this.copyText(refInput.value);
-            this.showToast('¡Enlace de referido copiado al portapapeles! 🔗');
+            this.showToast(this.getTrans('toast_copied') || '¡Copiado! 🔗');
         }
     },
 
@@ -922,7 +921,7 @@ const app = {
                         this.updateProfileUI();
                     } else { 
                         localStorage.removeItem('alpha_ton_connected');
-                        if (btnHdr) btnHdr.innerText = this.getTrans('btn_wallet'); 
+                        if (btnHdr) btnHdr.innerText = this.getTrans('btn_wallet') || 'WALLET'; 
                         this.updateProfileUI();
                     }
                 });
@@ -935,11 +934,11 @@ const app = {
             this.haptic('medium'); 
             this.initUserId(); 
             if (!this.tonConnectUI) await this.initTonConnect();
-            if (!this.tonConnectUI) { this.showToast(this.getTrans('toast_ton_not_loaded')); return; }
+            if (!this.tonConnectUI) { this.showToast(this.getTrans('toast_ton_not_loaded') || '⚠️ TON Connect no cargado.'); return; }
             if (this.tonConnectUI.connected) {
-                if (confirm(this.getTrans('confirm_disconnect_wallet'))) { 
+                if (confirm(this.getTrans('confirm_disconnect_wallet') || '¿Desconectar billetera?')) { 
                     await this.tonConnectUI.disconnect(); 
-                    if (document.getElementById('btn-wallet-hdr')) document.getElementById('btn-wallet-hdr').innerText = this.getTrans('btn_wallet'); 
+                    if (document.getElementById('btn-wallet-hdr')) document.getElementById('btn-wallet-hdr').innerText = this.getTrans('btn_wallet') || 'WALLET'; 
                     localStorage.removeItem('alpha_ton_connected');
                     this.updateProfileUI();
                 }
@@ -977,8 +976,8 @@ const app = {
                 <div id="modal-catalog" class="fixed inset-0 z-[100] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg max-h-[85vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)] relative">
                         <button onclick="app.closeModals()" class="absolute top-4 right-4 text-neutral-400 hover:text-white font-bold p-1 z-10"><i class="fa-solid fa-times text-xl"></i></button>
-                        <h3 class="text-2xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-store mr-2"></i> RANGOS BÚNKER</h3>
-                        <p class="text-xs text-neutral-300 text-center mb-4">Adquiere tu rango oficial para desbloquear accesos tácticos.</p>
+                        <h3 class="text-2xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-store mr-2"></i> ${this.getTrans('cat_title') || 'RANGOS BÚNKER'}</h3>
+                        <p class="text-xs text-neutral-300 text-center mb-4">${this.getTrans('cat_desc') || 'Adquiere tu rango oficial.'}</p>
                         <div id="catalog-packages-list" class="overflow-y-auto pr-2 pb-6 space-y-4"></div>
                     </div>
                 </div>
@@ -1006,7 +1005,7 @@ const app = {
                     const level = rankMapping[pkg.slug] !== undefined ? rankMapping[pkg.slug] : 0;
                     const badgeInfo = this.getRankBadge(level);
                     const tagLabel = this.getTrans('cat_official_rank') || 'RANGO OFICIAL';
-                    const descLabel = this.getTrans(`pkg_${pkg.slug.replace('-', '_')}_desc`) || `Membresía oficial ${badgeInfo.name}. Acceso a beneficios tácticos en el Búnker.`;
+                    const descLabel = this.getTrans(`pkg_${pkg.slug.replace('-', '_')}_desc`) || `Membresía oficial ${badgeInfo.name}.`;
                     
                     return `
                         <div class="bg-black border-2 ${level === 4 ? 'border-[#ffb703] shadow-[0_0_18px_rgba(255,183,3,0.3)]' : level === 3 ? 'border-[#ff00ff] shadow-[0_0_12px_rgba(255,0,255,0.2)]' : 'border-[#00f3ff] shadow-[0_0_12px_rgba(0,243,255,0.2)]'} rounded-2xl p-5 relative mt-4">
@@ -1026,22 +1025,21 @@ const app = {
                                 <button onclick="app.buyPackageStars('${pkg.slug}', ${level})" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">⭐ ${pkg.price_stars}</button>
                                 <button onclick="app.rechargeAlphaCoins(${pkg.price_ton}, ${pkg.alpha_total}, ${level})" class="w-full bg-neutral-800 hover:bg-neutral-700 text-cyan-400 border border-cyan-500/30 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-1 shadow-md transition">💎 ${pkg.price_ton} TON</button>
                                 <button onclick="app.openExternalCheckout('${pkg.slug}')" class="w-full col-span-2 bg-neutral-800 hover:bg-neutral-700 text-white border border-neutral-600 py-3 rounded-xl font-black text-xs uppercase flex items-center justify-center gap-2 shadow-md transition mt-1">
-                                    <i class="fa-solid fa-money-bill-transfer"></i> ${this.getTrans('btn_external_checkout') || 'FONDEO ACH / CRIPTO EXTERNO'}
+                                    <i class="fa-solid fa-money-bill-transfer"></i> ${this.getTrans('btn_external_checkout') || 'FONDEO EXTERNO'}
                                 </button>
                             </div>
                         </div>
                     `;
                 }).join('');
             }
-        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error')}</div>`; }
+        } catch (err) { container.innerHTML = `<div class="text-center text-red-400 mt-10 font-bold">${this.getTrans('cat_error') || 'Error'}</div>`; }
     },
 
-    // ⭐ COMPRA DE RANGO NATIVA VÍA TELEGRAM STARS
     async buyPackageStars(packageSlug, level) {
         this.haptic('medium');
         this.initUserId();
         if (!packageSlug) return;
-        this.showToast(this.getTrans('toast_generating_invoice') || 'Generando factura... ⏳');
+        this.showToast(this.getTrans('toast_invoice_gen') || 'Generando factura con Telegram Stars... ⭐');
         try {
             const res = await fetch(`${this.backendUrl}/payments/stars/create-invoice`, {
                 method: 'POST',
@@ -1069,69 +1067,16 @@ const app = {
                 this.openLink(invoiceLink);
             }
         } catch (err) {
-            this.showToast(this.getTrans('toast_invoice_error') || '⚠️ No se pudo generar la factura de Stars.');
+            this.showToast(this.getTrans('toast_invoice_error') || '⚠️ Error de red o factura.');
         }
     },
 
-    // 💎 RECARGA DE $ALPHA VÍA TON CONNECT
     async rechargeAlphaCoins(priceTon, alphaTotal, level) {
         this.haptic('medium');
         this.initUserId();
         if (!this.tonConnectUI) await this.initTonConnect();
         if (!this.tonConnectUI || !this.tonConnectUI.connected) {
-            this.showToast(this.getTrans('toast_connect_wallet_first') || 'Conecta tu wallet TON primero.');
-            this.openPaymentMethods();
-            return;
-        }
-        this.showToast(this.getTrans('toast_generating_tx') || 'Generando transacción TON... 💎');
-        try {
-            const res = await fetch(`${this.backendUrl}/payments/ton/create-transaction`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: this.userId || 0, price_ton: priceTon, alpha_total: alphaTotal, level: level })
-            });
-            if (!res.ok) throw new Error('tx_failed');
-            const data = await res.json();
-            if (!data.address || !data.payload) throw new Error('bad_tx_data');
-
-            const tx = {
-                validUntil: Math.floor(Date.now() / 1000) + 600,
-                messages: [
-                    {
-                        address: data.address,
-                        amount: data.amount_nano || String(Math.floor(priceTon * 1e9)),
-                        payload: data.payload
-                    }
-                ]
-            };
-
-            const result = await this.tonConnectUI.sendTransaction(tx);
-
-            const verifyRes = await fetch(`${this.backendUrl}/payments/ton/verify`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: this.userId || 0, boc: result.boc, level: level })
-            });
-            if (verifyRes.ok) {
-                this.showLevelUpAnimation(level);
-                await this.refreshUserData();
-                this.updateProfileUI();
-                this.closeModals();
-            } else {
-                this.showToast(this.getTrans('toast_verify_pending') || 'Transacción enviada, verificando pago...');
-            }
-        } catch (err) {
-            this.showToast(this.getTrans('toast_ton_tx_error') || '⚠️ No se pudo completar la transacción TON.');
-        }
-    },
-
-    // 💎 RECARGA DE $ALPHA VÍA TON CONNECT
-    async rechargeAlphaCoins(priceTon, alphaTotal, level) {
-        this.haptic('medium');
-        this.initUserId();
-        if (!this.tonConnectUI) await this.initTonConnect();
-        if (!this.tonConnectUI || !this.tonConnectUI.connected) {
-            this.showToast(this.getTrans('toast_connect_wallet_first') || 'Conecta tu wallet TON primero.');
+            this.showToast(this.getTrans('toast_connect_ton_req') || 'Conecta tu wallet TON primero.');
             this.openPaymentMethods();
             return;
         }
@@ -1184,10 +1129,10 @@ const app = {
             const modalHTML = `
                 <div id="modal-payment-methods" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                        <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">${this.getTrans('pay_methods_title')}</h3>
-                        <p class="text-xs text-neutral-300 text-center mb-6">${this.getTrans('pay_methods_desc')}</p>
-                        <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> ${this.getTrans('btn_connect_ton')}</button>
-                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">${this.getTrans('btn_cancel')}</button>
+                        <h3 class="text-xl font-black text-[#00f3ff] mb-4 text-center tracking-widest uppercase">${this.getTrans('pay_methods_title') || 'MÉTODOS DE PAGO'}</h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6">${this.getTrans('pay_methods_desc') || 'Vincula tu cuenta'}</p>
+                        <button onclick="app.connectWallet()" class="bg-blue-600 text-white font-black py-4 rounded-xl mb-3 flex items-center justify-center gap-2 uppercase shadow-[0_0_15px_rgba(37,99,235,0.5)] active:scale-95 transition"><i class="fa-solid fa-wallet text-xl"></i> ${this.getTrans('btn_connect_ton') || 'TON WALLET'}</button>
+                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold mt-4 uppercase text-sm w-full text-center transition">${this.getTrans('btn_cancel') || 'CERRAR'}</button>
                     </div>
                 </div>
             `;
@@ -1206,11 +1151,11 @@ const app = {
         let modal = document.getElementById('modal-external-checkout');
         if (!modal) {
             const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-            const tTitle   = esc(this.getTrans('tactical_recharge'));
-            const lSkrill  = esc(this.getTrans('btn_pay_skrill'));
-            const lBinance = esc(this.getTrans('btn_pay_binance'));
-            const lPayoneer= esc(this.getTrans('btn_pay_payoneer'));
-            const lManual  = esc(this.getTrans('btn_pay_manual'));
+            const tTitle   = esc(this.getTrans('tactical_recharge') || 'RECARGA TÁCTICA');
+            const lSkrill  = esc(this.getTrans('btn_pay_skrill') || 'Skrill');
+            const lBinance = esc(this.getTrans('btn_pay_binance') || 'Binance Pay');
+            const lPayoneer= esc(this.getTrans('btn_pay_payoneer') || 'Payoneer');
+            const lManual  = esc(this.getTrans('btn_pay_manual') || 'Pago Manual');
 
             const modalHTML = `
                 <div id="modal-external-checkout" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
@@ -1242,7 +1187,7 @@ const app = {
             payoneer: { 'legend': 'https://link.payoneer.com/Token?t=569B904EC3D94618B6563B0574CF479F&src=mobile', 'icon-legend': 'https://link.payoneer.com/Token?t=FA9D867359624921B264A059D1ADA74F&src=mobile' }
         };
         const targetUrl = paymentLinks[gateway] ? paymentLinks[gateway][this.currentCheckoutPackage] : null;
-        if (!targetUrl) { this.showToast(this.getTrans('toast_gateway_unsupported')); return; }
+        if (!targetUrl) { this.showToast(this.getTrans('toast_gateway_unsupported') || '⚠️ Pasarela no disponible.'); return; }
         this.haptic('heavy');
         this.showToast('Redirigiendo a pasarela...');
         setTimeout(() => { window.open(targetUrl, '_blank', 'noopener,noreferrer'); this.closeCheckout(); }, 1500);
@@ -1253,9 +1198,9 @@ const app = {
         let modal = document.getElementById('modal-manual-payment');
         if (!modal) {
             const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-            const title   = esc(this.getTrans('manual_payment_title'));
-            const desc    = esc(this.getTrans('manual_payment_desc'));
-            const btnBack = esc(this.getTrans('btn_cancel'));
+            const title   = esc(this.getTrans('manual_payment_title') || 'PAGO MANUAL');
+            const desc    = esc(this.getTrans('manual_payment_desc') || 'Transfiere a esta cuenta:');
+            const btnBack = esc(this.getTrans('btn_cancel') || 'VOLVER');
             
             const modalHTML = `
                 <div id="modal-manual-payment" class="fixed inset-0 z-[200] bg-black bg-opacity-95 backdrop-blur-md flex justify-center items-center p-4 hidden">
@@ -1306,13 +1251,13 @@ const app = {
                 <div id="modal-favorites-edit" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
                         <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-star mr-2"></i> ${this.getTrans('favorites_title')}</h3>
+                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-star mr-2"></i> ${this.getTrans('favorites_title') || 'FAVORITOS'}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
                         <div id="favorites-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
                         <div class="mt-4 pt-4 border-t border-[#00f3ff]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2">${this.getTrans('btn_back')}</button>
-                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
+                            <button onclick="app.closeModals()" class="bg-neutral-800 border border-neutral-600 text-white px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2">${this.getTrans('btn_back') || 'VOLVER'}</button>
+                            <button onclick="app.saveAllFavorites()" class="bg-[#00f3ff] text-black px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2 shadow-[0_0_10px_rgba(0,243,255,0.5)]">${this.getTrans('btn_save_bio') || 'GUARDAR'}</button>
                         </div>
                     </div>
                 </div>
@@ -1338,14 +1283,14 @@ const app = {
             if (input && input.value.trim() !== '') favs.push(input.value.trim().replace('@', ''));
         }
         localStorage.setItem('alpha_user_favorites', JSON.stringify(favs));
-        this.showToast(this.getTrans('toast_favs_saved'));
+        this.showToast(this.getTrans('toast_favs_saved') || 'Favoritos guardados');
         this.closeModals();
     },
 
     async loadTipMenu(creatorId) {
         this.initUserId();
         try {
-            const res = await fetch(`${this.backendUrl}/creators/${creatorId || this.userId}/tip-menu`);
+            const res = await fetch(`${this.backendUrl}/creators/${creatorId || this.userId}/tip-menu?t=${Date.now()}`);
             if (res.ok) { const data = await res.json(); return data.slots || []; }
         } catch (err) {}
         return [];
@@ -1360,13 +1305,13 @@ const app = {
                 <div id="modal-tip-menu-edit" class="fixed inset-0 z-[95] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md hidden">
                     <div class="bg-neutral-900 border-2 border-[#ff00ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_20px_rgba(255,0,255,0.3)]">
                         <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#ff00ff]/30">
-                            <h3 class="text-xl font-black text-[#ff00ff] uppercase tracking-wider"><i class="fa-solid fa-list-ul mr-2"></i> ${this.getTrans('b2b_edit_tips')}</h3>
+                            <h3 class="text-xl font-black text-[#ff00ff] uppercase tracking-wider"><i class="fa-solid fa-list-ul mr-2"></i> ${this.getTrans('b2b_edit_tips') || 'EDITAR TIPS'}</h3>
                             <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
                         <div id="tip-menu-slots-form" class="flex-1 space-y-3 overflow-y-auto pr-2 pb-6"></div>
                         <div class="mt-4 pt-4 border-t border-[#ff00ff]/30 flex justify-between gap-2 shrink-0">
-                            <button onclick="app.closeModals()" class="bg-neutral-800 text-white px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2">${this.getTrans('btn_back')}</button>
-                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">${this.getTrans('btn_save_bio')}</button>
+                            <button onclick="app.closeModals()" class="bg-neutral-800 text-white px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2">${this.getTrans('btn_back') || 'VOLVER'}</button>
+                            <button onclick="app.saveAllTipSlots()" class="bg-[#ff00ff] text-black px-5 py-3 rounded-xl text-sm font-black uppercase w-1/2 shadow-[0_0_10px_rgba(255,0,255,0.5)]">${this.getTrans('btn_save_bio') || 'GUARDAR'}</button>
                         </div>
                     </div>
                 </div>
@@ -1376,7 +1321,7 @@ const app = {
         }
         modal.classList.remove('hidden');
         const container = document.getElementById('tip-menu-slots-form');
-        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('msg_loading')}</div>`;
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-10 font-bold">${this.getTrans('msg_loading') || 'Cargando...'}</div>`;
         const slots = await this.loadTipMenu(this.userId);
         let htmlContent = '';
         for (let i = 1; i <= 10; i++) {
@@ -1389,7 +1334,7 @@ const app = {
     async saveAllTipSlots() {
         this.haptic('heavy'); 
         this.initUserId(); 
-        this.showToast(this.getTrans('toast_tip_saving'));
+        this.showToast(this.getTrans('toast_tip_saving') || 'Guardando...');
         let successCount = 0;
         for (let i = 1; i <= 10; i++) {
             const title = document.getElementById(`tip-title-${i}`)?.value.trim() || '';
@@ -1401,7 +1346,7 @@ const app = {
                 } catch (err) {}
             }
         }
-        this.showToast(this.getTrans('toast_tip_saved').replace('{count}', successCount));
+        this.showToast(this.getTrans('toast_tip_saved')?.replace('{count}', successCount) || `Guardado: ${successCount} slots.`);
         if (successCount > 0) this.closeModals();
     },
 
@@ -1459,7 +1404,7 @@ const app = {
         modal.classList.remove('hidden');
 
         const container = document.getElementById('fan-tip-slots-container');
-        container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold text-xs">${this.getTrans('msg_loading')}</div>`;
+        container.innerHTML = `<div class="text-center text-neutral-400 mt-4 font-bold text-xs">${this.getTrans('msg_loading') || 'Cargando...'}</div>`;
         
         const slots = await this.loadTipMenu(targetCreatorId);
         if (slots.length === 0) {
@@ -1540,7 +1485,6 @@ const app = {
         this.loadConversation(targetId, targetName);
     },
 
-    // 🛡️ DMs: BANDEJA DE ENTRADA Y CHATS INDIVIDUALES
     async openSupport() {
         this.closeModals();
         document.getElementById('modal-chat')?.classList.remove('hidden');
@@ -1559,15 +1503,15 @@ const app = {
         if (titleEl) titleEl.innerText = "DMs (MENSAJES DIRECTOS)";
 
         if (inboxView) {
-            inboxView.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10 font-bold">${this.getTrans('loading_conversations')}</div>`;
+            inboxView.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10 font-bold">${this.getTrans('loading_conversations') || 'Cargando conversaciones...'}</div>`;
             try {
                 this.initUserId();
-                const res = await fetch(`${this.backendUrl}/chat/conversations/${this.userId}`);
+                const res = await fetch(`${this.backendUrl}/chat/conversations/${this.userId}?t=${Date.now()}`);
                 if (res.ok) {
                     const data = await res.json();
                     const conversations = data.conversations || [];
                     if (conversations.length === 0) {
-                        inboxView.innerHTML = `<div class="text-center text-neutral-500 text-xs py-12">${this.getTrans('no_active_chats')}</div>`;
+                        inboxView.innerHTML = `<div class="text-center text-neutral-500 text-xs py-12">${this.getTrans('no_active_chats') || 'No tienes chats activos aún.'}</div>`;
                     } else {
                         inboxView.innerHTML = conversations.map(c => {
                             const avatarSrc = c.avatar_url ? this.sanitizeUrl(c.avatar_url) : '';
@@ -1628,7 +1572,6 @@ const app = {
         }
 
         this.setupSystemMessageObserver('chat-messages');
-        await this.loadChatHistory();
         BunkerChat.initCRM(this.userId, this.backendUrl);
     },
 
@@ -1663,7 +1606,7 @@ const app = {
 
                 const btn = document.getElementById('btn-profile-follow');
                 if (btn) {
-                    btn.innerHTML = data.following ? `<i class="fa-solid fa-user-check"></i> ${this.getTrans('btn_following')}` : `<i class="fa-solid fa-user-plus"></i> ${this.getTrans('btn_follow')}`;
+                    btn.innerHTML = data.following ? `<i class="fa-solid fa-user-check"></i> ${this.getTrans('btn_following') || 'Siguiendo'}` : `<i class="fa-solid fa-user-plus"></i> ${this.getTrans('btn_follow') || 'Seguir'}`;
                     btn.className = data.following 
                         ? 'flex-1 bg-neutral-800 border border-neutral-600 hover:bg-neutral-700 text-white font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2'
                         : 'flex-1 bg-[#ff00ff] hover:bg-fuchsia-500 text-black font-black py-3 rounded-xl text-xs uppercase shadow-md transition flex items-center justify-center gap-2';
@@ -1676,14 +1619,14 @@ const app = {
 
     blockUser(targetId, targetName) {
         this.haptic('heavy');
-        const confirmMsg = this.getTrans('confirm_block').replace('{name}', targetName);
+        const confirmMsg = this.getTrans('confirm_block')?.replace('{name}', targetName) || `¿Estás seguro de bloquear a @${targetName}?`;
         if (confirm(confirmMsg)) {
             let blocked = JSON.parse(localStorage.getItem('alpha_user_blocked') || '[]');
             if (!blocked.includes(String(targetId))) {
                 blocked.push(String(targetId));
                 localStorage.setItem('alpha_user_blocked', JSON.stringify(blocked));
             }
-            this.showToast(this.getTrans('user_blocked').replace('{name}', targetName));
+            this.showToast(this.getTrans('user_blocked')?.replace('{name}', targetName) || `Usuario @${targetName} bloqueado.`);
             this.closeModals();
             this.renderFeed();
         }
@@ -1697,8 +1640,8 @@ const app = {
             const modalHTML = `
                 <div id="modal-communities-links" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
                     <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-sm flex flex-col shadow-[0_0_20px_rgba(0,243,255,0.3)]">
-                        <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title">${this.getTrans('com_title_eco')}</span></h3>
-                        <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc">${this.getTrans('com_desc_eco')}</p>
+                        <h3 class="text-xl font-black text-[#00f3ff] mb-2 text-center tracking-widest uppercase"><i class="fa-solid fa-users mr-2"></i> <span id="com-eco-title">${this.getTrans('com_title_eco') || 'ECOSISTEMA'}</span></h3>
+                        <p class="text-xs text-neutral-300 text-center mb-6" id="com-eco-desc">${this.getTrans('com_desc_eco') || 'Únete a nuestros canales y grupos oficiales.'}</p>
                         
                         <div class="space-y-3 overflow-y-auto max-h-[50vh] pr-1">
                             <button onclick="app.openLink('https://t.me/+66WhSKtHWI5kZTkx')" class="w-full bg-black border border-amber-500 text-amber-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.4)] transition hover:bg-amber-500/20 active:scale-95 text-center leading-tight">
@@ -1707,7 +1650,7 @@ const app = {
                             <button onclick="app.openLink('https://t.me/+7NhKBpvAE_dkODgx')" class="w-full bg-black border border-[#ff00ff] text-[#ff00ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(255,0,255,0.4)] transition hover:bg-ff00ff/20 active:scale-95 text-center leading-tight">
                                 <i class="fa-solid fa-champagne-glasses text-lg"></i> PIG'BROS 🚀PartyN'Play🚀VIP • 💬CHAT & VC📽
                             </button>
-                            <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-[#00f3ff]/20 active:scale-95 text-center leading-tight">
+                            <button onclick="app.openLink('https://t.me/+GmnxDHRiA5A2M2Ix')" class="w-full bg-black border border-[#00f3ff] text-[#00f3ff] font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(0,243,255,0.4)] transition hover:bg-red-500/20 active:scale-95 text-center leading-tight">
                                 <i class="fa-solid fa-lock text-lg"></i> ⚜️🔐The Bunker CHat 🔐⚜️
                             </button>
                             <button onclick="app.openLink('https://t.me/+Hst6ckYRUM02NmQx')" class="w-full bg-black border border-purple-500 text-purple-500 font-black py-3 px-2 rounded-xl text-xs uppercase flex flex-col items-center justify-center gap-1 shadow-[0_0_10px_rgba(168,85,247,0.4)] transition hover:bg-purple-500/20 active:scale-95 text-center leading-tight">
@@ -1727,218 +1670,240 @@ const app = {
         modal.classList.remove('hidden');
     },
 
-   // 🎥 GESTIÓN DE SALAS DE VIDEOCHAT POR CATEGORÍAS
-   async openVideoRoomsModal() {
-    this.closeModals();
-    this.haptic('medium');
-    
-    const userTier = this.userData?.access_tier || 0;
-    if (userTier < 1 && !this.isAdminUser()) {
-        this.showToast('🚫 Acceso denegado: Rango ESPÍA no autorizado para videollamadas.');
-        this.openCatalogPackages();
-        return;
-    }
-
-    let modal = document.getElementById('modal-video-rooms');
-    if (!modal) {
-        const modalHTML = `
-            <div id="modal-video-rooms" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
-                <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_25px_rgba(0,243,255,0.3)]">
-                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
-                        <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> ${this.getTrans('video_rooms_title')}</h3>
-                        <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
-                    </div>
-                    <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0 scrollbar-none">
-                        <button onclick="app.filterVideoRooms('all')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">${this.getTrans('btn_all')}</button>
-                        <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Letter and gear</button>
-                        <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Alpha clothes</button>
-                        <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Sweat and thongs</button>
-                        <button onclick="app.filterVideoRooms('slam')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Slam</button>
-                        <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Party time</button>
-                    </div>
-                    <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
-                        <div class="text-center text-neutral-400 text-xs py-10 font-bold">${this.getTrans('loading_active_rooms')}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        modal = document.getElementById('modal-video-rooms');
-    }
-    modal.classList.remove('hidden');
-    await this.loadVideoRooms('all');
-},
-
-async loadVideoRooms(category) {
-    const container = document.getElementById('video-rooms-list');
-    if (!container) return;
-    container.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10">${this.getTrans('loading_rooms')}</div>`;
-    try {
-        const officialRooms = [
-            { room_id: 'letter_and_gear', name: 'Letter and gear', description: 'Equipamiento y estilo táctico oficial', min_access_level: 0, category: 'letter_and_gear', icon: 'fa-gears text-[#00f3ff]' },
-            { room_id: 'alpha_clothes', name: 'Alpha clothes', description: 'Moda y exclusivas del Ecosistema Alpha', min_access_level: 0, category: 'alpha_clothes', icon: 'fa-shirt text-[#ff00ff]' },
-            { room_id: 'sweat_and_thongs', name: 'Sweat and thongs', description: 'Sala de alto voltaje y contenido exclusivo VIP', min_access_level: 1, category: 'sweat_and_thongs', icon: 'fa-fire text-[#ffb703]' },
-            { room_id: 'slam', name: 'Slam', description: 'Acción extrema sin censura y debates directos', min_access_level: 2, category: 'slam', icon: 'fa-bolt text-red-500' },
-            { room_id: 'party_time', name: 'Party time', description: 'Zona de fiesta, música y transmisiones nocturnas', min_access_level: 3, category: 'party_time', icon: 'fa-champagne-glasses text-purple-400' }
-        ];
-
-        let rooms = officialRooms;
-        if (category && category !== 'all') {
-            rooms = officialRooms.filter(r => r.category === category);
+    async openVideoRoomsModal() {
+        this.closeModals();
+        this.haptic('medium');
+        
+        const userTier = this.userData?.access_tier || 0;
+        if (userTier < 1 && !this.isAdminUser()) {
+            this.showToast('🚫 Acceso denegado: Rango ESPÍA no autorizado para videollamadas.');
+            this.openCatalogPackages();
+            return;
         }
 
-        this.activeRooms = rooms;
-        if (this.activeRooms.length === 0) {
-            container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">${this.getTrans('no_rooms_category')}</div>`;
-        } else {
-            container.innerHTML = this.activeRooms.map(r => `
-                <div class="bg-black/80 border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex flex-col gap-3 transition shadow-md">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center shrink-0 shadow-inner">
-                                <i class="fa-solid ${r.icon} text-base"></i>
-                            </div>
-                            <div>
-                                <span class="text-sm font-black text-white uppercase tracking-wider block mb-0.5">${this.escapeHtml(r.name)}</span>
-                                <p class="text-[11px] text-neutral-300">${this.escapeHtml(r.description)}</p>
-                            </div>
+        let modal = document.getElementById('modal-video-rooms');
+        if (!modal) {
+            const modalHTML = `
+                <div id="modal-video-rooms" class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black bg-opacity-95 backdrop-blur-md">
+                    <div class="bg-neutral-900 border-2 border-[#00f3ff] rounded-3xl p-6 w-11/12 max-w-lg h-[80vh] flex flex-col shadow-[0_0_25px_rgba(0,243,255,0.3)]">
+                        <div class="flex items-center justify-between mb-4 pb-3 border-b border-[#00f3ff]/30">
+                            <h3 class="text-xl font-black text-[#00f3ff] uppercase tracking-wider"><i class="fa-solid fa-video mr-2"></i> ${this.getTrans('video_rooms_title') || 'SALAS DE VIDEO'}</h3>
+                            <button onclick="app.closeModals()" class="text-neutral-400 hover:text-white font-bold p-1"><i class="fa-solid fa-times text-xl"></i></button>
                         </div>
-                        <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">${this.getTrans('level_prefix')} ${r.min_access_level}</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-800">
-                        <button onclick="app.openRoomChat('${r.room_id}', '${this.escapeHtml(r.name)}', ${r.min_access_level})" class="w-full bg-[#00f3ff]/20 hover:bg-[#00f3ff]/30 text-[#00f3ff] border border-[#00f3ff] font-black py-2.5 rounded-xl text-xs uppercase shadow-md transition text-center flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-comments"></i> ${this.getTrans('btn_chat')}
-                        </button>
-                        <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level}, '${this.escapeHtml(r.name)}')" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-video"></i> ${this.getTrans('btn_video')}
-                        </button>
+                        <div class="flex gap-2 mb-3 overflow-x-auto pb-1 shrink-0 scrollbar-none">
+                            <button onclick="app.filterVideoRooms('all')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">${this.getTrans('btn_all') || 'Todas'}</button>
+                            <button onclick="app.filterVideoRooms('letter_and_gear')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Letter and gear</button>
+                            <button onclick="app.filterVideoRooms('alpha_clothes')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Alpha clothes</button>
+                            <button onclick="app.filterVideoRooms('sweat_and_thongs')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Sweat and thongs</button>
+                            <button onclick="app.filterVideoRooms('slam')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Slam</button>
+                            <button onclick="app.filterVideoRooms('party_time')" class="px-3 py-1.5 bg-neutral-800 hover:bg-[#00f3ff]/20 text-white font-bold text-xs rounded-xl border border-neutral-700 whitespace-nowrap">Party time</button>
+                        </div>
+                        <div id="video-rooms-list" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                            <div class="text-center text-neutral-400 text-xs py-10 font-bold">${this.getTrans('loading_active_rooms') || 'Cargando...'}</div>
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            modal = document.getElementById('modal-video-rooms');
         }
-    } catch (e) {
-        container.innerHTML = `<div class="text-center text-red-400 text-xs py-10">Error al cargar las salas.</div>`;
-    }
-},
+        modal.classList.remove('hidden');
+        await this.loadVideoRooms('all');
+    },
+    async loadVideoRooms(category) {
+        const container = document.getElementById('video-rooms-list');
+        if (!container) return;
+        container.innerHTML = `<div class="text-center text-neutral-400 text-xs py-10">${this.getTrans('loading_rooms') || 'Cargando...'}</div>`;
+        try {
+            const officialRooms = [
+                { room_id: 'letter_and_gear', name: 'Letter and gear', description: 'Equipamiento y estilo táctico oficial', min_access_level: 0, category: 'letter_and_gear', icon: 'fa-gears text-[#00f3ff]' },
+                { room_id: 'alpha_clothes', name: 'Alpha clothes', description: 'Moda y exclusivas del Ecosistema Alpha', min_access_level: 0, category: 'alpha_clothes', icon: 'fa-shirt text-[#ff00ff]' },
+                { room_id: 'sweat_and_thongs', name: 'Sweat and thongs', description: 'Sala de alto voltaje y contenido exclusivo VIP', min_access_level: 1, category: 'sweat_and_thongs', icon: 'fa-fire text-[#ffb703]' },
+                { room_id: 'slam', name: 'Slam', description: 'Acción extrema sin censura y debates directos', min_access_level: 2, category: 'slam', icon: 'fa-bolt text-red-500' },
+                { room_id: 'party_time', name: 'Party time', description: 'Zona de fiesta, música y transmisiones nocturnas', min_access_level: 3, category: 'party_time', icon: 'fa-champagne-glasses text-purple-400' }
+            ];
 
-filterVideoRooms(category) {
-    this.haptic('light');
-    this.loadVideoRooms(category);
-},
+            let rooms = officialRooms;
+            if (category && category !== 'all') {
+                rooms = officialRooms.filter(r => r.category === category);
+            }
 
-async openRoomChat(roomId, roomName, minAccessLevel) {
-    this.haptic('medium');
-    const userTier = this.userData?.access_tier || 0;
-    const isAdmin = this.isAdminUser();
+            this.activeRooms = rooms;
+            if (this.activeRooms.length === 0) {
+                container.innerHTML = `<div class="text-center text-neutral-500 text-xs py-10">${this.getTrans('no_rooms_category') || 'No hay salas disponibles.'}</div>`;
+            } else {
+                container.innerHTML = this.activeRooms.map(r => `
+                    <div class="bg-black/80 border border-neutral-800 hover:border-[#00f3ff]/60 p-4 rounded-2xl flex flex-col gap-3 transition shadow-md">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-neutral-900 border border-neutral-700 flex items-center justify-center shrink-0 shadow-inner">
+                                    <i class="fa-solid ${r.icon} text-base"></i>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-black text-white uppercase tracking-wider block mb-0.5">${this.escapeHtml(r.name)}</span>
+                                    <p class="text-[11px] text-neutral-300">${this.escapeHtml(r.description)}</p>
+                                </div>
+                            </div>
+                            <span class="text-[9px] bg-neutral-900 text-amber-400 px-2.5 py-1 rounded-full border border-amber-500/30 font-bold shrink-0">${this.getTrans('level_prefix') || 'Nivel'} ${r.min_access_level}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-2 border-t border-neutral-800">
+                            <button onclick="app.openRoomChat('${r.room_id}', '${this.escapeHtml(r.name)}', ${r.min_access_level})" class="w-full bg-[#00f3ff]/20 hover:bg-[#00f3ff]/30 text-[#00f3ff] border border-[#00f3ff] font-black py-2.5 rounded-xl text-xs uppercase shadow-md transition text-center flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-comments"></i> ${this.getTrans('btn_chat') || 'Chat'}
+                            </button>
+                            <button onclick="app.joinVideoRoom('${r.room_id}', ${r.min_access_level}, '${this.escapeHtml(r.name)}')" class="w-full bg-[#ff00ff] hover:bg-fuchsia-500 text-white font-black py-2.5 rounded-xl text-xs uppercase shadow-[0_0_10px_rgba(255,0,255,0.4)] transition text-center flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-video"></i> ${this.getTrans('btn_video') || 'Video'}
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {
+            container.innerHTML = `<div class="text-center text-red-400 text-xs py-10">Error al cargar las salas.</div>`;
+        }
+    },
 
-    if (!isAdmin && userTier < minAccessLevel) {
-        this.showToast(`⚠️ Esta sala requiere rango superior (Nivel ${minAccessLevel}).`);
-        this.openCatalogPackages();
-        return;
-    }
+    filterVideoRooms(category) {
+        this.haptic('light');
+        this.loadVideoRooms(category);
+    },
 
-    this.currentRoomId = roomId;
-    this.closeModals();
+    async openRoomChat(roomId, roomName, minAccessLevel) {
+        this.haptic('medium');
+        const userTier = this.userData?.access_tier || 0;
+        const isAdmin = this.isAdminUser();
 
-    const titleEl = document.getElementById('global-chat-title');
-    if (titleEl) titleEl.innerText = `${this.getTrans('room_title_prefix') || 'SALA:'} ${roomName.toUpperCase()}`;
+        if (!isAdmin && userTier < minAccessLevel) {
+            this.showToast(`⚠️ Esta sala requiere rango superior (Nivel ${minAccessLevel}).`);
+            this.openCatalogPackages();
+            return;
+        }
 
-    const container = document.getElementById('global-chat-messages');
-    if (container) container.innerHTML = '';
+        this.currentRoomId = roomId;
+        this.closeModals();
 
-    document.getElementById('modal-global-chat')?.classList.remove('hidden');
-    this.setupSystemMessageObserver('global-chat-messages');
+        const titleEl = document.getElementById('global-chat-title');
+        if (titleEl) {
+            titleEl.innerText = `${roomName.toUpperCase()}`;
+            const subtitleEl = titleEl.nextElementSibling;
+            if (subtitleEl && subtitleEl.tagName === 'P') {
+                subtitleEl.innerHTML = `<i class="fa-solid fa-circle text-[4px] animate-pulse"></i> SALA PRIVADA AISLADA`;
+            }
+        }
 
-    await this.loadGlobalChatHistory();
+        const container = document.getElementById('global-chat-messages');
+        if (container) container.innerHTML = '';
 
-    // 🛡️ Inyección estricta del mensaje de bienvenida traducido según el ID de la sala
-    const welcomeKey = `welcome_${roomId}`;
-    const welcomeText = this.getTrans(welcomeKey) || `Bienvenido a la sala ${roomName}`;
-    this.appendChatMessage({
-        id: 'welcome-' + Date.now(),
-        user_id: 0,
-        author_name: 'Centinela',
-        author_role: 'admin',
-        access_level: 5,
-        content: JSON.stringify({ text: welcomeText, media_url: null, room_id: roomId }),
-        is_system: true,
-        created_at: new Date().toISOString()
-    }, 'global-chat-messages');
+        document.getElementById('modal-global-chat')?.classList.remove('hidden');
+        this.setupSystemMessageObserver('global-chat-messages');
 
-    if (typeof BunkerChat !== 'undefined') {
-        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId, roomName);
-    }
-},
+        await this.loadGlobalChatHistory();
 
-async openGlobalChat() { 
-    this.closeModals(); 
-    
-    this.currentRoomId = 'bunker_main';
-    const titleEl = document.getElementById('global-chat-title');
-    if (titleEl) titleEl.innerText = `${this.getTrans('wall_chat_title') || 'CHAT GLOBAL'}`;
+        if (typeof BunkerChat !== 'undefined') {
+            BunkerChat.initGlobal(this.userId, this.backendUrl, roomId, roomName);
+        }
+    },
 
-    const msgContainer = document.getElementById('global-chat-messages');
-    if (msgContainer) msgContainer.innerHTML = '';
+    async openGlobalChat() { 
+        this.closeModals(); 
+        
+        this.currentRoomId = 'bunker_main';
+        
+        const titleEl = document.getElementById('global-chat-title');
+        if (titleEl) {
+            titleEl.innerText = `${this.getTrans('wall_chat_title') || 'CHAT GLOBAL'}`;
+            const subtitleEl = titleEl.nextElementSibling;
+            if (subtitleEl && subtitleEl.tagName === 'P') {
+                subtitleEl.innerHTML = `<i class="fa-solid fa-circle text-[4px] animate-pulse"></i> Búnker Live`;
+            }
+        }
 
-    document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
-    this.updateOnlineUsersRadar();
-    this.setupSystemMessageObserver('global-chat-messages'); 
-    
-    await this.loadGlobalChatHistory(); 
+        const msgContainer = document.getElementById('global-chat-messages');
+        if (msgContainer) msgContainer.innerHTML = '';
 
-    // 🛡️ Saludo oficial traducido en los 6 idiomas para el Búnker Principal
-    const welcomeText = this.getTrans('welcome_bunker_main') || "🔱 Bienvenidos al Búnker Principal. Relájate y comienza a disfrutar.";
-    this.appendChatMessage({
-        id: 'welcome-' + Date.now(),
-        user_id: 0,
-        author_name: 'Centinela',
-        author_role: 'admin',
-        access_level: 5,
-        content: JSON.stringify({ text: welcomeText, media_url: null, room_id: 'bunker_main' }),
-        is_system: true,
-        created_at: new Date().toISOString()
-    }, 'global-chat-messages');
+        document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
+        this.updateOnlineUsersRadar();
+        this.setupSystemMessageObserver('global-chat-messages'); 
+        
+        await this.loadGlobalChatHistory(); 
 
-    if (typeof BunkerChat !== 'undefined') {
-        BunkerChat.initGlobal(this.userId, this.backendUrl, 'bunker_main', 'Búnker Principal'); 
-    }
-},
+        if (typeof BunkerChat !== 'undefined') {
+            BunkerChat.initGlobal(this.userId, this.backendUrl, 'bunker_main'); 
+        }
+    },
 
-async joinVideoRoom(roomId, minAccessLevel, roomName) {
-    this.haptic('medium');
-    const userTier = this.userData?.access_tier || 0;
-    const isAdmin = this.isAdminUser();
+    async joinVideoRoom(roomId, minAccessLevel, roomName) {
+        this.haptic('medium');
+        const userTier = this.userData?.access_tier || 0;
+        const isAdmin = this.isAdminUser();
 
-    if (!isAdmin && userTier < minAccessLevel) {
-        this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
-        this.openCatalogPackages();
-        return;
-    }
+        if (!isAdmin && userTier < minAccessLevel) {
+            this.showToast(`⚠️ Esta sala requiere un rango superior (Nivel ${minAccessLevel}).`);
+            this.openCatalogPackages();
+            return;
+        }
 
-    this.currentRoomId = roomId;
-    this.closeModals();
-    
-    Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
+        this.currentRoomId = roomId;
+        this.closeModals();
+        
+        Object.keys(this.peerConnections || {}).forEach(id => this.closePeerConnection(id));
 
-    const badge = document.getElementById('video-badge');
-    if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • ${this.getTrans('preview_badge') || 'PREVISUALIZACIÓN'}`;
-    
-    const titleEl = document.getElementById('global-chat-title');
-    if (titleEl) titleEl.innerText = `${this.getTrans('room_title_prefix') || 'SALA:'} ${(roomName || roomId).toUpperCase()}`;
+        const badge = document.getElementById('video-badge');
+        if (badge) badge.innerText = `${(roomName || roomId).toUpperCase()} • ${this.getTrans('preview_badge') || 'PREVISUALIZACIÓN'}`;
+        
+        const titleEl = document.getElementById('global-chat-title');
+        if (titleEl) {
+            titleEl.innerText = `${roomName.toUpperCase()}`;
+            const subtitleEl = titleEl.nextElementSibling;
+            if (subtitleEl && subtitleEl.tagName === 'P') {
+                subtitleEl.innerHTML = `<i class="fa-solid fa-circle text-[4px] animate-pulse"></i> SALA DE VIDEO ACTIVA`;
+            }
+        }
 
-    const container = document.getElementById('global-chat-messages');
-    if (container) container.innerHTML = '';
+        const container = document.getElementById('global-chat-messages');
+        if (container) container.innerHTML = '';
 
-    await this.joinVideoBunker();
-    await this.loadGlobalChatHistory();
-    
-    // 🛡️ Conexión WebRTC aislada con nombre de sala
-    if (typeof BunkerChat !== 'undefined') {
-        BunkerChat.initGlobal(this.userId, this.backendUrl, roomId, roomName);
-    }
-},
+        await this.joinVideoBunker();
+        await this.loadGlobalChatHistory();
+        
+        if (typeof BunkerChat !== 'undefined') {
+            BunkerChat.initGlobal(this.userId, this.backendUrl, roomId);
+        }
+    },
 
-    // 🪙 LIVE TIPPING EN TRANSMISIONES
+    async loadGlobalChatHistory() { 
+        const container = document.getElementById('global-chat-messages'); 
+        if (container) container.innerHTML = ''; 
+        try { 
+            const roomId = this.currentRoomId || 'bunker_main';
+            const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50&room_id=${roomId}&t=${Date.now()}`); 
+            if (res.ok) { 
+                const data = await res.json(); 
+                if (data.messages && data.messages.length > 0) { 
+                    const now = Date.now();
+                    const freshGlobal = data.messages.filter(msg => {
+                        if ((now - new Date(msg.created_at).getTime()) >= 48 * 60 * 60 * 1000) return false;
+                        
+                        let parsedContent;
+                        try { parsedContent = JSON.parse(msg.content); } catch(e) {}
+                        if (parsedContent && parsedContent.room_id && parsedContent.room_id !== roomId) return false;
+
+                        if (typeof msg.content === 'string') {
+                            const trim = msg.content.trim();
+                            if ((trim.startsWith('{') || trim.startsWith('[')) && 
+                                (trim.includes('"type"') || trim.includes('"radar_update"') || trim.includes('"leave_video"'))) {
+                                return false; 
+                            }
+                        }
+                        return true;
+                    });
+                    
+                    freshGlobal.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); 
+                    this.scrollToBottom('global-chat-messages'); 
+                } 
+            } 
+        } catch (e) {} 
+    },
+
     async sendLiveTip(streamerId, amountAlpha) {
         this.haptic('heavy');
         if (!streamerId || amountAlpha <= 0) return;
@@ -2060,7 +2025,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         if (avatarEl) avatarEl.classList.add('hidden');
         if (defaultIconEl) defaultIconEl.style.display = 'block';
 
-        // 🛡️ SINCRONIZACIÓN INMEDIATA: Si es el usuario actual, reflejar su estado online real
         const currentSelfOnline = this.userData?.isOnline !== false;
         if (isSelf) {
             if (statusEl) {
@@ -2101,7 +2065,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
                 }
                 if (data.bio && bioEl) { bioEl.innerText = data.bio; }
                 
-                // Si no es el propio usuario, actualizar con los datos devueltos por el backend
                 if (!isSelf && dotEl && statusEl) {
                     if (data.is_online) {
                         dotEl.classList.remove('hidden');
@@ -2184,28 +2147,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             if (postsContainer) postsContainer.innerHTML = `<div class="text-center text-red-400 text-xs py-4">${this.getTrans('msg_no_posts') || 'Error al cargar publicaciones.'}</div>`;
         }
     },
-
-    async openGlobalChat() { 
-        this.closeModals(); 
-        
-        // 🛡️ Forzar sala global
-        this.currentRoomId = 'bunker_main';
-        const titleEl = document.getElementById('global-chat-title');
-        if (titleEl) titleEl.innerText = `${this.getTrans('wall_chat_title')}`;
-
-        const msgContainer = document.getElementById('global-chat-messages');
-        if (msgContainer) msgContainer.innerHTML = '';
-
-        document.getElementById('modal-global-chat')?.classList.remove('hidden'); 
-        this.updateOnlineUsersRadar();
-        this.setupSystemMessageObserver('global-chat-messages'); 
-        
-        await this.loadGlobalChatHistory(); 
-        if (typeof BunkerChat !== 'undefined') {
-            BunkerChat.initGlobal(this.userId, this.backendUrl, 'bunker_main'); 
-        }
-    },
-
     handleRadarUpdate(data) {
         const chipsChat = document.getElementById('online-users-chips');
         const chipsVideo = document.getElementById('bunker-video-active-members');
@@ -2240,45 +2181,9 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
     updateOnlineUsersRadar() {
         const userName = localStorage.getItem('alpha_user_name') || 'mastertom';
         this.handleRadarUpdate({ user_id: this.userId, name: userName, status: 'online' });
-        if (typeof BunkerChat !== 'undefined' && BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) {
+        if (typeof BunkerChat !== 'undefined' && BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === WebSocket.OPEN) {
             BunkerChat.sendGlobal(JSON.stringify({ type: "radar_update", user_id: this.userId, name: userName, status: "online" }));
         }
-    },
-
-    async loadGlobalChatHistory() { 
-        const container = document.getElementById('global-chat-messages'); 
-        if (container) container.innerHTML = ''; 
-        try { 
-            // 🛡️ Solicitar historial filtrado por room_id
-            const roomId = this.currentRoomId || 'bunker_main';
-            const res = await fetch(`${this.backendUrl}/chat/global/history?limit=50&room_id=${roomId}`); 
-            if (res.ok) { 
-                const data = await res.json(); 
-                if (data.messages && data.messages.length > 0) { 
-                    const now = Date.now();
-                    const freshGlobal = data.messages.filter(msg => {
-                        // 1. Descartar mensajes de más de 24h
-                        if ((now - new Date(msg.created_at).getTime()) >= 24 * 60 * 60 * 1000) return false;
-                        
-                        // 2. Filtro estricto: Mostrar SOLO los mensajes correspondientes a esta sala
-                        if (msg.room_id && msg.room_id !== roomId) return false;
-
-                        // 3. Destruir JSONs técnicos residuales atrapados en la Base de Datos
-                        if (typeof msg.content === 'string') {
-                            const trim = msg.content.trim();
-                            if ((trim.startsWith('{') || trim.startsWith('[')) && 
-                                (trim.includes('"type"') || trim.includes('"radar_update"') || trim.includes('"leave_video"'))) {
-                                return false; 
-                            }
-                        }
-                        return true;
-                    });
-                    
-                    freshGlobal.forEach(msg => this.appendChatMessage(msg, 'global-chat-messages')); 
-                    this.scrollToBottom('global-chat-messages'); 
-                } 
-            } 
-        } catch (e) {} 
     },
 
     async sendWebRTCOffer(targetId) {
@@ -2471,12 +2376,10 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         const container = document.getElementById(containerId); 
         if (!container || !msg) return;
 
-        // 🛡️ Filtro estricto anti-JSON técnico
         if (msg.type && (msg.type.startsWith('webrtc_') || msg.type === 'radar_update' || msg.type === 'leave_video' || msg.type === 'join_video' || msg.type === 'online_count_update')) {
             return;
         }
 
-        // Extracción robusta del contenido para limpiar llaves y comillas
         let textContent = '', mediaUrl = null;
         if (typeof msg.content === 'object' && msg.content !== null) {
             textContent = msg.content.text || '';
@@ -2605,9 +2508,10 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         if (!text && !this.tempChatMediaData) return;
         
         const payload = JSON.stringify({ text: text, media_url: this.tempChatMediaData });
+        
         if (!BunkerChat.globalSocket || BunkerChat.globalSocket.readyState !== 1) { 
             const currentRoom = this.currentRoomId || 'bunker_main';
-            BunkerChat.initGlobal(this.userId, this.backendUrl, currentRoom, BunkerChat.getRoomDisplayName(currentRoom), true); 
+            BunkerChat.initGlobal(this.userId, this.backendUrl, currentRoom); 
             setTimeout(() => { 
                 if (BunkerChat.globalSocket && BunkerChat.globalSocket.readyState === 1) { 
                     BunkerChat.sendGlobal(payload); 
@@ -2617,6 +2521,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             }, 1500); 
             return; 
         }
+        
         if (BunkerChat.sendGlobal(payload)) { 
             if (input) input.value = ''; 
             this.clearChatMedia('global'); 
@@ -2674,7 +2579,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             const cachedCamId = localStorage.getItem('alpha_preferred_cam');
             const cachedMicId = localStorage.getItem('alpha_preferred_mic');
             
-            // 🛡️ Restricciones normalizadas a 1280x720 para estabilizar el canvas en Electron
             let videoConstraints = {
                 width: { ideal: 1280 },
                 height: { ideal: 720 },
@@ -2692,7 +2596,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             try { 
                 stream = await navigator.mediaDevices.getUserMedia(constraints); 
             } catch (e) { 
-                // Fallback básico si el dispositivo rechaza las dimensiones ideales
                 stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); 
             }
 
@@ -2705,7 +2608,7 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
             const placeholder = document.getElementById('cam-loading-placeholder');
             if (videoElem) { 
                 videoElem.srcObject = this.activeWebcamStream; 
-                videoElem.muted = true; // Previene bucle de audio local
+                videoElem.muted = true; 
                 videoElem.play(); 
                 videoElem.classList.remove('hidden'); 
             }
@@ -3056,7 +2959,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
 
         const visiblePosts = posts.filter(p => !blockedUsers.includes(String(p.creator_id || p.user_id)));
 
-        // 🛡️ AQUÍ ESTÁ LA TRADUCCIÓN DINÁMICA DEL MURO VACÍO
         if (visiblePosts.length === 0) { 
             feedContainer.innerHTML = `<div class="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 text-center text-neutral-400 font-bold" id="msg-no-posts">${this.getTrans('msg_no_posts')}</div>`; 
             return; 
@@ -3163,7 +3065,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         }
         this.showToast('Redirigiendo a pasarela Skrill... 💳');
         setTimeout(() => {
-            // Usamos el método nativo de la app para asegurar apertura externa en Telegram
             this.openLink(targetUrl);
         }, 1000);
     },
@@ -3171,7 +3072,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
     selectCreatorRole() { this.closeModals(); },
     selectFanRole() { this.closeModals(); },
 
-    // 🛡️ Observer para scroll automático de mensajes
     setupSystemMessageObserver(containerId) {
         const container = document.getElementById(containerId);
         if (!container || container._hasObserver) return;
@@ -3182,7 +3082,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         observer.observe(container, { childList: true, subtree: true });
     },
 
-    // 📱 Control del Menú Lateral Deslizable (Sidebar Drawer)
     openSidebar() {
         const sidebar = document.getElementById('telegram-sidebar');
         const backdrop = document.getElementById('sidebar-backdrop');
@@ -3197,7 +3096,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         if (backdrop) backdrop.classList.remove('backdrop-open');
     },
 
-    // 🌟 Gestión de los 10 Slots Persistentes
     openSlotsModal() {
         const modal = document.getElementById('modal-slots');
         if (modal) modal.classList.remove('hidden');
@@ -3225,7 +3123,6 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         container.innerHTML = html;
     },
 
-    // 🛡️ AQUÍ ESTÁ LA TRADUCCIÓN DINÁMICA DEL TOAST DE GUARDADO
     saveAllSlots() {
         for (let i = 1; i <= 10; i++) {
             const input = document.getElementById(`slot-input-${i}`);
@@ -3235,6 +3132,51 @@ async joinVideoRoom(roomId, minAccessLevel, roomName) {
         }
         this.showToast(this.getTrans('toast_10_slots_saved') || '¡Los 10 slots se guardaron con éxito en tu perfil!');
         this.closeSlotsModal();
+    },
+
+    exitApp() { 
+        if(window.Telegram?.WebApp) { window.Telegram.WebApp.close(); } else { window.close(); } 
+    },
+    
+    logout() { 
+        this.haptic('heavy'); 
+        localStorage.clear(); 
+        window.location.reload(); 
+    },
+    
+    setRegisterRole(role) { 
+        this.registerRoleSelected = role; 
+        this.haptic('light'); 
+        document.getElementById('reg-role-fan')?.classList.toggle('bg-[#ff00ff]/20', role==='fan'); 
+        document.getElementById('reg-role-creator')?.classList.toggle('bg-[#ff00ff]/20', role==='creator'); 
+    },
+    
+    loginWithPhone() { 
+        this.haptic('medium'); this.switchView('feed'); this.executeAutoLogin(); 
+    },
+    
+    loginWithTelegram() { 
+        this.haptic('medium'); this.switchView('feed'); this.executeAutoLogin(); 
+    },
+    
+    registerWithData() { 
+        this.haptic('medium'); this.switchView('feed'); this.executeAutoLogin(); 
+    },
+    
+    triggerAvatarInput() { 
+        document.getElementById('avatar-file-input')?.click(); 
+    },
+    
+    handleAvatarChange(event) { 
+        this.previewImage(event); 
+    },
+    
+    saveProfile() { 
+        this.haptic('medium'); this.showToast(this.getTrans('toast_profile_saved') || '¡Perfil actualizado con éxito!'); 
+    },
+    
+    openKYCModal() { 
+        this.showToast('El módulo KYC se está conectando...'); 
     }
 };
 
@@ -3261,7 +3203,7 @@ document.addEventListener("DOMContentLoaded", () => {
         window.addEventListener('focus', removePrivacyBlackout);
         document.addEventListener('contextmenu', event => event.preventDefault());
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('Contenido protegido'); app.showToast('Capturas bloqueadas'); }
+            if (e.key === 'PrintScreen' || e.keyCode === 44) { navigator.clipboard.writeText('Contenido protegido'); app.showToast(app.getTrans('toast_screenshots_blocked') || 'Capturas bloqueadas'); }
             if (e.keyCode === 123 || (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67))) e.preventDefault();
         });
     } else {
