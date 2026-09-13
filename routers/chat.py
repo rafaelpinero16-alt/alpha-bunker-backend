@@ -12,6 +12,7 @@ from database.models import User, ChatMessage, Wallet, Transaction, VideoRoom
 
 router = APIRouter(prefix="/chat", tags=["Chat En Vivo y CRM"])
 
+# 🛡️ ConnectionManager Multipunto para DMs, Chat Global y Videochats por Sala
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
@@ -34,6 +35,7 @@ class ConnectionManager:
             if not self.user_connections[user_id]:
                 del self.user_connections[user_id]
         
+        # Remover de salas activas si estaba suscrito
         for room_id, sockets in list(self.room_connections.items()):
             if websocket in sockets:
                 sockets.remove(websocket)
@@ -132,8 +134,8 @@ def ensure_chat_schema(db: Session):
 
 def clean_old_messages(db: Session):
     try:
-        # 🛡️ Limpieza automática ampliada a 72 horas para mantener el flujo limpio
-        time_threshold = datetime.utcnow() - timedelta(hours=72)
+        # 🛡️ Limpieza automática estrictamente a 48 horas por sala
+        time_threshold = datetime.utcnow() - timedelta(hours=48)
         db.query(ChatMessage).filter(ChatMessage.created_at < time_threshold).delete()
         db.commit()
     except Exception:
@@ -154,6 +156,8 @@ class CreateRoomRequest(BaseModel):
     is_private: bool = False
     price_alpha: int = 0
 
+# --- GESTIÓN DE SALAS DE VIDEOCHAT POR CATEGORÍAS ---
+
 @router.get("/rooms")
 def get_video_rooms(category: Optional[str] = None, db: Session = Depends(get_db)):
     ensure_chat_schema(db)
@@ -164,7 +168,7 @@ def get_video_rooms(category: Optional[str] = None, db: Session = Depends(get_db
     rooms = query.all()
     
     if not rooms:
-        # 🛡️ Las 6 salas oficiales y aisladas del Búnker
+        # 🛡️ Las 6 salas oficiales y aisladas del Búnker (Temáticas independientes tipo Telegram)
         default_rooms = [
             VideoRoom(room_id="bunker_main", name="Búnker Principal", category="general", description="Sala global de la comunidad", min_access_level=0, min_broadcast_level=1),
             VideoRoom(room_id="letter_and_gear", name="Letter and gear", category="letter_and_gear", description="Equipamiento y estilo táctico oficial", min_access_level=0, min_broadcast_level=1),
@@ -213,6 +217,8 @@ def create_video_room(req: CreateRoomRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_room)
     return {"status": "success", "room": new_room}
+
+# --- CONTROL Y MENSAJERÍA CRM / DMs ---
 
 @router.post("/delete_message")
 async def delete_chat_message(req: DeleteMsgRequest, db: Session = Depends(get_db)):
@@ -383,12 +389,13 @@ def get_chat_history(
     messages = query.order_by(ChatMessage.created_at.desc()).limit(limit).all()
     return {"status": "success", "messages": messages[::-1]}
 
+# 🛡️ OBTENER HISTORIAL DE CHAT AISLADO ESTRICTAMENTE POR SALA (TIPO HILO DE TELEGRAM)
 @router.get("/global/history")
 def get_global_chat_history(room_id: str = "bunker_main", limit: int = 50, db: Session = Depends(get_db)):
     ensure_chat_schema(db)
     clean_old_messages(db)
     
-    messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(150).all()
+    messages = db.query(ChatMessage).filter(ChatMessage.author_name.like("[Global]%")).order_by(ChatMessage.created_at.desc()).limit(200).all()
     
     filtered_messages = []
     for msg in messages:
@@ -396,7 +403,7 @@ def get_global_chat_history(room_id: str = "bunker_main", limit: int = 50, db: S
             content_data = json.loads(msg.content)
             msg_room = content_data.get("room_id", "bunker_main")
             if msg_room == room_id:
-                if "radar_update" in msg.content or "leave_video" in msg.content or "webrtc_" in msg.content or "join_video" in msg.content:
+                if any(telemetry in msg.content for telemetry in ["radar_update", "leave_video", "webrtc_", "join_video"]):
                     continue
                 filtered_messages.append(msg)
         except:
@@ -407,6 +414,8 @@ def get_global_chat_history(room_id: str = "bunker_main", limit: int = 50, db: S
             break
             
     return {"status": "success", "messages": filtered_messages[::-1]}
+
+# --- CHAT GLOBAL, WEBRTC CATEGORIZADO Y LIVE TIPPING ---
 
 @router.websocket("/global/ws/{user_id}")
 async def global_websocket_endpoint(websocket: WebSocket, user_id: int, room_id: str = "bunker_main", db: Session = Depends(get_db)):
